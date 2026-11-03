@@ -50,6 +50,20 @@ Memory and neural parameter learning are separate systems with different latency
 
 General-corpus training and personal training also retain separate dataset lineage. The general bootstrap corpus is not a license to train on personal conversations or captured screen content.
 
-## 8. Instance-local memory
+## 8. Autonomous public knowledge acquisition
+
+The intended acquisition path is:
+
+topic policy → source eligibility → bounded fetch → provenance and quality gates → local knowledge store → retrieval index
+
+The acquisition subsystem is separate from the neural model and can begin with deterministic topics and a reviewed source registry. A more capable model may later propose knowledge gaps or new topics, but those proposals remain subject to source policy, user settings and resource limits.
+
+Every accepted record must retain source identity, canonical location, retrieval time, applicable rights, content digest, extraction version, quality state and links to derived artifacts. Records with uncertain rights or quality remain held or retrieval-restricted; permission to fetch does not automatically permit redistribution or neural training.
+
+Accepted knowledge may be used through retrieval without modifying model weights. Only a separately reviewed, rights-eligible and versioned corpus candidate may enter general neural training. Retrieved web content is untrusted context and must never override Argus policy or authorize tool execution.
+
+See [24 — Autonomous Knowledge Acquisition](24_AUTONOMOUS_KNOWLEDGE_ACQUISITION.md) for the full lifecycle and acceptance criteria.
+
+## 9. Instance-local memory
 
 All memory, embeddings, summaries, skill records and model parameters belong to one Argus instance. No cross-user memory pool, central semantic store or automatic memory synchronization is planned. Any future user-directed export or device migration must be separately specified, encrypted, explicit and independently revocable; it must not introduce background sharing.

@@ -1,6 +1,6 @@
 # Argus Engineering Documentation
 
-**Review date:** 2026-11-03 · **Status:** Design baseline · **Branch:** master · **Scope:** Documentation only
+**Review date:** 2026-11-03 · **Status:** Design baseline · **Branch:** main · **Scope:** Documentation only
 
 This directory is the engineering source of truth for Argus planning. It distinguishes accepted design direction, current repository facts, unresolved research and future implementation. A design document does not prove a capability exists in the application.
 
@@ -20,6 +20,7 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 6. **Device adaptation:** initial model configuration follows measured device capability; runtime workload follows live device conditions.
 7. **Architecture research first:** no initial neural architecture family has been selected.
 8. **Independent instances:** no central learning server, federated training, automatic model synchronization, shared gradients or cross-user weight exchange.
+9. **Autonomous knowledge acquisition:** each installation is intended to discover, collect, validate and retain permitted public knowledge for its own local instance; retrieval and neural training remain separate.
 
 ## Documentation rules
 
@@ -61,6 +62,7 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 | [21 — Device-Adaptive Model and Training](21_DEVICE_ADAPTIVE_MODEL_AND_TRAINING.md) | Device profiling, configuration and live workload control |
 | [22 — General Corpus and Personal Learning](22_GENERAL_CORPUS_AND_PERSONAL_LEARNING.md) | Small C4 bootstrap, data governance and personal adaptation |
 | [23 — Neural Architecture Research Plan](23_NEURAL_ARCHITECTURE_RESEARCH_PLAN.md) | Candidate families and evidence-based selection |
+| [24 — Autonomous Knowledge Acquisition](24_AUTONOMOUS_KNOWLEDGE_ACQUISITION.md) | Self-directed public-source discovery, source policy, local knowledge and training handoff |
 
 ## Status vocabulary
 
@@ -75,6 +77,6 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 
 ## Change control and completion
 
-Material decisions belong in [01 — System Requirements and Decisions](01_SYSTEM_REQUIREMENTS_AND_DECISIONS.md). Unresolved questions belong in [16 — Roadmap and Research Register](16_ROADMAP_RESEARCH_REGISTER.md). Detailed Genesis, device adaptation, corpus and architecture research belongs in documents 20–23.
+Material decisions belong in [01 — System Requirements and Decisions](01_SYSTEM_REQUIREMENTS_AND_DECISIONS.md). Unresolved questions belong in [16 — Roadmap and Research Register](16_ROADMAP_RESEARCH_REGISTER.md). Detailed Genesis, device adaptation, corpus, architecture and autonomous acquisition research belongs in documents 20–24.
 
 The documentation phase ends only when requirements, architecture, model and tokenizer research, corpus governance, resource budgets, verification strategy and cross-document consistency have been reviewed. Passing that gate authorizes an implementation-plan review only. It does not automatically authorize coding, builds or workflow execution.

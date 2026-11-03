@@ -24,14 +24,19 @@ Screen capture, camera and AccessibilityService are distinct high-risk features.
 
 ## 4. Network policy
 
-"Local-first" allows explicit exceptions without ambiguity:
-- local inference and memory work offline;
-- user-triggered web fetch sends a request to the selected destination;
-- model downloads contact configured sources;
-- telemetry, analytics and silent private-content upload are prohibited;
-- sync requires separate opt-in, scope, encryption and deletion design.
+"Local-first" allows explicit, bounded network operations without treating the local instance as a remote training service:
 
-Document destinations, DNS/HTTP behavior, redirects, TLS validation and local audit records.
+- Local inference and memory work offline.
+- User-triggered web fetch sends a request to the selected destination.
+- Autonomous public-source acquisition may schedule outbound requests only after the owner has been informed and the feature/network policy has been enabled.
+- Autonomous acquisition uses general topic queries and approved public-source scopes. It must not silently attach private conversations, personal files, screenshots, memory records or profile details to search requests.
+- Source allowlists, terms, robots directives, rate limits, redirect validation, TLS validation, response-size limits and local provenance records apply to every acquisition job.
+- Model downloads contact configured sources.
+- Telemetry, analytics and silent private-content upload are prohibited.
+- Acquired corpora, local model weights, optimizer state, checkpoints and gradients are not uploaded to a central Argus service or external AI customer.
+- Any future sync or export requires separate opt-in, scope, encryption and deletion design.
+
+Network requests necessarily disclose ordinary request metadata to remote destinations. Document configured providers, destination domains, DNS/HTTP behavior, redirects, TLS validation, request metadata and local audit records. See [24 — Autonomous Knowledge Acquisition](24_AUTONOMOUS_KNOWLEDGE_ACQUISITION.md).
 
 ## 5. Prompt injection and tool safety
 

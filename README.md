@@ -37,6 +37,16 @@ A newly initialized model is not already a competent language assistant. Random 
 
 See [Argus Genesis Engine](docs/20_ARGUS_GENESIS_ENGINE.md).
 
+## Autonomous knowledge acquisition
+
+After Genesis, each Argus instance is intended to discover and collect permitted public knowledge for its own local use. It processes sources, checks provenance and quality, stores accepted knowledge locally, and makes it available through retrieval. Eligible material may later enter a separate, versioned general-training pipeline.
+
+The initial collector does not depend on an immature neural model: deterministic topic policies and a reviewed source registry provide the starting point. Once the model and retrieval path pass defined quality gates, the model may propose new topics and knowledge gaps. Policy checks, source restrictions, resource budgets and user controls remain authoritative.
+
+This is not a third-party data-collection service or a shared dataset network. Each installation owns its acquisition state and knowledge. Public-source retrieval does not authorize uploading personal conversations, local files, model weights or checkpoints. Collected information can be used for retrieval without changing model parameters; neural training remains a separate quality- and evaluation-gated operation.
+
+See [Autonomous Knowledge Acquisition](docs/24_AUTONOMOUS_KNOWLEDGE_ACQUISITION.md).
+
 ## Device-adaptive model and training
 
 Argus does not have one universal parameter count, layer count, batch size or training duration.
@@ -88,6 +98,7 @@ The documents under [docs/](docs/README.md) are the planning source of truth. Th
 | [21 — Device-Adaptive Model and Training](docs/21_DEVICE_ADAPTIVE_MODEL_AND_TRAINING.md) | Hardware capability and live workload control |
 | [22 — General Corpus and Personal Learning](docs/22_GENERAL_CORPUS_AND_PERSONAL_LEARNING.md) | Bundled bootstrap data and user-specific learning |
 | [23 — Neural Architecture Research Plan](docs/23_NEURAL_ARCHITECTURE_RESEARCH_PLAN.md) | Architecture candidate comparison and selection gates |
+| [24 — Autonomous Knowledge Acquisition](docs/24_AUTONOMOUS_KNOWLEDGE_ACQUISITION.md) | Self-directed public-source discovery, local knowledge processing and training handoff |
 
 ## Current implementation status
 

@@ -5,7 +5,7 @@
 
 ## 1. Purpose
 
-Argus begins with a bundled offline general-learning corpus and later adapts to the individual user's experience. The corpus is a bootstrap source, not the complete knowledge of Argus and not a pretrained model.
+Argus begins general foundation learning with a bundled offline bootstrap corpus and is intended to expand its general knowledge through autonomous, policy-controlled acquisition from permitted public sources. It also adapts to the individual user's experience through a separate personal-learning path. The bootstrap corpus is neither the complete knowledge of Argus nor a pretrained model.
 
 General foundation learning and personal learning remain separate in provenance, permission, evaluation and retention.
 
@@ -109,7 +109,19 @@ The local package is validated before use. The scheduler reads it in bounded sha
 
 General training becomes eligible after the initial model generation is committed and the application is ready. It runs in resumable background work and follows the device-adaptive training controller. It can be deferred by system conditions or user policy without blocking the app.
 
-## 8. Personal learning
+## 8. Autonomous general knowledge acquisition
+
+Small C4 is the initial bootstrap candidate, not the permanent or exclusive source of general knowledge. After Genesis readiness, each instance is intended to run a separate acquisition engine that discovers and collects permitted public information for its own local knowledge store.
+
+The first discovery cycle uses deterministic topic policies and a reviewed source registry because a newly initialized model cannot yet be trusted to direct its own research. Model-assisted discovery may be introduced only after defined model and retrieval quality gates pass. Model suggestions remain subject to source eligibility, network policy, user controls and resource budgets.
+
+Acquisition output is processed for provenance, rights, quality, language, sensitivity and duplication. Accepted records may become searchable through local retrieval without changing model weights. Only records with verified provenance and permitted training use may be included in an immutable general-training corpus candidate.
+
+This general acquisition path must not ingest private user interactions or personal files. It does not collect information for external AI companies, share corpora across installations or upload model state. Personal context used to direct learning belongs to the separate personal-learning permission lifecycle.
+
+See [24 — Autonomous Knowledge Acquisition](24_AUTONOMOUS_KNOWLEDGE_ACQUISITION.md) for source eligibility, processing, storage, safety, scheduling and acceptance requirements.
+
+## 9. Personal learning
 
 Personal learning is intended to adapt to the individual:
 - The user's language and communication patterns.
@@ -121,13 +133,13 @@ The source must have a clear permission scope. Platform permission, an open chat
 
 Use inspectable memory first when it meets the use case. Parameter learning is a separate, validated batch operation. General-corpus training must not ingest personal records, and personal training must not silently alter the general corpus.
 
-## 9. Evaluation separation
+## 10. Evaluation separation
 
 General evaluation measures performance on held-out general data and relevant language-quality checks. Personal evaluation measures only user-approved tasks/facts within the same instance.
 
 Track both after personal updates to detect catastrophic forgetting. A candidate that improves personal metrics but materially regresses general capability must not be promoted without an explicit reviewed policy.
 
-## 10. Explicit non-goals
+## 11. Explicit non-goals
 
 - Small C4 is not a complete world-knowledge dataset.
 - Small C4 is not a pretrained model.

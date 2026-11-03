@@ -105,7 +105,9 @@ Expensive deterministic corpus preparation should be preprocessed before distrib
 
 ## 6. Post-Genesis learning
 
-General learning begins from the bundled bootstrap corpus according to the background scheduler. Personal learning starts only under its own permissions and candidate-approval policy.
+General foundation learning begins from the bundled bootstrap corpus according to the background scheduler. The separate Autonomous Knowledge Acquisition Engine may also begin bounded public-source discovery after readiness and owner enablement; it stores accepted knowledge locally for retrieval and prepares training candidates through an independent rights and quality gate. Personal learning starts only under its own permissions and candidate-approval policy.
+
+The acquisition engine does not depend on a capable neural model at startup. Its first discovery cycle uses deterministic topic policies and a reviewed source registry. Model-assisted topic proposals are a later capability and remain policy-controlled. See [24 — Autonomous Knowledge Acquisition](24_AUTONOMOUS_KNOWLEDGE_ACQUISITION.md).
 
 The scheduler may defer work because of thermal pressure, low memory, battery/power mode, storage pressure, user preference or Android lifecycle restrictions. Deferral is not failure. The job must resume from a valid checkpoint.
 

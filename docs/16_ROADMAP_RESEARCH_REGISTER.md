@@ -1,6 +1,6 @@
 # Roadmap and Technology Research Register
 
-**Review date:** 2026-11-03 · **Status:** Planning baseline · **Branch:** master
+**Review date:** 2026-11-03 · **Status:** Planning baseline · **Branch:** main
 
 ## 1. Accepted product direction
 
@@ -14,14 +14,15 @@ Argus follows **Local Knowledge Genesis** and **One Origin, Independent Evolutio
 - Model configuration follows device capability; training workload follows live device conditions.
 - The initial neural architecture remains subject to research.
 - No central training server, federated training, cross-user model sharing or automatic model synchronization is planned.
+- Each instance is intended to acquire permitted public knowledge for its own local use; accepted knowledge supports retrieval first and enters neural training only through a separate quality, rights and evaluation gate.
 
 ## 2. Phases
 
 ### Phase 0 — Documentation and research (current)
-Maintain the source/build baseline and P0 audit. Complete architecture-family research, tokenizer research, corpus provenance/quality review, Genesis lifecycle, device capability and adaptive training specifications. No source implementation, build or workflow execution belongs to this phase unless separately authorized.
+Maintain the source/build baseline and P0 audit. Complete architecture-family research, tokenizer research, corpus provenance/quality review, Genesis lifecycle, device capability and adaptive training specifications, and the autonomous acquisition source/policy contract. No source implementation, build or workflow execution belongs to this phase unless separately authorized.
 
 ### Phase 1 — Architecture decision review (not started)
-Choose the first architecture only after comparative evidence. Approve tokenizer contract, Small C4 revision and preprocessing, per-device configuration policy, training objective/optimizer profile, Genesis readiness contract, personal data lifecycle and verification plan. Record decisions in ADRs.
+Choose the first architecture only after comparative evidence. Approve tokenizer contract, Small C4 revision and preprocessing, per-device configuration policy, training objective/optimizer profile, Genesis readiness contract, autonomous acquisition source eligibility and local data lifecycle, personal data lifecycle and verification plan. Record decisions in ADRs.
 
 ### Phase 2 — Implementation planning (not started)
 Create a dependency-ordered engineering plan with acceptance criteria, numerical tests, Android lifecycle tests, migration and rollback. Resolve how the current Kotlin prototype is isolated, replaced or retained for limited experiments. No broad implementation begins before P0 remediation is reviewed.
@@ -30,7 +31,7 @@ Create a dependency-ordered engineering plan with acceptance criteria, numerical
 Implement device profiling, architecture graph/registry, module initialization policies, model identity, complete model-state persistence and first-launch readiness. No pretraining is required before application unlock.
 
 ### Phase 4 — General background learning (not authorized)
-Implement bundled-corpus ingestion, tokenizer, from-scratch training, scheduler, checkpoint/recovery and general evaluation. Background work begins only after initial Genesis commit and app readiness.
+Implement bundled-corpus ingestion, tokenizer, from-scratch training, scheduler, checkpoint/recovery and general evaluation. In a separate workstream, implement bounded public-source acquisition, local knowledge storage and retrieval, then a rights-checked training-corpus handoff. Background work begins only after initial Genesis commit and app readiness.
 
 ### Phase 5 — Personal learning (not authorized)
 Implement inspectable memory, personal candidate consent/review, privacy controls, personal training and general-capability retention gates.
@@ -59,6 +60,7 @@ Investigate parameter growth, module addition/replacement, architecture migratio
 | R-015 | Tokenizer family | OPEN | Compare byte-level, byte-level BPE and corpus-trained alternatives |
 | R-016 | Device-adaptive training controller | OPEN | Define measured capability profile and dynamic resource admission |
 | R-017 | Architecture evolution | FUTURE RESEARCH | Define migration, candidate validation and rollback before structural mutation |
+| R-018 | Autonomous knowledge acquisition | ACCEPTED DESIGN / OPEN IMPLEMENTATION | Define source allowlist, rights policy, deterministic bootstrap discovery, local storage, quotas, Android scheduling and quality gates |
 
 ## 4. Technology radar
 
