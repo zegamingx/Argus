@@ -21,6 +21,7 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 7. **Architecture research first:** no initial neural architecture family has been selected.
 8. **Independent instances:** no central learning server, federated training, automatic model synchronization, shared gradients or cross-user weight exchange.
 9. **Autonomous knowledge acquisition:** each installation is intended to discover, collect, validate and retain permitted public knowledge for its own local instance; retrieval and neural training remain separate.
+10. **Broad knowledge discovery:** the initial general-knowledge taxonomy spans sixteen extensible domains; acquisition prioritizes reliable breadth before excessive depth in a narrow subject.
 
 ## Documentation rules
 
@@ -63,6 +64,7 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 | [22 — General Corpus and Personal Learning](22_GENERAL_CORPUS_AND_PERSONAL_LEARNING.md) | Small C4 bootstrap, data governance and personal adaptation |
 | [23 — Neural Architecture Research Plan](23_NEURAL_ARCHITECTURE_RESEARCH_PLAN.md) | Candidate families and evidence-based selection |
 | [24 — Autonomous Knowledge Acquisition](24_AUTONOMOUS_KNOWLEDGE_ACQUISITION.md) | Self-directed public-source discovery, source policy, local knowledge and training handoff |
+| [25 — Knowledge Domain and Discovery Strategy](25_KNOWLEDGE_DOMAIN_AND_DISCOVERY_STRATEGY.md) | Initial taxonomy, coverage states, breadth-to-depth planning and topic prioritization |
 
 ## Status vocabulary
 
@@ -77,6 +79,6 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 
 ## Change control and completion
 
-Material decisions belong in [01 — System Requirements and Decisions](01_SYSTEM_REQUIREMENTS_AND_DECISIONS.md). Unresolved questions belong in [16 — Roadmap and Research Register](16_ROADMAP_RESEARCH_REGISTER.md). Detailed Genesis, device adaptation, corpus, architecture and autonomous acquisition research belongs in documents 20–24.
+Material decisions belong in [01 — System Requirements and Decisions](01_SYSTEM_REQUIREMENTS_AND_DECISIONS.md). Unresolved questions belong in [16 — Roadmap and Research Register](16_ROADMAP_RESEARCH_REGISTER.md). Detailed Genesis, device adaptation, corpus, architecture, autonomous acquisition and knowledge-domain research belongs in documents 20–25.
 
 The documentation phase ends only when requirements, architecture, model and tokenizer research, corpus governance, resource budgets, verification strategy and cross-document consistency have been reviewed. Passing that gate authorizes an implementation-plan review only. It does not automatically authorize coding, builds or workflow execution.

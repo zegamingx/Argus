@@ -19,10 +19,10 @@ Argus follows **Local Knowledge Genesis** and **One Origin, Independent Evolutio
 ## 2. Phases
 
 ### Phase 0 — Documentation and research (current)
-Maintain the source/build baseline and P0 audit. Complete architecture-family research, tokenizer research, corpus provenance/quality review, Genesis lifecycle, device capability and adaptive training specifications, and the autonomous acquisition source/policy contract. No source implementation, build or workflow execution belongs to this phase unless separately authorized.
+Maintain the source/build baseline and P0 audit. Complete architecture-family research, tokenizer research, corpus provenance/quality review, Genesis lifecycle, device capability and adaptive training specifications, and the autonomous acquisition source/policy contract, including the initial knowledge taxonomy and discovery-priority model. No source implementation, build or workflow execution belongs to this phase unless separately authorized.
 
 ### Phase 1 — Architecture decision review (not started)
-Choose the first architecture only after comparative evidence. Approve tokenizer contract, Small C4 revision and preprocessing, per-device configuration policy, training objective/optimizer profile, Genesis readiness contract, autonomous acquisition source eligibility and local data lifecycle, personal data lifecycle and verification plan. Record decisions in ADRs.
+Choose the first architecture only after comparative evidence. Approve tokenizer contract, Small C4 revision and preprocessing, per-device configuration policy, training objective/optimizer profile, Genesis readiness contract, autonomous acquisition source eligibility and local data lifecycle, knowledge-taxonomy calibration, personal data lifecycle and verification plan. Record decisions in ADRs.
 
 ### Phase 2 — Implementation planning (not started)
 Create a dependency-ordered engineering plan with acceptance criteria, numerical tests, Android lifecycle tests, migration and rollback. Resolve how the current Kotlin prototype is isolated, replaced or retained for limited experiments. No broad implementation begins before P0 remediation is reviewed.
@@ -61,6 +61,7 @@ Investigate parameter growth, module addition/replacement, architecture migratio
 | R-016 | Device-adaptive training controller | OPEN | Define measured capability profile and dynamic resource admission |
 | R-017 | Architecture evolution | FUTURE RESEARCH | Define migration, candidate validation and rollback before structural mutation |
 | R-018 | Autonomous knowledge acquisition | ACCEPTED DESIGN / OPEN IMPLEMENTATION | Define source allowlist, rights policy, deterministic bootstrap discovery, local storage, quotas, Android scheduling and quality gates |
+| R-019 | Knowledge domain taxonomy and discovery planner | ACCEPTED INITIAL TAXONOMY / OPEN CALIBRATION | Validate sixteen-domain hierarchy, language coverage, breadth scheduling, topic-priority weights and source coverage |
 
 ## 4. Technology radar
 

@@ -113,6 +113,12 @@ General discovery may use the built-in topic policy, the local knowledge coverag
 
 Using personal context to direct acquisition belongs to a separate, explicitly authorized personal-learning workflow.
 
+### 5.4 Knowledge domain map
+
+The initial general-learning taxonomy contains sixteen broad domains and uses a breadth-to-depth acquisition strategy. Topics are versioned, may belong to multiple domains, and are tracked through coverage states rather than a single binary "known/unknown" flag.
+
+The detailed domain hierarchy, knowledge-coverage model, topic-priority framework and model-assisted discovery maturity stages are defined in [25 — Knowledge Domain and Discovery Strategy](25_KNOWLEDGE_DOMAIN_AND_DISCOVERY_STRATEGY.md). That document is the source of truth for taxonomy structure; this document remains the source of truth for acquisition lifecycle and source governance.
+
 ## 6. Source registry and eligibility
 
 The source registry is a local policy-controlled catalog. Candidate source families include official technical documentation, public standards and specifications, government or public-institution publications, open educational material, openly licensed datasets, public repositories, RSS/Atom feeds and documented public APIs.
@@ -309,7 +315,7 @@ The design is ready for implementation planning only when:
 The following remain research or implementation-planning questions, not fixed values:
 
 - Initial source list and source-by-source license review.
-- Supported languages and domain priorities.
+- Supported-language priorities and per-domain source coverage; the initial domain taxonomy is defined in document 25.
 - Discovery refresh policy and scheduling interval.
 - Network and storage quotas for device classes.
 - Search/discovery provider strategy and associated request metadata.

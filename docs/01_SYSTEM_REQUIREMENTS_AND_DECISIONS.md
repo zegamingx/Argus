@@ -129,6 +129,16 @@ The initial neural architecture family remains undecided. Transformer, state-spa
 
 Bundled general learning may be scheduled in the background after Genesis readiness. Personal learning uses only data covered by explicit user permission and a reviewable provenance/retention lifecycle. Memory updates and parameter updates are separate operations.
 
+### ADR-016 — Instance-owned autonomous knowledge acquisition
+**Status:** Accepted product direction; implementation and source policy remain open.
+
+Each Argus installation is intended to discover, collect, validate and retain permitted public knowledge for its own local instance. The acquisition engine is not a data-collection service for external AI customers and does not pool results across installations. Acquisition starts with deterministic topic policies and a reviewed source registry; model-assisted discovery is enabled only after defined quality gates. Retrieved knowledge and neural training remain separate operations.
+
+### ADR-017 — Broad, extensible general-knowledge taxonomy
+**Status:** Accepted initial taxonomy; numerical scheduling calibration remains open.
+
+The initial knowledge map contains sixteen broad domains and supports hierarchical subdomains, topics, prerequisites and cross-domain relationships. General acquisition prioritizes reliable breadth across the taxonomy before excessive depth in a narrow domain. The taxonomy is versioned and expandable; it is not a fixed limit on future knowledge.
+
 ## 8. Revised open decisions
 
 These items remain open; they must not be filled with assumed values:
@@ -144,5 +154,9 @@ These items remain open; they must not be filled with assumed values:
 - Checkpoint cadence, crash recovery and model-generation promotion policy.
 - Personal-learning consent wording, candidate retention and post-training revocation strategy.
 - Criteria and migration rules for later architecture evolution.
+- Domain-specific source registry, language and regional coverage priorities.
+- Topic-priority weights, freshness intervals and breadth-scheduling calibration for autonomous acquisition.
 
 A fixed model parameter count is intentionally not an open global constant: it is an output of architecture research combined with each device's capability profile.
+
+The initial sixteen-domain knowledge taxonomy is defined in [25 — Knowledge Domain and Discovery Strategy](25_KNOWLEDGE_DOMAIN_AND_DISCOVERY_STRATEGY.md). Acquisition priority weights, freshness intervals and per-domain source acceptance remain open for evidence-based calibration.

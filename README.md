@@ -45,7 +45,7 @@ The initial collector does not depend on an immature neural model: deterministic
 
 This is not a third-party data-collection service or a shared dataset network. Each installation owns its acquisition state and knowledge. Public-source retrieval does not authorize uploading personal conversations, local files, model weights or checkpoints. Collected information can be used for retrieval without changing model parameters; neural training remains a separate quality- and evaluation-gated operation.
 
-See [Autonomous Knowledge Acquisition](docs/24_AUTONOMOUS_KNOWLEDGE_ACQUISITION.md).
+See [Autonomous Knowledge Acquisition](docs/24_AUTONOMOUS_KNOWLEDGE_ACQUISITION.md) and [Knowledge Domain and Discovery Strategy](docs/25_KNOWLEDGE_DOMAIN_AND_DISCOVERY_STRATEGY.md).
 
 ## Device-adaptive model and training
 
@@ -99,6 +99,7 @@ The documents under [docs/](docs/README.md) are the planning source of truth. Th
 | [22 — General Corpus and Personal Learning](docs/22_GENERAL_CORPUS_AND_PERSONAL_LEARNING.md) | Bundled bootstrap data and user-specific learning |
 | [23 — Neural Architecture Research Plan](docs/23_NEURAL_ARCHITECTURE_RESEARCH_PLAN.md) | Architecture candidate comparison and selection gates |
 | [24 — Autonomous Knowledge Acquisition](docs/24_AUTONOMOUS_KNOWLEDGE_ACQUISITION.md) | Self-directed public-source discovery, local knowledge processing and training handoff |
+| [25 — Knowledge Domain and Discovery Strategy](docs/25_KNOWLEDGE_DOMAIN_AND_DISCOVERY_STRATEGY.md) | General knowledge taxonomy, coverage mapping and autonomous topic prioritization |
 
 ## Current implementation status
 
