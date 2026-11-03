@@ -43,9 +43,9 @@ Use platform-backed key stores where appropriate. Document generation, wrapping,
 
 ## 7. Baseline audit observations
 
-The inspected manifest declares INTERNET, ACCESS_NETWORK_STATE, CAMERA and AccessibilityService-related permissions/components; the Gradle catalog/build file includes a Firebase AI dependency. These are audit facts, not proof of data transmission. They require an explicit dependency/network audit before a zero-cloud claim is treated as verified.
+The inspected manifest declares INTERNET, ACCESS_NETWORK_STATE, CAMERA and AccessibilityService-related permissions/components. Google AI Studio-specific Secrets and Google Services plugins, Firebase AI/App Check dependencies, and generated environment/metadata files have been removed from the current main branch. Android build tooling and KSP remain. The web-retrieval feature performs outbound HTTP requests to public search services.
 
-The public repository tree also contains `my-upload-key.jks`. Private signing material must not be committed publicly. Treat this as a high-priority exposure requiring owner-led investigation, key rotation/replacement as appropriate, review of its use and Git history cleanup where feasible. Do not copy its contents into documentation or logs.
+A previously tracked private signing artifact has been removed from the current main tree, but historical Git objects, other branches and forks may still retain it. Treat the credential as potentially exposed: verify whether it was active, rotate or replace it as appropriate, and plan Git-history cleanup. Never copy its contents into documentation or logs. Release signing now requires externally supplied configuration.
 
 ## 8. Incident and deletion model
 
