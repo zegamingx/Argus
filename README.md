@@ -192,15 +192,15 @@ The proposed hardware router will inspect SoC identity, CPU ISA, GPU queues/feat
 
 | Layer | Choice |
 |---|---|
-| Language | Kotlin 2.1, C++20 (native) |
-| Build | Gradle 8.13, AGP 8.7.x, JDK 21 LTS |
+| Language | Kotlin 2.2.10 (current app); C++20 (future native target) |
+| Build | Gradle 9.3.1, AGP 9.1.1, JDK 21 LTS |
 | UI | Jetpack Compose (Material 3) |
-| DI | Hilt |
-| Async | kotlinx-coroutines, WorkManager |
-| Storage | Room (SQLCipher), DataStore, SAF |
-| Inference | llama.cpp (GGUF), ONNX Runtime Mobile, MediaPipe |
-| Native | NDK r27, CMake 3.22+, Vulkan SDK |
-| Vision | CameraX, ML Kit OCR (on-device mode) |
+| Dependency injection | No DI framework is configured in the current app module |
+| Async | Kotlin Coroutines; WorkManager remains a future scheduling option |
+| Storage | Room/DataStore dependencies are declared; persistent encrypted memory is not implemented |
+| Inference | Kotlin prototype; native llama.cpp, ONNX Runtime and MediaPipe integrations are not included in the current build |
+| Native | No CMake/JNI module is present in the inspected source tree |
+| Vision | CameraX dependencies; OCR integration is not evidenced in the current source |
 | Min / Target SDK | 33 / 36 |
 
 ---
@@ -271,8 +271,7 @@ app/src/main/
 
 ## 🔐 Privacy & Security Model
 
-- **Offline-first.** No network call is possible unless the user enables
-  internet; web fetches are allowlist-able and fully logged locally.
+- **Local-first.** Core model execution is designed to work offline. Web retrieval makes outbound HTTP requests to public sources and is a separate network feature.
 - **No telemetry.** No analytics, no crash reporting, no third-party SDKs
   with network permissions. Logs are local and user-exportable only.
 - **Consent-first perception.** MediaProjection / camera / accessibility
@@ -285,8 +284,7 @@ app/src/main/
 - **Prompt-injection defense.** All external content (web, files, OCR,
   screen) is sandboxed as data; tool calls require policy checks, and
   sensitive actions require biometric confirmation.
-- **Encrypted at rest.** SQLCipher for memory stores; atomic writes;
-  secure deletion on user request.
+- **Data protection (planned).** Encryption, atomic model updates and deletion across source records and derived indexes must be specified before persistent memory is introduced.
 
 Report vulnerabilities privately via `SECURITY.md` — do not file public issues.
 
