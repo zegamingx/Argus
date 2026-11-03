@@ -1,11 +1,14 @@
-# Implementation Audit — Initial Static Review
+# Implementation Audit — P0 Static Verification
 
 **Repository:** `zegamingx/Argus`  
 **Branch:** `master`  
-**Audited commit:** `4d8104d4400dcd858e648d7b08ac0718385733d3`  
+**Source baseline:** `4d8104d4400dcd858e648d7b08ac0718385733d3`  
+**Audit branch head:** `b1f41db3166e383b84ef0716ee4f43e7544744c5`  
 **Review date:** 2026-11-03  
 **Review type:** Source/configuration inspection (static; no code changes)  
 **Execution status:** Build, automated tests, emulator tests and physical-device tests were not run.
+
+The two commits between the source baseline and the audit branch head changed documentation only. The application source was therefore re-read at the unchanged source baseline; the audit branch head is recorded separately to avoid treating a documentation commit as a source-code revision.
 
 ## 1. Executive summary
 
@@ -64,6 +67,17 @@ This conflicts with the documented learning pipeline, which requires redaction a
 Unresolved chat queries, retrieved web snippets, imported document text, image-derived placeholder text and direct web-search snippets are sent straight to the training queue. The queue worker trains every item automatically. No candidate approval state, provenance review, dataset inspection or redaction decision is enforced between enqueue and training.
 
 **Required action:** Use a candidate store with provenance, sensitivity labels, preview, explicit approval/rejection and deletion. Web snippets must remain untrusted evidence and must not become training data merely because a query was unresolved.
+
+### AUD-014 — No verifiable base-model artifact or deterministic model loader
+
+**Severity:** CRITICAL — model identity and training validity  
+**Evidence:** `app/src/main/java/com/argus/agi/model/ArgusNeuralEngine.kt`; current repository tree
+
+The engine initializes its embedding, attention, feed-forward and output-head matrices with `randomVector(...)`. Its constructor calls `loadCheckpointIfExists()`, but that loader restores only the four LoRA matrices and `adamStep`; it does not load a complete base-model artifact. No base-model weight bundle or corresponding artifact loader was found in the inspected repository tree.
+
+A fresh installation therefore starts from randomly initialized base weights. The current implementation cannot establish a stable base-model identity, tokenizer/model compatibility, provenance or reproducible inference state. Calling the current operation fine-tuning is misleading: it is not continuing a verified pretrained base model. This also prevents checkpoint validation from proving which model the adapter belongs to.
+
+**Required action:** Define and implement a versioned base-model artifact contract before enabling training. The loader must verify model ID/revision, architecture configuration, tokenizer fingerprint, tensor names/shapes/dtypes, quantization metadata, checksums, provenance and license. Load and validate the complete artifact into an isolated state before publishing it to inference. Random initialization may remain available only for deterministic test fixtures or explicitly labeled experiments; it must not be presented as a loaded or fine-tunable production model.
 
 ### AUD-005 — On-device and zero-cloud UI wording conflicts with actual network behavior
 
@@ -145,8 +159,9 @@ The Gradle build and tests were not executed during this review, so compilation 
 
 ## 3. Recommended remediation order
 
-1. **P0 — Learning correctness and checkpoint integrity:** AUD-001 and AUD-002.
-2. **P0 — Privacy/data governance:** AUD-003 and AUD-004.
+1. **P0 — Establish a verifiable base model and immutable tokenizer contract:** AUD-014 and AUD-013.
+2. **P0 — Learning correctness and checkpoint integrity:** AUD-001 and AUD-002.
+3. **P0 — Privacy/data governance and explicit approval:** AUD-003 and AUD-004.
 3. **P1 — Concurrency, lifecycle and durability:** AUD-008 and AUD-009.
 4. **P1 — Hardware/thermal capability correctness:** AUD-006 and AUD-007.
 5. **P1 — Product claims and user disclosure:** AUD-005 and AUD-010.
@@ -241,7 +256,13 @@ When a newly registered token is used as a target, `trainStep()` can index `mHea
 
 **Required action:** Make vocabulary and all dependent tensor/optimizer-state shapes change atomically, or adopt a fixed vocabulary with explicit unknown-token behavior. Validate IDs and shape invariants before every update. Convert per-item worker exceptions into explicit failure states without silently killing the worker.
 
-**Acceptance gate:** Add deterministic tests that train with previously unseen Unicode and non-ASCII tokens, validate every model/moment array shape after vocabulary changes, and prove that one malformed item cannot terminate processing of subsequent approved items.
+**Acceptance gate:**
+1. Freeze the vocabulary for each model revision and use explicit unknown-token behavior at runtime; or, if dynamic growth is retained, resize model tensors and every dependent optimizer tensor as one validated state transition.
+2. Validate tokenizer fingerprint and every tensor/moment dimension before forward or optimizer execution.
+3. Add deterministic tests for unseen Unicode, non-ASCII input, vocabulary/model-version mismatch and checkpoint compatibility.
+4. Prove that an invalid sample is marked failed without killing the worker, while non-finite or partially applied updates stop the training session safely.
+
+The recommended first implementation is an immutable vocabulary tied to the base-model artifact. Dynamic vocabulary expansion should remain unsupported until its state migration is designed and tested.
 
 ## 6. Build and Actions execution policy
 
@@ -263,6 +284,33 @@ This is a process constraint, not a claim that the current code has passed build
 | AUD-002 checkpoint integrity | OPEN | Versioned atomic checkpoint and recovery test suite |
 | AUD-003 capture privacy/consent | OPEN | Consent, identity validation, redaction and exclusion tests |
 | AUD-004 approval workflow | OPEN | Candidate lifecycle tests proving only approved records train |
-| AUD-013 vocabulary/optimizer shape | OPEN | Dynamic-token shape and worker-survival regression tests |
+| AUD-013 vocabulary/optimizer shape | OPEN | Fixed-vocabulary or atomic resize contract, tensor invariants and worker-survival tests |
+| AUD-014 base-model artifact and deterministic loading | OPEN | Verified artifact manifest, complete loader and model/tokenizer compatibility tests |
 
 No P0 source remediation has been performed in this audit update. No build, test, lint, package task or GitHub Actions workflow was run.
+
+
+## 8. Verification pass 2 — source-level confirmation
+
+This pass re-opened the current model, tokenizer, training manager, accessibility service, application wiring, ViewModel and perception UI on `master`. It confirms the following implementation facts:
+
+- `ArgusNeuralEngine` creates its base embedding, attention, feed-forward and output-head matrices from random values. Its checkpoint loader restores LoRA arrays and the optimizer step only; there is no complete base-model artifact loader in the inspected tree. This confirms AUD-014 and strengthens the model-state concern in AUD-002.
+- `Tokenizer.encode(..., autoRegister = true)` can grow the vocabulary at runtime. `ensureVocabCapacity()` grows `wEmbed` and `wHead`, but `mHead` and `vHead` remain sized to the original vocabulary. A newly registered target token can therefore cause an out-of-bounds optimizer-state access during `trainStep()`. This confirms AUD-013.
+- `TrainingManager.init` launches its worker immediately. `enqueueData(source, title, content)` accepts raw content, and the worker calls `trainStep()` without approval validation or per-item exception recovery. This confirms the core failure mode in AUD-003/AUD-004 and the worker-survival part of AUD-013.
+- `ArgusAccessibilityService` checks only the event package against a short exclusion set before reading `rootInActiveWindow`. It does not verify that the active root belongs to the event package/window, does not reject password-designated nodes, and sends extracted text directly to the training manager and world model. The exclusion set is not an allowlist and cannot establish informed training consent.
+- `PerceptionScreen` exposes the system Accessibility Settings entry and displays whether the service instance is active. No separate app-level consent for using captured screen text as training data was found.
+- `ArgusViewModel` sends unresolved chat prompts, retrieved web snippets, imported document text, image-derived placeholder text and direct web-search snippets to the same raw-text enqueue API. There is no candidate-review gate on those paths.
+
+### Additional P0 design constraint
+
+Training must not be re-enabled merely by fixing the array bounds or checkpoint format. The complete prerequisite chain is:
+
+1. A verified base-model artifact and matching immutable tokenizer.
+2. A declared trainable-parameter set and mathematically complete backward pass.
+3. A checkpoint that reconstructs model, optimizer and tokenizer identity exactly.
+4. A typed candidate lifecycle that enforces classification, redaction, explicit approval and revocation.
+5. A worker that consumes only approved, version-matched records and fails closed on corruption or non-finite updates.
+
+The proposed implementation contract is documented in [P0 Remediation Design](19_P0_REMEDIATION_DESIGN.md). It is a design proposal, not an implementation or a closed audit finding.
+
+No application source was modified in this pass. All six P0 items remain OPEN. No build, test, lint, packaging task, GitHub Actions workflow or artifact upload was run.

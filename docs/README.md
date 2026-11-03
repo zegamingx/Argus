@@ -41,6 +41,7 @@ Argus is intended to become a privacy-first, user-controlled, on-device intellig
 | [16 — Roadmap and Research](16_ROADMAP_RESEARCH_REGISTER.md) | Phases, technology radar and open research |
 | [17 — Current Repository Baseline](17_CURRENT_REPOSITORY_BASELINE.md) | Facts and gaps in inspected snapshot |
 | [18 — Implementation Audit](18_IMPLEMENTATION_AUDIT.md) | Static findings, P0 acceptance gates and build restrictions |
+| [19 — P0 Remediation Design](19_P0_REMEDIATION_DESIGN.md) | Proposed model, training, checkpoint, vocabulary and consent contracts |
 
 ## Status vocabulary
 
