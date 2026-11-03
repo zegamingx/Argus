@@ -1,0 +1,47 @@
+Argus - On-Device Mobile AGI Framework
+Copyright 2026 zegamingx (The Argus Project)
+
+This product includes software developed by third parties under various open-source licenses. We gratefully acknowledge the following projects that make Argus possible:
+
+--------------------------------------------------------------------------------
+llama.cpp
+Copyright (c) 2023-2024 Georgi Gerganov and Contributors
+Licensed under the MIT License
+https://github.com/ggerganov/llama.cpp
+
+--------------------------------------------------------------------------------
+ONNX Runtime
+Copyright (c) Microsoft Corporation
+Licensed under the MIT License
+https://github.com/microsoft/onnxruntime
+
+--------------------------------------------------------------------------------
+MediaPipe
+Copyright (c) 2023 Google LLC
+Licensed under the Apache License, Version 2.0
+https://github.com/google/mediapipe
+
+--------------------------------------------------------------------------------
+Jetpack Compose & AndroidX
+Copyright (c) The Android Open Source Project
+Licensed under the Apache License, Version 2.0
+https://developer.android.com/jetpack
+
+--------------------------------------------------------------------------------
+SQLCipher for Android
+Copyright (c) Zetetic LLC
+Licensed under the BSD License / Commercial License
+https://www.zetetic.net/sqlcipher/
+
+--------------------------------------------------------------------------------
+kotlinx.coroutines
+Copyright 2017-2024 JetBrains s.r.o.
+Licensed under the Apache License, Version 2.0
+https://github.com/Kotlin/kotlinx.coroutines
+
+--------------------------------------------------------------------------------
+Note on Model Weights:
+Argus does NOT distribute any AI model weights. Users are responsible for 
+sourcing and downloading their own models (e.g., GGUF, ONNX, TFLite formats) 
+in compliance with the respective licenses of those models (e.g., Llama 3 
+Community License, Apache 2.0, MIT).
