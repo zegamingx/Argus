@@ -53,9 +53,12 @@ class Tokenizer {
 
         // Seed common frequent word fragments for Indonesian & English
         val seedWords = listOf(
-            "yang", "dan", "di", "ini", "itu", "ke", "dari", "untuk", "pada", "adalah", "dengan",
-            "saya", "kamu", "bisa", "ada", "tidak", "apa", "bagaimana", "argus", "agi", "model",
-            "training", "data", "layar", "kamera", "the", "and", "is", "in", "to", "of", "for"
+            "the", "and", "is", "in", "to", "of", "for", "with", "on", "at", "from", "by", "as",
+            "this", "that", "these", "those", "what", "when", "where", "why", "how", "can", "could",
+            "should", "would", "will", "not", "you", "your", "we", "our", "they", "their", "have",
+            "has", "are", "was", "were", "be", "been", "being", "argus", "agi", "model", "training",
+            "data", "screen", "camera", "memory", "reasoning", "agent", "local", "device", "hardware",
+            "compute", "neural", "intelligence"
         )
         for (w in seedWords) {
             if (!tokenToId.containsKey(w)) {
