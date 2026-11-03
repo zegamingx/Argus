@@ -164,6 +164,11 @@ The text-acquisition plan must expand beyond computing and information systems. 
 
 Argus must deliberately seek Indonesian-language material beyond technical/programming sources. Institutional OER catalogs and program-scoped grants are discovery channels, not blanket collection licenses. Each title requires individual source provenance, license evidence, third-party-content review and separate retrieval/training permissions. No single institution's repository is considered representative of Indonesian language or knowledge diversity.
 
+### ADR-023 — Device-adaptive knowledge acquisition
+**Status:** Accepted architecture direction; resource budgets and thresholds remain open.
+
+The autonomous acquisition pipeline adapts to each instance's measured device capability and live operating conditions, separately from model configuration. Each instance shares the broad sixteen-domain coverage objectives and minimum rights/quality requirements, while download volume, concurrency, parsing, retention, indexing, tokenization batches and background scheduling remain within a device-specific resource profile. Low-capability devices progress through smaller resumable work units; they do not receive weaker provenance, security, rights or data-quality checks. Model and acquisition resource budgets must not be double-counted.
+
 ## 8. Revised open decisions
 
 These items remain open; they must not be filled with assumed values:
@@ -187,6 +192,8 @@ These items remain open; they must not be filled with assumed values:
 - Exact item-level rights for open textbooks, OER, public-domain texts and Indonesian educational repositories.
 - Curated title-level seed selection and third-party asset audit before full-text acquisition.
 - Indonesian OER source diversification beyond information systems, including individual item licenses and program-scoped grant provenance.
+- Device-specific acquisition/storage/network/processing budgets and the model-resource reservation policy.
+- Common knowledge-coverage objectives versus per-instance acquisition capacity and optional shard selection.
 
 A fixed model parameter count is intentionally not an open global constant: it is an output of architecture research combined with each device's capability profile.
 

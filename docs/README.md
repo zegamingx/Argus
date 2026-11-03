@@ -22,6 +22,7 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 8. **Independent instances:** no central learning server, federated training, automatic model synchronization, shared gradients or cross-user weight exchange.
 9. **Autonomous knowledge acquisition:** each installation is intended to discover, collect, validate and retain permitted public knowledge for its own local instance; retrieval and neural training remain separate.
 10. **Broad knowledge discovery:** the initial general-knowledge taxonomy spans sixteen extensible domains; acquisition prioritizes reliable breadth before excessive depth in a narrow subject.
+11. **Device-adaptive knowledge acquisition:** each instance adapts corpus volume, download/parse concurrency, retention, indexing and scheduling to measured device resources while preserving shared quality and coverage principles.
 
 ## Documentation rules
 
@@ -71,6 +72,7 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 | [29 — Curated Initial Text Seed Set](29_CURATED_INITIAL_TEXT_SEED_SET.md) | Exact title-level seed candidates, license evidence, PDF sources and retrieval-pilot selection |
 | [30 — Domain-Balanced Text Source Expansion](30_DOMAIN_BALANCED_TEXT_SOURCE_EXPANSION.md) | Additional full-text candidates mapped to underserved knowledge domains |
 | [31 — Indonesian-Language OER Source Expansion](31_INDONESIAN_LANGUAGE_OER_SOURCE_EXPANSION.md) | Indonesian OER candidates, item-level rights path and SPADA 2022 program boundary |
+| [32 — Device-Adaptive Knowledge Acquisition and Corpus Budgeting](32_DEVICE_ADAPTIVE_KNOWLEDGE_ACQUISITION.md) | Device capability profile, corpus/storage tiers, dynamic admission and verification |
 
 ## Status vocabulary
 
@@ -85,6 +87,6 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 
 ## Change control and completion
 
-Material decisions belong in [01 — System Requirements and Decisions](01_SYSTEM_REQUIREMENTS_AND_DECISIONS.md). Unresolved questions belong in [16 — Roadmap and Research Register](16_ROADMAP_RESEARCH_REGISTER.md). Detailed Genesis, device adaptation, corpus, architecture, autonomous acquisition, knowledge-domain, source-connector, source-candidate, open-text, curated seed, domain-balanced text and Indonesian OER research belongs in documents 20–31.
+Material decisions belong in [01 — System Requirements and Decisions](01_SYSTEM_REQUIREMENTS_AND_DECISIONS.md). Unresolved questions belong in [16 — Roadmap and Research Register](16_ROADMAP_RESEARCH_REGISTER.md). Detailed Genesis, device adaptation, corpus, architecture, autonomous acquisition, knowledge-domain, source-connector, source-candidate, open-text, curated seed, domain-balanced text, Indonesian OER and device-adaptive acquisition research belongs in documents 20–32.
 
 The documentation phase ends only when requirements, architecture, model and tokenizer research, corpus governance, resource budgets, verification strategy and cross-document consistency have been reviewed. Passing that gate authorizes an implementation-plan review only. It does not automatically authorize coding, builds or workflow execution.
