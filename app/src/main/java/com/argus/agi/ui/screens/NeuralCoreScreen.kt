@@ -197,7 +197,7 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 StatMetricBox(
-                                    label = "JUMLAH PARAMETER",
+                                    label = "PARAMETER COUNT",
                                     value = formattedParams,
                                     unit = "Weight Elements",
                                     valueColor = ArgusCyanPrimary,
@@ -205,7 +205,7 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
                                 StatMetricBox(
-                                    label = "UKURAN LORA ADAPTER",
+                                    label = "LORA ADAPTER SIZE",
                                     value = adapterSizeStr,
                                     unit = "Rank 4 (FP32)",
                                     valueColor = ArgusCyanGlow,
@@ -556,7 +556,7 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
         }
 
         if (isQueueExpanded) {
-            // 1. DATA SEDANG DITRAINING
+            // 1. CURRENTLY TRAINING
             item {
                 QueueSectionHeader(title = "1. Currently Training", count = if (currentItem != null) 1 else 0)
                 Spacer(modifier = Modifier.height(6.dp))
@@ -568,7 +568,7 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
                 }
             }
 
-            // 2. DATA SELANJUTNYA DITRAINING
+            // 2. NEXT IN QUEUE
             item {
                 QueueSectionHeader(
                     title = "2. Next in Queue",
@@ -588,7 +588,7 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
                 }
             }
 
-            // 3. DATA SUDAH DITRAINING
+            // 3. COMPLETED TRAINING
             item {
                 QueueSectionHeader(
                     title = "3. Completed Learning History",
@@ -855,7 +855,7 @@ fun CompletedItemCard(item: TrainingData) {
                     style = MaterialTheme.typography.titleMedium.copy(fontSize = 12.sp),
                     color = ArgusTextPrimary
                 )
-                val lossStr = item.finalLoss?.let { String.format(Locale.US, "Loss: %.4f", it) } ?: "Loss: belum ada"
+                val lossStr = item.finalLoss?.let { String.format(Locale.US, "Loss: %.4f", it) } ?: "Loss: not available"
                 Text(
                     text = "$lossStr | Duration: ${item.stepDurationMs} ms | ${item.source}",
                     style = MaterialTheme.typography.labelSmall,

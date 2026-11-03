@@ -76,7 +76,7 @@ class WorldModel(private val context: Context) {
                 lowerResp.length < 5
 
         var score = 0.85f
-        var reasoning = "Respon koheren dengan representasi neural on-device."
+        var reasoning = "Response is consistent with the current on-device neural representation."
         var suggestedAction: String? = null
 
         if (lacksKnowledge) {

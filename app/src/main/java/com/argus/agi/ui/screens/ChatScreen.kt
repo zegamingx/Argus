@@ -289,7 +289,7 @@ fun ChatScreen(viewModel: ArgusViewModel) {
                     "Calculate 125 * 34",
                     "What is the Argus architecture?",
                     "Explore recent AGI developments",
-                    "Bagaimana cara kerja LoRA?"
+                    "How does LoRA work?"
                 )
                 items(chips) { chip ->
                     Surface(
