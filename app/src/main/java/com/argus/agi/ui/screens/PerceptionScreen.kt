@@ -104,13 +104,13 @@ fun PerceptionScreen(viewModel: ArgusViewModel) {
         item {
             Column {
                 Text(
-                    text = "PERSEPSI LINGKUNGAN & SENSOR",
+                    text = "ENVIRONMENT & SENSOR PERCEPTION",
                     style = MaterialTheme.typography.titleLarge,
                     color = ArgusCyanPrimary,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Sensor Visual Kamera, Pemindaian Layar, dan Akselerasi Hardware",
+                    text = "Camera vision, screen analysis, and hardware acceleration",
                     style = MaterialTheme.typography.bodyMedium,
                     color = ArgusTextSecondary
                 )
@@ -193,7 +193,7 @@ fun PerceptionScreen(viewModel: ArgusViewModel) {
                             Spacer(modifier = Modifier.height(10.dp))
 
                             Text(
-                                text = "Kamera membaca frame fisik secara real-time dan mengekstrak sinyal visual untuk konteks neural AGI tanpa streaming data keluar.",
+                                text = "The camera processes frames locally and extracts visual context without streaming camera data to an external AI service.",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = ArgusTextMuted
                             )
@@ -230,7 +230,7 @@ fun PerceptionScreen(viewModel: ArgusViewModel) {
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Persepsi Layar HP",
+                                text = "Screen Perception",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = ArgusTextPrimary,
                                 fontWeight = FontWeight.Bold
@@ -245,7 +245,7 @@ fun PerceptionScreen(viewModel: ArgusViewModel) {
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
                                 Text(
-                                    text = if (isAccessibilityActive) "AKTIF" else "BELUM AKTIF",
+                                    text = if (isAccessibilityActive) "ACTIVE" else "INACTIVE",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = if (isAccessibilityActive) ArgusSuccess else ArgusWarning,
                                     fontWeight = FontWeight.Bold
@@ -300,7 +300,7 @@ fun PerceptionScreen(viewModel: ArgusViewModel) {
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "Aktifkan Izin Baca Layar (Accessibility)",
+                                        text = "Enable Screen Reading (Accessibility)",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 12.sp
                                     )
@@ -315,7 +315,7 @@ fun PerceptionScreen(viewModel: ArgusViewModel) {
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "Layar dipantau secara otomatis saat berpindah aplikasi.",
+                                        text = "Screen content is observed when the active app changes while the accessibility service is enabled.",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = ArgusSuccess
                                     )
@@ -378,9 +378,9 @@ fun PerceptionScreen(viewModel: ArgusViewModel) {
                             Spacer(modifier = Modifier.height(14.dp))
 
                             HardwareSpecRow(label = "Chipset / SoC", value = "${hardware.socManufacturer} (${hardware.socModel})")
-                            HardwareSpecRow(label = "Akselerator Primer", value = hardware.primaryAccelerator)
+                            HardwareSpecRow(label = "Primary Accelerator", value = hardware.primaryAccelerator)
                             HardwareSpecRow(label = "NPU / APU", value = hardware.npuApuDetected)
-                            HardwareSpecRow(label = "Vulkan Support", value = if (hardware.vulkanSupported) "Didukung (Level ${hardware.vulkanVersionCode})" else "Tidak Didukung")
+                            HardwareSpecRow(label = "Vulkan Support", value = if (hardware.vulkanSupported) "Supported (Level ${hardware.vulkanVersionCode})" else "Not supported")
                             HardwareSpecRow(label = "CPU Cores", value = "${hardware.cpuCores} Cores SIMD")
                             HardwareSpecRow(label = "Large Heap Limit", value = "${hardware.maxHeapMb} MB")
                         }
@@ -448,7 +448,7 @@ fun CameraViewfinder(onLuminanceUpdate: (Float) -> Unit) {
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Sensor visual membutuhkan izin kamera fisik",
+                    text = "Camera vision requires camera permission",
                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
                     color = ArgusTextSecondary
                 )
@@ -461,7 +461,7 @@ fun CameraViewfinder(onLuminanceUpdate: (Float) -> Unit) {
                     ),
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text("Beri Izin Kamera", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                    Text("Grant camera permission", fontWeight = FontWeight.Bold, fontSize = 11.sp)
                 }
             }
         }

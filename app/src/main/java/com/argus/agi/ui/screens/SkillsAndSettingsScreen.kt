@@ -108,13 +108,13 @@ fun SkillsAndSettingsScreen(viewModel: ArgusViewModel) {
         item {
             Column {
                 Text(
-                    text = "SKILL AGENT & SISTEM PRIVASI",
+                    text = "SKILL AGENTS & PRIVACY",
                     style = MaterialTheme.typography.titleLarge,
                     color = ArgusCyanPrimary,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Konfigurasi Proteksi Exclude App, Daya Baterai, dan Eksekusi Action",
+                    text = "Configure app exclusions, battery policy, and action execution",
                     style = MaterialTheme.typography.bodyMedium,
                     color = ArgusTextSecondary
                 )
@@ -148,7 +148,7 @@ fun SkillsAndSettingsScreen(viewModel: ArgusViewModel) {
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Optimasi Baterai & Background",
+                                text = "Battery & Background Optimization",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = ArgusTextPrimary,
                                 fontWeight = FontWeight.Bold
@@ -163,7 +163,7 @@ fun SkillsAndSettingsScreen(viewModel: ArgusViewModel) {
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
                                 Text(
-                                    text = if (isIgnoringOpt) "DIBEBASKAN" else "DIBATASI",
+                                    text = if (isIgnoringOpt) "EXEMPT" else "RESTRICTED",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = if (isIgnoringOpt) ArgusSuccess else ArgusWarning,
                                     fontWeight = FontWeight.Bold
@@ -188,7 +188,7 @@ fun SkillsAndSettingsScreen(viewModel: ArgusViewModel) {
                             Spacer(modifier = Modifier.height(10.dp))
 
                             Text(
-                                text = "Agar proses training on-device dan persepsi terus berjalan di latar belakang tanpa dibunuh OS, izinkan Argus mengabaikan optimasi baterai.",
+                                text = "To help approved on-device learning and perception work continue in the background, you can request an exemption from battery optimization. Android may still restrict background execution.",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = ArgusTextSecondary
                             )
@@ -215,7 +215,7 @@ fun SkillsAndSettingsScreen(viewModel: ArgusViewModel) {
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Text(
-                                        text = "Bebaskan Optimasi Baterai",
+                                        text = "Request battery optimization exemption",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 12.sp
                                     )
@@ -277,18 +277,18 @@ fun SkillsAndSettingsScreen(viewModel: ArgusViewModel) {
                         Column {
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            SkillBadge(title = "1. Web Search & Factual Retriever", desc = "Mencari halaman web langsung via HTTP tanpa perantara AI eksternal.")
-                            SkillBadge(title = "2. Autonomous Screen Perception", desc = "Mengekstrak teks jendela aplikasi interaktif secara background.")
-                            SkillBadge(title = "3. Action Agent Clicker", desc = "Menemukan dan mengklik teks di layar melalui Accessibility node.")
-                            SkillBadge(title = "4. Mathematical & Logic Reasoner", desc = "Mengevaluasi operasi simbolik dan logika aritmatika secara deterministik.")
-                            SkillBadge(title = "5. World Model Memory", desc = "Menyimpan relasi entitas, waktu, dan konteks aplikasi secara episodik.")
-                            SkillBadge(title = "6. Continuous On-Device Learner", desc = "Memperbarui bobot model dan LoRA adapter secara lokal.")
+                            SkillBadge(title = "1. Web Search & Factual Retriever", desc = "Retrieves web pages directly over HTTP without using an external AI service.")
+                            SkillBadge(title = "2. Autonomous Screen Perception", desc = "Extracts text from interactive application windows while the service is enabled.")
+                            SkillBadge(title = "3. Action Agent Clicker", desc = "Finds and clicks screen text through Android accessibility nodes.")
+                            SkillBadge(title = "4. Mathematical & Logic Reasoner", desc = "Evaluates symbolic operations and arithmetic using deterministic logic.")
+                            SkillBadge(title = "5. World Model Memory", desc = "Stores entity relationships, timestamps, and application context as episodic records.")
+                            SkillBadge(title = "6. Continuous On-Device Learner", desc = "Updates model weights and LoRA adapters locally.")
 
                             Spacer(modifier = Modifier.height(14.dp))
 
                             // Direct Web Search Tester
                             Text(
-                                text = "Uji Web Search On-Device:",
+                                text = "Test On-Device Web Search:",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = ArgusCyanGlow,
                                 fontWeight = FontWeight.Bold
@@ -298,7 +298,7 @@ fun SkillsAndSettingsScreen(viewModel: ArgusViewModel) {
                                 OutlinedTextField(
                                     value = searchQuery,
                                     onValueChange = { searchQuery = it },
-                                    placeholder = { Text("Kueri web (mis. AI on-device)", color = ArgusTextMuted, fontSize = 12.sp) },
+                                    placeholder = { Text("Web query (e.g. on-device AI)", color = ArgusTextMuted, fontSize = 12.sp) },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(10.dp),
                                     colors = OutlinedTextFieldDefaults.colors(
@@ -324,7 +324,7 @@ fun SkillsAndSettingsScreen(viewModel: ArgusViewModel) {
                                     ),
                                     shape = RoundedCornerShape(10.dp)
                                 ) {
-                                    Text("Cari", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    Text("Search", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                 }
                             }
 
@@ -352,7 +352,7 @@ fun SkillsAndSettingsScreen(viewModel: ArgusViewModel) {
 
                             // Action Agent Click Tester
                             Text(
-                                text = "Uji Action Agent (Klik Teks Layar):",
+                                text = "Test Action Agent (Screen Text Click):",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = ArgusCyanGlow,
                                 fontWeight = FontWeight.Bold
@@ -362,7 +362,7 @@ fun SkillsAndSettingsScreen(viewModel: ArgusViewModel) {
                                 OutlinedTextField(
                                     value = actionClickQuery,
                                     onValueChange = { actionClickQuery = it },
-                                    placeholder = { Text("Teks tombol di layar", color = ArgusTextMuted, fontSize = 12.sp) },
+                                    placeholder = { Text("Screen button text", color = ArgusTextMuted, fontSize = 12.sp) },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(10.dp),
                                     colors = OutlinedTextFieldDefaults.colors(
@@ -380,7 +380,7 @@ fun SkillsAndSettingsScreen(viewModel: ArgusViewModel) {
                                     onClick = {
                                         if (actionClickQuery.isNotBlank()) {
                                             val success = viewModel.executeActionClick(actionClickQuery)
-                                            actionClickResult = if (success) "Sukses: Aksi klik dikirim ke elemen '${actionClickQuery}'!" else "Gagal: Elemen '${actionClickQuery}' tidak ditemukan di layar aktif."
+                                            actionClickResult = if (success) "Success: Click action sent to '${actionClickQuery}'." else "Failed: Element '${actionClickQuery}' was not found on the active screen."
                                         }
                                     },
                                     colors = ButtonDefaults.buttonColors(
@@ -398,7 +398,7 @@ fun SkillsAndSettingsScreen(viewModel: ArgusViewModel) {
                                 Text(
                                     text = actionClickResult!!,
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = if (actionClickResult!!.startsWith("Sukses")) ArgusSuccess else ArgusWarning,
+                                    color = if (actionClickResult!!.startsWith("Success")) ArgusSuccess else ArgusWarning,
                                     fontFamily = FontFamily.Monospace
                                 )
                             }
@@ -435,7 +435,7 @@ fun SkillsAndSettingsScreen(viewModel: ArgusViewModel) {
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Pilih Exclude App",
+                                text = "Select Excluded Apps",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = ArgusTextPrimary,
                                 fontWeight = FontWeight.Bold
@@ -451,7 +451,7 @@ fun SkillsAndSettingsScreen(viewModel: ArgusViewModel) {
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
                                 Text(
-                                    text = "$excludedCount Dilindungi",
+                                    text = "$excludedCount protected",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = ArgusCyanPrimary
                                 )
@@ -475,7 +475,7 @@ fun SkillsAndSettingsScreen(viewModel: ArgusViewModel) {
                             Spacer(modifier = Modifier.height(8.dp))
 
                             Text(
-                                text = "Aplikasi yang ditandai akan DIABAIKAN secara instan oleh persepsi layar (seperti perbankan, kata sandi, dan chat pribadi) demi privasi mutlak.",
+                                text = "Selected apps are excluded from screen perception (including banking, password managers, and private messaging apps) to reduce exposure of sensitive information.",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = ArgusTextSecondary
                             )
@@ -485,7 +485,7 @@ fun SkillsAndSettingsScreen(viewModel: ArgusViewModel) {
                             OutlinedTextField(
                                 value = appFilterText,
                                 onValueChange = { appFilterText = it },
-                                placeholder = { Text("Cari nama aplikasi...", color = ArgusTextMuted, fontSize = 12.sp) },
+                                placeholder = { Text("Search app names...", color = ArgusTextMuted, fontSize = 12.sp) },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(10.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
@@ -588,7 +588,7 @@ fun SkillsAndSettingsScreen(viewModel: ArgusViewModel) {
                         Column {
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Representasi pemahaman kontekstual yang diakumulasi secara real-time.",
+                                text = "A real-time representation of contextual information.",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = ArgusTextSecondary
                             )
