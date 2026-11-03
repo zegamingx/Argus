@@ -68,17 +68,20 @@ The current `ensureVocabCapacity()` behavior, which expands embeddings and outpu
 
 ## 5. Training mathematics and parameter policy — AUD-001
 
-The first learning implementation should have a deliberately narrow, auditable trainable set.
+The trainable parameter set is deliberately unresolved until the architecture and from-scratch training-feasibility gates have been completed. This document defines correctness requirements, not a LoRA or full-model training selection.
 
-### 5.1 Proposed initial trainable set
+### 5.1 Parameter-group declaration
 
-Provided that the selected base model actually contains compatible Q/V LoRA adapters:
+Before a training implementation is approved, its architecture-specific contract must enumerate:
 
-- **Trainable:** Q and V LoRA A/B matrices.
-- **Frozen:** token embeddings, positional representation, base Q/K/V/O matrices, feed-forward matrices and output-head weights.
-- **Not supported initially:** full-model fine-tuning, dynamic vocabulary resizing, training on an unverified random base, and accelerator training without a validated backward backend.
+- Every trainable tensor group, including tensor names, shapes and dtypes.
+- Every frozen tensor group and why it is frozen.
+- Whether embeddings and output projection are tied or separate.
+- Which forward operations must retain backward state to propagate gradients to every trainable group.
+- The optimizer and scheduler state required for exact recovery.
+- Any operation that lacks a verified backward implementation; such a path must be excluded from training.
 
-This proposal avoids mutating the output head while claiming LoRA training. If the selected model does not match these adapter shapes or semantics, the architecture decision must be revisited before implementation.
+No Q/V LoRA-only, adapter-only or full-model training strategy is selected by this document. The selected strategy must follow the architecture decision and measured device-feasibility results.
 
 ### 5.2 Required gradient behavior
 
@@ -86,8 +89,8 @@ For each valid next-token target position, compute the full vocabulary distribut
 
 - `dL/dlogit[v] = softmax(logits)[v] - 1(v = target)`.
 - The output projection gradient must use the exact final hidden state that produced that logit row.
-- Gradients must propagate through the output projection, feed-forward path, normalization, residual path and causal attention into the trainable Q/V LoRA matrices.
-- Frozen base weights receive no optimizer updates, but their operations remain part of the backward graph so gradients can reach the adapters.
+- Gradients must propagate through the output projection, feed-forward path, normalization, residual path and causal attention into every declared trainable parameter group.
+- Frozen tensors receive no optimizer updates, but their operations remain in the backward graph wherever needed to propagate gradients to trainable tensors.
 - All valid token-position gradients in a batch are accumulated and reduced using one explicitly documented mean/sum rule before the optimizer update.
 
 Updating only the target vocabulary row, using the input embedding as the output-head feature, or omitting the attention backward path is not acceptable.
@@ -131,7 +134,7 @@ Read and validate the entire checkpoint into temporary state before changing liv
 - Truncated, oversized or trailing-data files.
 - Unknown schema versions.
 - Invalid checksums or non-finite values.
-- Architecture, base-model, tokenizer or tensor-shape mismatches.
+- Architecture, generation, tokenizer or tensor-shape mismatches.
 - Missing optimizer moments or inconsistent step counters.
 
 Publish restored state atomically only after every check succeeds. Otherwise retain the last-known-good state and surface a recoverable error.
@@ -182,7 +185,7 @@ Chat prompts, file contents, image-derived metadata and web snippets must use th
 
 ### 7.4 Revocation and post-training deletion
 
-Track which approved dataset revision contributed to each candidate adapter/model revision. Keep each committed generation immutable and train into isolated, versioned candidate generations. If a candidate is deleted or consent is revoked after promotion, Argus must be able to roll back to a known adapter revision and rebuild from the remaining approved dataset.
+Track which approved dataset revision contributed to each candidate adapter/model revision. Keep each committed generation immutable and train into isolated, versioned candidate generations. If a candidate is deleted or consent is revoked after promotion, Argus must be able to roll back to a known model-generation revision and rebuild from the remaining approved dataset.
 
 Do not promise exact unlearning from weights that have been irreversibly merged. If provenance and rollback cannot be guaranteed, the system must disclose the limitation and must not promote that training output as a deletable user-controlled memory.
 
@@ -204,7 +207,7 @@ Expected item-level failures must be recorded without silently killing the worke
 
 | Area | Required evidence |
 |---|---|
-| Base model | Artifact manifest validation, digest mismatch rejection, missing/extra tensor rejection and deterministic reload |
+| Genesis model state | Generation-manifest validation, digest mismatch rejection, missing/extra tensor rejection and deterministic reload |
 | Tokenizer | Stable fingerprint, fixed vocabulary, unknown Unicode behavior and tensor-shape invariants |
 | Gradients | Reference parity and finite-difference checks for every declared trainable parameter group |
 | Optimizer | Correct accumulation/reduction, step count, bias correction, clipping and frozen-weight immutability |
@@ -212,7 +215,7 @@ Expected item-level failures must be recorded without silently killing the worke
 | Consent | Default-off settings, independent consent scopes and immediate revocation behavior |
 | Capture | Package/window mismatch, password fields, excluded/unknown app and redaction adversarial fixtures |
 | Approval | Rejected/unreviewed samples never reach the optimizer; imported and web data require the same approval |
-| Deletion | Candidate lineage, adapter rollback and reconstruction without deleted/revoked samples |
+| Deletion | Candidate lineage, generation rollback and reconstruction without deleted/revoked samples |
 | Worker | Bad sample isolation, fatal-error pause, process interruption and restart behavior |
 
 The test suites must be authored before training is re-enabled. They must not be run during the current audit/build freeze.
@@ -237,7 +240,7 @@ The following decisions must be resolved before implementation:
 2. Which parameter groups are trainable for the selected from-scratch architecture, and which optimizer semantics are correct for those groups?
 3. What exact optimizer and hyperparameter configuration is the first supported training profile?
 4. What screen-perception and learning-consent wording/scopes should the user approve?
-5. What retention period and rollback policy apply to approved candidate data and trained adapter revisions?
+5. What retention period and rollback policy apply to approved candidate data and trained model-generation revisions?
 
 Until these are resolved and the P0 verification matrix is approved, all P0 findings remain OPEN.
 

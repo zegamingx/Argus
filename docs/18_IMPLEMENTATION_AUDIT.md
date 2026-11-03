@@ -2,6 +2,7 @@
 
 **Repository:** `zegamingx/Argus`  
 **Branch:** `master`  
+**Current documentation branch:** `main` (this file remains a historical audit snapshot)  
 **Source baseline:** `4d8104d4400dcd858e648d7b08ac0718385733d3`  
 **Audit branch head:** `b1f41db3166e383b84ef0716ee4f43e7544744c5`  
 **Review date:** 2026-11-03  
