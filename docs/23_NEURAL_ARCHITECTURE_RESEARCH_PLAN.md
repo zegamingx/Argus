@@ -1,7 +1,7 @@
 # Neural Architecture Research Plan
 
 **Status:** Research required; no initial architecture selected  
-**Last reviewed:** 2026-11-03
+**Last reviewed:** 2026-11-04
 
 ## 1. Research objective
 
@@ -111,3 +111,42 @@ Future growth may add parameters, modules or structural variants. Every candidat
 ## 8. Current decision
 
 **No initial architecture family is selected.** Research candidates are open. Model dimensions and parameter count are per-device outputs after architecture and capability analysis, not global constants.
+
+
+## 9. External evidence and scope boundaries
+
+These references inform the existing candidate comparison. They do not select an architecture for Argus.
+
+### 9.1 Small-model learning from random initialization
+
+[Eldan and Li, TinyStories (Microsoft Research, 2023)](https://www.microsoft.com/en-us/research/publication/tinystories-how-small-can-language-models-be-and-still-speak-coherent-english/) show that models below 10 million parameters, including very simple Transformer configurations, can generate coherent multi-paragraph stories when trained on a deliberately constrained synthetic story dataset.
+
+This establishes that useful behavior can emerge in a narrow task distribution at small parameter counts. It does not establish broad general-language competence, broad factual knowledge, or training feasibility on Android hardware. Argus must not use TinyStories results as a direct model-size prescription.
+
+### 9.2 Transformer, SSM and hybrid comparison
+
+[Waleffe et al., An Empirical Study of Mamba-based Language Models (NVIDIA and collaborators, 2024)](https://research.nvidia.com/publication/2024-06_empirical-study-mamba-based-language-models) compare 8B Transformer, Mamba, Mamba-2 and Mamba-2-Hybrid models trained on common data at up to 3.5 trillion tokens. The study reports task-dependent differences: pure SSM models lag on some copying, in-context-learning and long-context tasks, while the evaluated 8B hybrid outperforms the Transformer on the reported standard-task average and is predicted to improve inference generation speed.
+
+These are large-scale server-training results. They justify retaining SSM and Hybrid as candidates, but they do not establish the best architecture, layer ratio, training efficiency or mobile performance for Argus-sized models.
+
+### 9.3 Multilingual tokenizer evidence
+
+Tokenizer evaluation must include more than vocabulary size:
+
+- [Equity with Efficiency (EMNLP 2026)](https://aclanthology.org/2026.emnlp-main.1783/) evaluates tokenizer efficiency and language parity across eleven Southeast Asian languages and includes controlled 1.5B-parameter training. This supports evaluating Indonesian and neighboring languages explicitly rather than assuming an English-dominant tokenizer is adequate.
+- [Scaling Laws or Threshold Effects (Findings of ACL 2026)](https://aclanthology.org/2026.findings-acl.1588/) reports vocabulary-size threshold behavior for BBPE in a specific Mongolian, Tibetan and Uyghur experiment. Its 9K threshold must not be generalized into a universal Argus minimum.
+- [Vowel Signs Are Not Letters (2026)](https://arxiv.org/abs/2608.26449) identifies pre-tokenization regex behavior that can impose a structural fertility ceiling for abugida scripts. Argus must inspect the pre-tokenizer and Unicode handling, not only the merge vocabulary.
+
+For every candidate tokenizer, record per-language fertility, bytes per token, normalized sequence length, bits-per-byte where a compatible language-model evaluation exists, special-token behavior, Unicode round-trip behavior, and embedding/output-head cost. Keep data composition and tokenizer revision fixed when comparing architecture candidates.
+
+### 9.4 Research boundary
+
+The current research order is:
+
+1. Define the training-feasibility target and what constitutes useful learning for Argus.
+2. Evaluate tokenizer candidates on the same versioned language/domain fixtures.
+3. Freeze a common tokenizer/input fixture for controlled architecture prototypes.
+4. Compare Transformer, SSM/recurrent and Hybrid with equivalent data and stated parameter/compute budgets.
+5. Validate the leading candidates on representative Android devices under sustained thermal and memory conditions.
+
+This order is an experimental dependency, not an architecture decision. Local Knowledge Genesis remains the accepted direction; external pretrained models are not substituted as the Argus foundation by this research plan.

@@ -1,7 +1,7 @@
 # Device-Adaptive Model and Training
 
 **Status:** Accepted adaptive-design direction; thresholds and implementation remain open  
-**Last reviewed:** 2026-11-03
+**Last reviewed:** 2026-11-04
 
 ## 1. Two different adaptation problems
 
@@ -120,3 +120,23 @@ See [32 — Device-Adaptive Knowledge Acquisition and Corpus Budgeting](32_DEVIC
 Use representative low-, mid- and high-capability Android devices. Measure configuration selection, peak/sustained memory, training throughput, energy, thermal response, pause latency, checkpoint reliability and recovery after process death. Keep exact device, OS, driver, runtime, model and dataset revisions with every result.
 
 No parameter tiers or thresholds are finalized until this research is complete.
+
+
+## 11. External evidence and transferability
+
+The following evidence informs the design of the mobile training controller. It must be interpreted according to the workload actually studied.
+
+- [MELON (ACM MobiSys 2022)](https://doi.org/10.1145/3498361.3538928) demonstrates memory-oriented techniques for training neural networks on commodity mobile devices, including recomputation, micro-batching and memory adaptation. It is useful systems evidence, but it is not an LLM-from-scratch result.
+- [MobileFineTuner (2025)](https://arxiv.org/abs/2512.08211) reports full-parameter and parameter-efficient fine-tuning of pretrained LLMs on real mobile phones. Its memory, gradient-accumulation, sharding and scheduling techniques are relevant to Argus's training infrastructure; its results do not prove that broad language pretraining from random initialization is practical on a phone.
+- [Geyko, Mosbach and Brinkmann (2026)](https://arxiv.org/abs/2610.06325) measure sustained LoRA fine-tuning of a quantized, frozen 3B-parameter base model on an iPhone 17 Pro. The work is valuable for complete-run, energy and thermal analysis. It is an iOS fine-tuning experiment, not an Android or from-scratch result.
+- Google's [LiteRT on-device training guide](https://developers.google.com/edge/litert/conversion/tensorflow/build/ondevice_training) documents Android training of a deployed model through a training signature. It establishes an available incremental-training workflow, not a generic foundation-pretraining engine.
+- The TensorFlow team's [2021 on-device training guidance](https://blog.tensorflow.org/2021/11/on-device-training-in-tensorflow-lite.html) explicitly distinguishes practical transfer learning/retraining from the much larger data and compute demand of training from scratch. Because it is older and stack-specific, it is a cautionary reference rather than a current benchmark.
+
+### 11.1 Consequences for Argus
+
+1. Preserve Local Knowledge Genesis as the accepted product direction. None of the references above authorizes replacing it with an externally pretrained foundation.
+2. Do not infer from successful inference, adapter training or full fine-tuning that a model can be pretrained from random initialization on the same device.
+3. Keep optimizer state, gradients, activations, temporary workspaces, runtime allocations, checkpoint reserve and Android process headroom in the same peak-memory accounting.
+4. Require complete-run measurements: peak and sustained memory, optimizer updates, bytes/tokens processed, time-to-validation target, energy, thermal behavior, interruptions and recovery.
+5. Use MELON and mobile fine-tuning papers for systems techniques; use narrow-domain from-scratch research and Argus-specific experiments to investigate learning from random initialization.
+6. The feasibility question remains open until a defined model/data/task target is measured on representative Android devices. No parameter ceiling or time budget is inferred from these papers alone.
