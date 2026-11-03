@@ -4,11 +4,11 @@
 
 # ARGUS
 
-### Your Pocket AGI — 100% On-Device. Zero Cloud. Zero API.
+### Your Pocket AGI — Local-First. On-Device by Default. User-Controlled Network.
 
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
-[![AGP](https://img.shields.io/badge/AGP-8.7.x-3DDC84?logo=android&logoColor=white)](https://developer.android.com/build)
-[![Gradle](https://img.shields.io/badge/Gradle-8.13-02303A?logo=gradle&logoColor=white)](https://gradle.org)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.2.10-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![AGP](https://img.shields.io/badge/AGP-9.1.1-3DDC84?logo=android&logoColor=white)](https://developer.android.com/build)
+[![Gradle](https://img.shields.io/badge/Gradle-9.3.1-02303A?logo=gradle&logoColor=white)](https://gradle.org)
 [![JDK](https://img.shields.io/badge/JDK-21%20LTS-orange?logo=openjdk&logoColor=white)](https://openjdk.org)
 [![minSdk](https://img.shields.io/badge/minSdk-33-222?logo=android)](https://developer.android.com/tools)
 [![targetSdk](https://img.shields.io/badge/targetSdk-36-222?logo=android)](https://developer.android.com/tools)
@@ -23,6 +23,14 @@ procedural memory), reasons (local LLM + multi-agent planner), acts
 of user data ever leaving the device.
 
 </div>
+
+---
+
+## 📚 Engineering Documentation
+
+The `docs/` directory is the planning source of truth for Argus requirements, architecture, processor/GPU/NPU support, SoC compatibility, AI runtimes, models, learning, memory, platform expansion, security, performance and verification.
+
+**Documentation-first phase:** the architecture diagrams and capability descriptions below include target designs. They must not be read as proof that every feature or accelerator is implemented. See [Engineering Documentation Index](docs/README.md) and [Current Repository Baseline](docs/17_CURRENT_REPOSITORY_BASELINE.md) for inspected facts and open gaps.
 
 ---
 
