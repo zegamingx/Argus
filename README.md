@@ -345,7 +345,7 @@ and every developer who believed a phone could hold a mind.
 
 <div align="center">
 
-**Seratus mata. Satu pikiran. Nol cloud.**
+**A hundred eyes. One mind. Local-first intelligence.**
 Built with 🔥 on ARM64.
 
 </div>
