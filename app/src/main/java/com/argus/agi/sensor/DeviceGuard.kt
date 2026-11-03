@@ -18,7 +18,7 @@ data class DeviceSafetyState(
     val temperatureCelsius: Float = 30.0f,
     val isBatteryOptimizedIgnored: Boolean = false,
     val isSafeToTrain: Boolean = true,
-    val statusMessage: String = "Kondisi Aman"
+    val statusMessage: String = "System safe"
 )
 
 class DeviceGuard(private val context: Context) {
@@ -91,9 +91,9 @@ class DeviceGuard(private val context: Context) {
         val isSafe = safeTemp && safeBattery
 
         val statusMsg = when {
-            !safeTemp -> "Suhu Panas (${String.format("%.1f", tempCelsius)}°C > 42°C) — Training Ditahan Demi Keamanan"
-            !safeBattery -> "Baterai Rendah ($batteryPct% < 20%) — Menunggu Charger Untuk Melanjutkan Training"
-            else -> "Kondisi Perangkat Aman (${batteryPct}%, ${String.format("%.1f", tempCelsius)}°C)"
+            !safeTemp -> "High temperature (${String.format("%.1f", tempCelsius)}°C > 42°C). Training paused for device safety."
+            !safeBattery -> "Low battery ($batteryPct% < 20%). Waiting for charging before resuming training."
+            else -> "Device safe (${batteryPct}%, ${String.format("%.1f", tempCelsius)}°C)."
         }
 
         _safetyState.value = DeviceSafetyState(

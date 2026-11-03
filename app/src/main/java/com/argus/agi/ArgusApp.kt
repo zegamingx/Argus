@@ -37,7 +37,7 @@ class ArgusApp : Application() {
                 "A.R.G.U.S Neural Core & Perception",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Status proses training on-device dan persepsi lingkungan A.R.G.U.S"
+                description = "Status of on-device learning and environmental perception."
                 setShowBadge(false)
             }
             val manager = getSystemService(NotificationManager::class.java)

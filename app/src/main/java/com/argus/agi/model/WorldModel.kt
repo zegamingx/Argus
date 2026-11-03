@@ -30,7 +30,7 @@ class WorldModel(private val context: Context) {
     private val _entitiesFlow = MutableStateFlow<List<WorldEntity>>(emptyList())
     val entitiesFlow: StateFlow<List<WorldEntity>> = _entitiesFlow.asStateFlow()
 
-    private val _currentContextSummary = MutableStateFlow("Sistem Siap. Menunggu stimulus lingkungan & layar.")
+    private val _currentContextSummary = MutableStateFlow("System ready. Waiting for environmental and screen context.")
     val currentContextSummary: StateFlow<String> = _currentContextSummary.asStateFlow()
 
     init {
@@ -71,8 +71,8 @@ class WorldModel(private val context: Context) {
 
         // Check if query is fact-seeking or math
         val isMath = query.any { it in "+-*/^=" }
-        val lacksKnowledge = lowerResp.contains("tidak tahu") ||
-                lowerResp.contains("belum ada") ||
+        val lacksKnowledge = lowerResp.contains("don't know") || lowerResp.contains("do not know") ||
+                lowerResp.contains("not available") || lowerResp.contains("not enough information") ||
                 lowerResp.length < 5
 
         var score = 0.85f
@@ -81,7 +81,7 @@ class WorldModel(private val context: Context) {
 
         if (lacksKnowledge) {
             score = 0.25f
-            reasoning = "Ketidakpastian tinggi terdeteksi. Pola belum terinternalisasi di bobot lokal."
+            reasoning = "High uncertainty detected. This pattern is not yet represented in the local model weights."
             suggestedAction = "AUTO_LEARN_QUERY"
         } else if (isMath) {
             score = 0.95f

@@ -30,10 +30,9 @@ class WebSearchEngine {
         // 1. First attempt: Direct Wikipedia API search for verified factual knowledge
         try {
             val encodedQuery = URLEncoder.encode(query, java.nio.charset.StandardCharsets.UTF_8)
-            val idWikiUrl = "https://id.wikipedia.org/w/api.php?action=opensearch&search=$encodedQuery&limit=4&namespace=0&format=json"
             val enWikiUrl = "https://en.wikipedia.org/w/api.php?action=opensearch&search=$encodedQuery&limit=4&namespace=0&format=json"
 
-            val wikiResults = fetchWikiResults(idWikiUrl).ifEmpty { fetchWikiResults(enWikiUrl) }
+            val wikiResults = fetchWikiResults(enWikiUrl)
             results.addAll(wikiResults)
         } catch (_: Exception) {}
 
@@ -112,7 +111,7 @@ class WebSearchEngine {
             if (cleanSnippet.length > 20) {
                 list.add(
                     SearchResultItem(
-                        title = cleanUrl.substringBefore("/").ifBlank { "Hasil Web" },
+                        title = cleanUrl.substringBefore("/").ifBlank { "Web result" },
                         snippet = cleanSnippet,
                         sourceUrl = cleanUrl
                     )

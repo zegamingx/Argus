@@ -60,8 +60,8 @@ import com.argus.agi.ui.theme.ArgusTheme
 enum class ArgusScreen(val label: String, val icon: ImageVector) {
     CHAT("Terminal", Icons.AutoMirrored.Filled.Chat),
     NEURAL_CORE("Neural Core", Icons.Default.Memory),
-    PERCEPTION("Persepsi", Icons.Default.Visibility),
-    SETTINGS("Skill & Privasi", Icons.Default.Tune)
+    PERCEPTION("Perception", Icons.Default.Visibility),
+    SETTINGS("Skills & Privacy", Icons.Default.Tune)
 }
 
 class MainActivity : ComponentActivity() {

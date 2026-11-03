@@ -117,13 +117,13 @@ class ArgusForegroundService : Service() {
         val latestLoss = trainingManager.lossHistory.value.lastOrNull()
 
         val title = "A.R.G.U.S Core: " + when {
-            isPaused -> "Training Dijeda"
-            !safety.isSafeToTrain -> "Thermal/Baterai Guard Aktif"
-            currentItem != null -> "Sedang Melatih (${currentItem.source})"
-            else -> "Memantau Stimulus & Layar"
+            isPaused -> "Training paused"
+            !safety.isSafeToTrain -> "Thermal and battery guard active"
+            currentItem != null -> "Learning from ${currentItem.source}"
+            else -> "Monitoring approved context sources"
         }
 
-        val lossText = if (latestLoss != null) "Loss: ${String.format("%.4f", latestLoss)}" else "Loss: belum ada"
+        val lossText = if (latestLoss != null) "Loss: ${String.format("%.4f", latestLoss)}" else "Loss: not available"
         val content = "$lossText | ${safety.batteryPct}% (${String.format("%.1f", safety.temperatureCelsius)}°C) | ${hardware.primaryAccelerator.substringBefore('+')}"
 
         val openAppIntent = Intent(this, MainActivity::class.java).apply {
@@ -142,7 +142,7 @@ class ArgusForegroundService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val pauseResumeLabel = if (isPaused) "Lanjutkan Training" else "Jeda Training"
+        val pauseResumeLabel = if (isPaused) "Resume training" else "Pause training"
 
         return NotificationCompat.Builder(this, ArgusApp.CHANNEL_ID)
             .setContentTitle(title)
