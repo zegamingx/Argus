@@ -326,7 +326,7 @@ class ArgusNeuralEngine(private val context: Context) {
 
         val decoded = tokenizer.decode(generatedTokens)
         decoded.ifBlank {
-            "A.R.G.U.S telah menganalisis input dengan model on-device lokal."
+            "A.R.G.U.S has analyzed the input using its local on-device model."
         }
     }
 
