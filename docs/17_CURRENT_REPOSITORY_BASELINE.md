@@ -1,7 +1,7 @@
 # Current Repository Baseline
 
 **Repository:** `zegamingx/Argus` · **Branch:** `main`  
-**Inspected commit:** `e80afc8979fb6d51cbc46466d2b15a5a61506e00`  
+**Inspected commit:** `8cfa9ea7e626de46276161ae71139382d8d0cd53`  
 **Inspection date:** 2026-11-03
 
 This record separates what was found in the inspected source snapshot from proposed architecture.
@@ -23,7 +23,7 @@ Observed in `app/build.gradle.kts`, `gradle/libs.versions.toml` and `gradle/wrap
 | README JDK expectation | JDK 21 |
 | Native CMake/JNI source | No `app/src/main/cpp/CMakeLists.txt` found in inspected tree |
 
-README badges state AGP 8.7.x, Gradle 8.13 and Kotlin 2.1; these differ from checked-in build configuration.
+README badges match the checked-in AGP, Gradle and Kotlin versions. Release signing is optional and uses externally supplied configuration; no private signing artifact is stored in the current source tree.
 
 ## 2. Source layout
 
@@ -47,11 +47,11 @@ This is **preliminary heuristic identification**, not verified NPU access. It do
 
 ## 5. Permission/network observations
 
-The manifest declares INTERNET, ACCESS_NETWORK_STATE, CAMERA, notification/foreground-service and WAKE_LOCK permissions, and an AccessibilityService. Gradle includes a Firebase AI dependency. These are audit observations, not proof of data transmission; they require a dependency/network audit before a zero-cloud claim is considered verified.
+The manifest declares INTERNET, ACCESS_NETWORK_STATE, CAMERA, notification/foreground-service and WAKE_LOCK permissions, and an AccessibilityService. The Google AI Studio-specific Secrets and Google Services plugins, Firebase AI/App Check dependencies, environment example and generated metadata file have been removed from the current main branch. Ordinary Android/AndroidX tooling and KSP remain. Web retrieval makes outbound HTTP requests to public search endpoints.
 
 ## 6. Repository hygiene risk
 
-The public repository tree contains `my-upload-key.jks`. Private signing material must not be tracked publicly. Treat this as a high-priority exposure for owner-led investigation: determine whether it is a live upload key, rotate/replace as appropriate, review where used and clean Git history where feasible. Never reproduce its contents.
+A previously tracked private signing artifact has been removed from the current main tree. This does not erase historical Git objects, other branches or forks. Treat the credential as potentially exposed: verify whether it was active, rotate or replace it as appropriate, and plan Git-history cleanup. Do not reproduce its contents. Release signing now depends on externally supplied configuration.
 
 ## 7. Scope classification
 
