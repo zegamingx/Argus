@@ -101,7 +101,7 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
 
     val formattedParams = NumberFormat.getNumberInstance(Locale.US).format(totalParams)
     val adapterSizeKb = adapterBytes / 1024.0
-    val adapterSizeStr = if (adapterBytes > 0) String.format(Locale.US, "%.2f KB", adapterSizeKb) else "belum ada"
+    val adapterSizeStr = if (adapterBytes > 0) String.format(Locale.US, "%.2f KB", adapterSizeKb) else "not available"
 
     LazyColumn(
         modifier = Modifier
@@ -155,7 +155,7 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Spesifikasi Model Aktif",
+                                text = "Active Model Specifications",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = ArgusTextPrimary,
                                 fontWeight = FontWeight.Bold
@@ -222,7 +222,7 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
                                 fontFamily = FontFamily.Monospace
                             )
                             Text(
-                                text = "Backend Komputasi: ${hardwareInfo.primaryAccelerator}",
+                                text = "Compute backend: ${hardwareInfo.primaryAccelerator}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = ArgusCyanGlow,
                                 fontFamily = FontFamily.Monospace
@@ -259,7 +259,7 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Total Step Selesai: $totalSteps",
+                                text = "Completed steps: $totalSteps",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = ArgusTextSecondary
                             )
@@ -282,7 +282,7 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = if (isPaused) "Lanjutkan" else "Jeda",
+                                    text = if (isPaused) "Resume" else "Pause",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 11.sp
                                 )
@@ -359,14 +359,14 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Grafik Real Cross-Entropy Loss",
+                            text = "Cross-Entropy Loss History",
                             style = MaterialTheme.typography.titleMedium,
                             color = ArgusTextPrimary,
                             fontWeight = FontWeight.Bold
                         )
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            val currentLossStr = lossHistory.lastOrNull()?.let { String.format(Locale.US, "%.4f", it) } ?: "belum ada"
+                            val currentLossStr = lossHistory.lastOrNull()?.let { String.format(Locale.US, "%.4f", it) } ?: "not available"
                             Text(
                                 text = "Loss: $currentLossStr",
                                 style = MaterialTheme.typography.labelSmall,
@@ -400,7 +400,7 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = "Loss belum ada. Data training sedang diakumulasi dari layar.",
+                                        text = "No loss history yet. Learning candidates are collected from approved inputs.",
                                         style = MaterialTheme.typography.bodyMedium.copy(fontSize = 11.sp),
                                         color = ArgusTextMuted,
                                         fontFamily = FontFamily.Monospace
@@ -468,7 +468,7 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
                                     )
                                 } else {
                                     Text(
-                                        text = "Uji",
+                                        text = "Run",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 11.sp
                                     )
@@ -495,30 +495,30 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                val tpsStr = benchmark?.let { String.format(Locale.US, "%.1f TPS", it.tokensPerSecond) } ?: "belum ada"
-                                val latStr = benchmark?.let { String.format(Locale.US, "%.2f ms/tok", it.latencyMsPerToken) } ?: "belum ada"
-                                val memStr = benchmark?.let { String.format(Locale.US, "%.1f MB", it.memoryUsageMb) } ?: "belum ada"
+                                val tpsStr = benchmark?.let { String.format(Locale.US, "%.1f TPS", it.tokensPerSecond) } ?: "not available"
+                                val latStr = benchmark?.let { String.format(Locale.US, "%.2f ms/tok", it.latencyMsPerToken) } ?: "not available"
+                                val memStr = benchmark?.let { String.format(Locale.US, "%.1f MB", it.memoryUsageMb) } ?: "not available"
 
                                 StatMetricBox(
-                                    label = "KECEPATAN",
+                                    label = "THROUGHPUT",
                                     value = tpsStr,
-                                    unit = "Tokens / Detik",
+                                    unit = "Tokens / second",
                                     valueColor = ArgusCyanPrimary,
                                     modifier = Modifier.weight(1f)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 StatMetricBox(
-                                    label = "LATENSI",
+                                    label = "LATENCY",
                                     value = latStr,
-                                    unit = "Per Token",
+                                    unit = "Per token",
                                     valueColor = ArgusCyanGlow,
                                     modifier = Modifier.weight(1f)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 StatMetricBox(
-                                    label = "MEMORI",
+                                    label = "MEMORY",
                                     value = memStr,
-                                    unit = "Heap Terpakai",
+                                    unit = "Heap used",
                                     valueColor = ArgusBlueAccent,
                                     modifier = Modifier.weight(1f)
                                 )
@@ -541,14 +541,14 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "ANTREAN & HISTORI TRAINING",
+                    text = "LEARNING QUEUE & HISTORY",
                     style = MaterialTheme.typography.titleMedium,
                     color = ArgusCyanPrimary,
                     fontWeight = FontWeight.Bold
                 )
                 Icon(
                     imageVector = if (isQueueExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                    contentDescription = "Toggle Antrean",
+                    contentDescription = "Toggle queue",
                     tint = ArgusCyanPrimary,
                     modifier = Modifier.size(20.dp)
                 )
@@ -558,20 +558,20 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
         if (isQueueExpanded) {
             // 1. DATA SEDANG DITRAINING
             item {
-                QueueSectionHeader(title = "1. Data Yang Sedang Ditraining", count = if (currentItem != null) 1 else 0)
+                QueueSectionHeader(title = "1. Currently Training", count = if (currentItem != null) 1 else 0)
                 Spacer(modifier = Modifier.height(6.dp))
 
                 if (currentItem != null) {
                     ActiveTrainingCard(currentItem!!)
                 } else {
-                    EmptyQueueCard("Tidak ada data yang sedang aktif ditraining (Idle / Menunggu Stimulus)")
+                    EmptyQueueCard("No active training item (idle; waiting for approved input).")
                 }
             }
 
             // 2. DATA SELANJUTNYA DITRAINING
             item {
                 QueueSectionHeader(
-                    title = "2. Data Selanjutnya Ditraining",
+                    title = "2. Next in Queue",
                     count = nextQueue.size,
                     onClear = { viewModel.clearTrainingQueue() }
                 )
@@ -584,14 +584,14 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
                         }
                     }
                 } else {
-                    EmptyQueueCard("Antrean kosong. Buka aplikasi lain untuk membaca layar atau kirim pesan/dokumen di chat.")
+                    EmptyQueueCard("The queue is empty. Use an approved screen-capture session or send a message/document in chat.")
                 }
             }
 
             // 3. DATA SUDAH DITRAINING
             item {
                 QueueSectionHeader(
-                    title = "3. Data Sudah Ditraining (Histori)",
+                    title = "3. Completed Learning History",
                     count = completedQueue.size,
                     onClear = { viewModel.clearCompletedTraining() }
                 )
@@ -604,7 +604,7 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
                         }
                     }
                 } else {
-                    EmptyQueueCard("Histori training belum ada.")
+                    EmptyQueueCard("No learning history yet.")
                 }
             }
         }
@@ -736,7 +736,7 @@ fun QueueSectionHeader(
             if (onClear != null && count > 0) {
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Bersihkan",
+                    text = "Clear",
                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                     color = ArgusTextMuted,
                     modifier = Modifier
@@ -771,7 +771,7 @@ fun ActiveTrainingCard(item: TrainingData) {
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "AKTIF DILATIH: ${item.source}",
+                        text = "TRAINING: ${item.source}",
                         style = MaterialTheme.typography.labelSmall,
                         color = ArgusCyanPrimary,
                         fontWeight = FontWeight.Bold
@@ -821,7 +821,7 @@ fun QueuedItemCard(item: TrainingData) {
                     color = ArgusTextPrimary
                 )
                 Text(
-                    text = "Sumber: ${item.source} (${item.content.length} karakter)",
+                    text = "Source: ${item.source} (${item.content.length} characters)",
                     style = MaterialTheme.typography.labelSmall,
                     color = ArgusTextMuted
                 )
@@ -857,7 +857,7 @@ fun CompletedItemCard(item: TrainingData) {
                 )
                 val lossStr = item.finalLoss?.let { String.format(Locale.US, "Loss: %.4f", it) } ?: "Loss: belum ada"
                 Text(
-                    text = "$lossStr | Waktu: ${item.stepDurationMs}ms | ${item.source}",
+                    text = "$lossStr | Duration: ${item.stepDurationMs} ms | ${item.source}",
                     style = MaterialTheme.typography.labelSmall,
                     color = ArgusTextSecondary,
                     fontFamily = FontFamily.Monospace

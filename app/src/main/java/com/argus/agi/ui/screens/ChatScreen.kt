@@ -192,7 +192,7 @@ fun ChatScreen(viewModel: ArgusViewModel) {
                         Spacer(modifier = Modifier.width(6.dp))
                         Icon(
                             imageVector = if (isHeaderExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                            contentDescription = if (isHeaderExpanded) "Ciutkan Header" else "Perluas Header",
+                            contentDescription = if (isHeaderExpanded) "Collapse header" else "Expand header",
                             tint = ArgusCyanPrimary,
                             modifier = Modifier.size(20.dp)
                         )
@@ -214,12 +214,12 @@ fun ChatScreen(viewModel: ArgusViewModel) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Privasi: 100% On-Device | Zero Telemetry",
+                            text = "Privacy: On-device AI | No telemetry",
                             style = MaterialTheme.typography.labelSmall,
                             color = ArgusTextMuted
                         )
                         Text(
-                            text = "Bersihkan Chat",
+                            text = "Clear chat",
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                             color = ArgusCyanPrimary,
                             fontWeight = FontWeight.Bold,
@@ -227,7 +227,7 @@ fun ChatScreen(viewModel: ArgusViewModel) {
                                 .clip(RoundedCornerShape(4.dp))
                                 .clickable {
                                     viewModel.clearChat()
-                                    Toast.makeText(context, "Percakapan dibersihkan", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Conversation cleared", Toast.LENGTH_SHORT).show()
                                 }
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         )
@@ -267,7 +267,7 @@ fun ChatScreen(viewModel: ArgusViewModel) {
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "A.R.G.U.S sedang menalar, memeriksa memori & bobot neural...",
+                            text = "A.R.G.U.S is reasoning and checking memory and model parameters...",
                             style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
                             color = ArgusCyanGlow,
                             fontFamily = FontFamily.Monospace
@@ -286,9 +286,9 @@ fun ChatScreen(viewModel: ArgusViewModel) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 val chips = listOf(
-                    "Hitung 125 * 34",
-                    "Apa arsitektur A.R.G.U.S?",
-                    "Pelajari perkembangan AGI terbaru",
+                    "Calculate 125 * 34",
+                    "What is the Argus architecture?",
+                    "Explore recent AGI developments",
                     "Bagaimana cara kerja LoRA?"
                 )
                 items(chips) { chip ->
@@ -330,7 +330,7 @@ fun ChatScreen(viewModel: ArgusViewModel) {
                 ) {
                     Icon(
                         imageVector = Icons.Default.AttachFile,
-                        contentDescription = "Import Dokumen",
+                        contentDescription = "Import document",
                         tint = ArgusCyanPrimary
                     )
                 }
@@ -346,7 +346,7 @@ fun ChatScreen(viewModel: ArgusViewModel) {
                 ) {
                     Icon(
                         imageVector = Icons.Default.Image,
-                        contentDescription = "Import Gambar",
+                        contentDescription = "Import image",
                         tint = ArgusBlueAccent
                     )
                 }
@@ -356,7 +356,7 @@ fun ChatScreen(viewModel: ArgusViewModel) {
                     onValueChange = { inputText = it },
                     placeholder = {
                         Text(
-                            "Tanya, perintah aksi, atau latih...",
+                            "Ask a question, request an action, or start a learning task...",
                             color = ArgusTextMuted,
                             fontSize = 12.sp
                         )
@@ -369,16 +369,16 @@ fun ChatScreen(viewModel: ArgusViewModel) {
                                     val clipText = clipboardManager.getText()?.text
                                     if (!clipText.isNullOrBlank()) {
                                         inputText = clipText
-                                        Toast.makeText(context, "Teks ditempel dari clipboard", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, "Text pasted from clipboard", Toast.LENGTH_SHORT).show()
                                     } else {
-                                        Toast.makeText(context, "Clipboard kosong", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, "Clipboard is empty", Toast.LENGTH_SHORT).show()
                                     }
                                 },
                                 modifier = Modifier.size(30.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.ContentPaste,
-                                    contentDescription = "Tempel Clipboard",
+                                    contentDescription = "Paste from clipboard",
                                     tint = ArgusTextMuted,
                                     modifier = Modifier.size(16.dp)
                                 )
@@ -417,7 +417,7 @@ fun ChatScreen(viewModel: ArgusViewModel) {
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Kirim",
+                        contentDescription = "Send",
                         tint = ArgusDarkBg,
                         modifier = Modifier.size(20.dp)
                     )
@@ -452,7 +452,7 @@ fun ChatMessageItem(msg: ChatMessage) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = if (msg.isUser) "Pengguna" else "A.R.G.U.S",
+                text = if (msg.isUser) "You" else "A.R.G.U.S",
                 style = MaterialTheme.typography.labelSmall,
                 color = if (msg.isUser) ArgusBlueAccent else ArgusCyanPrimary,
                 fontWeight = FontWeight.Bold
@@ -483,7 +483,7 @@ fun ChatMessageItem(msg: ChatMessage) {
                 if (msg.attachedImageUri != null) {
                     Image(
                         painter = rememberAsyncImagePainter(model = msg.attachedImageUri),
-                        contentDescription = "Gambar Terlampir",
+                        contentDescription = "Attached image",
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(160.dp)
@@ -538,7 +538,7 @@ fun ChatMessageItem(msg: ChatMessage) {
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Penalaran & Self-Reflection",
+                            text = "Reasoning & self-reflection",
                             style = MaterialTheme.typography.labelSmall,
                             color = ArgusCyanGlow,
                             modifier = Modifier.weight(1f)
@@ -585,7 +585,7 @@ fun ChatMessageItem(msg: ChatMessage) {
                 if (isLongMessage) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = if (isLongTextExpanded) "Ciutkan Teks ▲" else "Baca Selengkapnya ▼",
+                        text = if (isLongTextExpanded) "Collapse text ▲" else "Read more ▼",
                         style = MaterialTheme.typography.labelSmall,
                         color = ArgusCyanPrimary,
                         fontWeight = FontWeight.Bold,
@@ -610,20 +610,20 @@ fun ChatMessageItem(msg: ChatMessage) {
                             .clickable {
                                 clipboardManager.setText(AnnotatedString(msg.text))
                                 isCopied = true
-                                Toast.makeText(context, "Pesan disalin ke clipboard", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Message copied to clipboard", Toast.LENGTH_SHORT).show()
                             }
                             .padding(horizontal = 6.dp, vertical = 3.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
                             imageVector = if (isCopied) Icons.Default.Check else Icons.Default.ContentCopy,
-                            contentDescription = "Salin pesan",
+                            contentDescription = "Copy message",
                             tint = if (isCopied) ArgusSuccess else ArgusTextMuted,
                             modifier = Modifier.size(13.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = if (isCopied) "Tersalin" else "Salin",
+                            text = if (isCopied) "Copied" else "Copy",
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                             color = if (isCopied) ArgusSuccess else ArgusTextMuted
                         )

@@ -91,8 +91,8 @@ class ArgusViewModel(application: Application) : AndroidViewModel(application) {
         _messages.value = listOf(
             ChatMessage(
                 isUser = false,
-                text = "A.R.G.U.S Neural Core aktif. Sistem berjalan 100% on-device tanpa API atau cloud eksternal. Semua bobot dihitung dan dilatih langsung pada perangkat ini.",
-                thinkReasoning = "Inisialisasi core model: d_model=${neuralEngine.dModel}, heads=${neuralEngine.nHeads}, LoRA rank=${neuralEngine.loraRank}. Parameter dihitung langsung dari matriks bobot aktif."
+                text = "A.R.G.U.S Neural Core is active. Inference and model updates run locally on this device without a remote AI API.",
+                thinkReasoning = "Model initialization: d_model=${neuralEngine.dModel}, heads=${neuralEngine.nHeads}, LoRA rank=${neuralEngine.loraRank}. Parameter count is derived from the active weight matrices."
             )
         )
 
@@ -161,11 +161,11 @@ class ArgusViewModel(application: Application) : AndroidViewModel(application) {
             var finalAnswer = rawOutput
             val thinkingSb = StringBuilder()
             thinkingSb.append("Self-Reflection: ").append(reflection.reasoningNote)
-            thinkingSb.append(" | Keyakinan: ").append(String.format("%.0f%%", reflection.confidenceScore * 100))
+            thinkingSb.append(" | Confidence: ").append(String.format("%.0f%%", reflection.confidenceScore * 100))
 
-            // 4. Handle "Chat yang belum bisa dijawab menjadi data langsung training"
+            // 4. Turn unresolved questions into user-reviewable learning candidates.
             if (!reflection.isConfident || reflection.suggestedAction == "AUTO_LEARN_QUERY") {
-                thinkingSb.append("\n-> Memicu Autonomous On-Device Web Retrieval & Training Queue.")
+                thinkingSb.append("\n-> Starting on-device web retrieval and adding results to the learning queue.")
 
                 // Perform real web search to gather true information
                 val webItems = webSearchEngine.search(text)
@@ -174,13 +174,13 @@ class ArgusViewModel(application: Application) : AndroidViewModel(application) {
                     // Enqueue to training manager immediately!
                     trainingManager.enqueueData(
                         source = "Chat Inquiry Learner",
-                        title = "Pertanyaan: ${text.take(30)}",
-                        content = "Tanya: $text. Pengetahuan: $learnedText"
+                        title = "Question: ${text.take(30)}",
+                        content = "Query: $text. Retrieved knowledge: $learnedText"
                     )
 
-                    finalAnswer = "Saya sedang mempelajari topik ini langsung dari web on-device:\n\n" +
+                    finalAnswer = "I am researching this topic using on-device web retrieval:\n\n" +
                             webItems.take(2).joinToString("\n\n") { "• **${it.title}**\n${it.snippet}" } +
-                            "\n\n*Data ini telah dimasukkan ke antrean training lokal untuk memperbarui bobot model.*"
+                            "\n\n*These results have been added to the local learning queue for review.*"
                 } else {
                     // Enqueue the query itself to be learned
                     trainingManager.enqueueData(
@@ -188,7 +188,7 @@ class ArgusViewModel(application: Application) : AndroidViewModel(application) {
                         title = "Inquiry: ${text.take(30)}",
                         content = text
                     )
-                    finalAnswer = "Pola ini baru bagi model. Pertanyaan ini telah langsung dijadwalkan ke antrean training on-device untuk diasimilasi ke bobot lokal."
+                    finalAnswer = "This topic is new to the model. The question has been added to the local learning queue for evaluation."
                 }
             }
 
@@ -209,10 +209,10 @@ class ArgusViewModel(application: Application) : AndroidViewModel(application) {
                 cr.openInputStream(uri)?.use { stream ->
                     val reader = BufferedReader(InputStreamReader(stream))
                     val content = reader.readText()
-                    val fileName = "Dokumen (${content.length} karakter)"
+                    val fileName = "Document (${content.length} characters)"
 
                     withContext(Dispatchers.Main) {
-                        sendMessage("Menganalisis dan mempelajari dokumen impor...", uri, isImage = false)
+                        sendMessage("Analyzing the imported document...", uri, isImage = false)
                     }
 
                     // Enqueue directly into on-device training
@@ -235,7 +235,7 @@ class ArgusViewModel(application: Application) : AndroidViewModel(application) {
                     if (bitmap != null) {
                         val w = bitmap.width
                         val h = bitmap.height
-                        val desc = "Gambar $w x $h px diimpor untuk persepsi visual on-device."
+                        val desc = "Image $w x $h px imported for on-device visual perception."
 
                         withContext(Dispatchers.Main) {
                             sendMessage(desc, uri, isImage = true)
@@ -245,7 +245,7 @@ class ArgusViewModel(application: Application) : AndroidViewModel(application) {
                         trainingManager.enqueueData(
                             source = "Image Vision Import",
                             title = "Visual $w x $h",
-                            content = "Visual perceptual frame. Resolusi: $w x $h. Analisis visual lokal."
+                            content = "Visual perception frame. Resolution: $w x $h. Local visual analysis."
                         )
                     }
                 }
@@ -257,7 +257,7 @@ class ArgusViewModel(application: Application) : AndroidViewModel(application) {
         _cameraLuminance.value = luminance
         worldModel.updateCameraContext(
             lightLevel = luminance,
-            visualSummary = "Kamera aktif. Luminansi: ${String.format("%.1f", luminance)} lx"
+            visualSummary = "Camera active. Luminance: ${String.format("%.1f", luminance)} lx"
         )
     }
 
@@ -289,8 +289,8 @@ class ArgusViewModel(application: Application) : AndroidViewModel(application) {
         _messages.value = listOf(
             ChatMessage(
                 isUser = false,
-                text = "Terminal percakapan dibersihkan. Memori episodik dan bobot model tetap aman di perangkat.",
-                thinkReasoning = "Histori pesan di-reset. Model on-device tetap mempertahankan representasi yang telah dilatih."
+                text = "Conversation history cleared. Episodic memory and model weights remain stored on this device.",
+                thinkReasoning = "Message history reset. The on-device model retains its current learned parameters."
             )
         )
     }
@@ -311,7 +311,7 @@ class ArgusViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun tryEvaluateMath(text: String): String? {
-        val clean = text.trim().lowercase().removePrefix("hitung").removePrefix("berapa").trim()
+        val clean = text.trim().lowercase().removePrefix("calculate").removePrefix("compute").removePrefix("what is").trim()
         val mathRegex = Regex("^([0-9.]+)\\s*([+\\-*/^])\\s*([0-9.]+)$")
         val match = mathRegex.find(clean) ?: return null
 
@@ -323,10 +323,10 @@ class ArgusViewModel(application: Application) : AndroidViewModel(application) {
             "+" -> n1 + n2
             "-" -> n1 - n2
             "*" -> n1 * n2
-            "/" -> if (n2 != 0.0) n1 / n2 else return "Pembagian dengan nol tidak terdefinisi."
+            "/" -> if (n2 != 0.0) n1 / n2 else return "Division by zero is undefined."
             "^" -> Math.pow(n1, n2)
             else -> return null
         }
-        return "Hasil penalaran logika matematika: $n1 $op $n2 = $res"
+        return "Mathematical reasoning result: $n1 $op $n2 = $res"
     }
 }
