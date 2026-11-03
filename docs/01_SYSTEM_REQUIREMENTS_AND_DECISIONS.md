@@ -139,6 +139,11 @@ Each Argus installation is intended to discover, collect, validate and retain pe
 
 The initial knowledge map contains sixteen broad domains and supports hierarchical subdomains, topics, prerequisites and cross-domain relationships. General acquisition prioritizes reliable breadth across the taxonomy before excessive depth in a narrow domain. The taxonomy is versioned and expandable; it is not a fixed limit on future knowledge.
 
+### ADR-018 — Operation-scoped source permissions and replaceable connectors
+**Status:** Accepted architecture direction; source allowlist and provider choices remain open.
+
+Autonomous acquisition uses a local, versioned source registry and replaceable connector interfaces. Permissions are evaluated independently for discovery, fetch, transient processing, full-text retention, excerpt/metadata retention, retrieval indexing, neural training and redistribution. Unknown permission fails closed for the affected operation. Connectors cannot grant or broaden permissions. Initial collection uses bounded direct requests through approved connectors, not a shared residential-proxy network or third-party customer traffic.
+
 ## 8. Revised open decisions
 
 These items remain open; they must not be filled with assumed values:
@@ -156,6 +161,7 @@ These items remain open; they must not be filled with assumed values:
 - Criteria and migration rules for later architecture evolution.
 - Domain-specific source registry, language and regional coverage priorities.
 - Topic-priority weights, freshness intervals and breadth-scheduling calibration for autonomous acquisition.
+- Initial named source allowlist, source-specific use rights and discovery-provider selection.
 
 A fixed model parameter count is intentionally not an open global constant: it is an output of architecture research combined with each device's capability profile.
 

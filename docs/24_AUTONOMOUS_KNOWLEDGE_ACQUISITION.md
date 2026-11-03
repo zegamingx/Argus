@@ -121,7 +121,7 @@ The detailed domain hierarchy, knowledge-coverage model, topic-priority framewor
 
 ## 6. Source registry and eligibility
 
-The source registry is a local policy-controlled catalog. Candidate source families include official technical documentation, public standards and specifications, government or public-institution publications, open educational material, openly licensed datasets, public repositories, RSS/Atom feeds and documented public APIs.
+The source registry is a local policy-controlled catalog. Candidate source families include official technical documentation, public standards and specifications, government or public-institution publications, open educational material, openly licensed datasets, public repositories, RSS/Atom feeds and documented public APIs. Its schema, operation-specific permission model, connector routing and network safety boundary are specified in [26 — Source Registry and Connector Architecture](26_SOURCE_REGISTRY_AND_CONNECTOR_ARCHITECTURE.md).
 
 A source is not eligible merely because it is reachable.
 

@@ -194,7 +194,7 @@ The initial planner uses deterministic inputs:
 - Source update feeds, sitemaps and documented public APIs.
 - Explicitly requested public topics, when the owner asks Argus to research them.
 
-Candidate discovery mechanisms include search-provider interfaces, official documentation indexes, RSS/Atom feeds, sitemaps, public APIs, open repositories and reviewed open datasets. Each mechanism is a replaceable connector behind the source policy.
+Candidate discovery mechanisms include search-provider interfaces, official documentation indexes, RSS/Atom feeds, sitemaps, public APIs, open repositories and reviewed open datasets. Each mechanism is a replaceable connector behind the source policy. Connector contracts, source permission states and the network safety boundary are specified in [26 — Source Registry and Connector Architecture](26_SOURCE_REGISTRY_AND_CONNECTOR_ARCHITECTURE.md).
 
 Search results are discovery hints, not automatically trusted knowledge. The engine must resolve and validate the underlying source before storing a record. A public URL is not automatically redistributable or training-eligible.
 
