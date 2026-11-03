@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/argus_icon.png" width="140" alt="Argus logo: a glowing cyan cybernetic eye with radiating neural circuitry on a dark background" />
+<img src="public/assets/argus_icon.png" width="140" alt="Argus logo: a glowing cyan cybernetic eye with radiating neural circuitry on a dark background" />
 
 # ARGUS
 
