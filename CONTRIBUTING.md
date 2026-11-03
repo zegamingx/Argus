@@ -2,13 +2,13 @@
 
 First off, thanks for taking the time to contribute to the future of on-device AGI! 🧠⚡
 
-Argus is not a standard Android app. It is a privacy-first, local-only intelligence framework. Because of this, we have strict architectural rules that supersede standard Android development practices.
+Argus is an experimental local-first Android AI framework. The current repository contains an early prototype; major runtime and agent capabilities remain design targets. Contributions must distinguish implemented behavior from planned architecture.
 
 ## 🚫 The "Golden Rules" of Argus
 
 Before writing code, ensure your contribution respects these core tenets:
 
-1. **NO CLOUD AI / APIS:** Never introduce a dependency on OpenAI, Anthropic, Google Gemini, or any external LLM API. All inference must happen locally via NPU/GPU/CPU.
+1. **NO CLOUD AI / APIS:** Never introduce a dependency on OpenAI, Anthropic, Google Gemini, or any external LLM API. AI inference must use local runtimes. Optional web retrieval is a separate network feature and must be disclosed.
 2. **NO TELEMETRY:** No Firebase Analytics, no Crashlytics, no Mixpanel, no Sentry. If the app needs to log an error, it logs it to a local, user-exportable file.
 3. **NO SILENT CAPTURE:** Never bypass system consent dialogs. Screen and Camera agents must always respect the global kill-switch and system indicators.
 4. **EXTERNAL DATA IS UNTRUSTED:** Web fetchers and file parsers must sanitize inputs to prevent prompt injection. Never pass raw external text directly into the system prompt without wrapping it in untrusted data tags.
@@ -16,11 +16,11 @@ Before writing code, ensure your contribution respects these core tenets:
 
 ## 🛠️ Development Setup
 
-- **Language:** Kotlin 2.1+ / C++20 (Native)
+- **Language:** Kotlin 2.2.10 (current app); C++20 is a future native-runtime target.
 - **JDK:** 21 (LTS)
 - **Android Studio:** Ladybug or newer
-- **Build:** Gradle 8.13+, AGP 8.7.x
-- **NDK:** r27+ (Required for native inference engines like llama.cpp / ONNX)
+- **Build:** Gradle 9.3.1, AGP 9.1.1
+- **Native toolchain:** NDK r27+ and CMake are planned prerequisites; the current source tree has no native C++ module.
 - **Architecture:** MVVM + Clean Architecture + Multi-Agent Orchestrator
 
 ## 📥 Pull Request Process
