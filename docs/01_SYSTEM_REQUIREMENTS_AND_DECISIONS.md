@@ -162,6 +162,7 @@ These items remain open; they must not be filled with assumed values:
 - Domain-specific source registry, language and regional coverage priorities.
 - Topic-priority weights, freshness intervals and breadth-scheduling calibration for autonomous acquisition.
 - Initial named source allowlist, source-specific use rights and discovery-provider selection.
+- Which candidate sources may be activated for retrieval versus neural training, after item-level rights and provider terms review.
 
 A fixed model parameter count is intentionally not an open global constant: it is an output of architecture research combined with each device's capability profile.
 

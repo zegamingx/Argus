@@ -55,7 +55,7 @@ The registry and policy engine decide whether an operation is permitted. Connect
 
 ## 3. Source families and connector types
 
-The first version should support a small number of generic connector contracts rather than implement a separate crawler for every website.
+The first version should support a small number of generic connector contracts rather than implement a separate crawler for every website. The currently researched named-source shortlist and domain mapping are recorded in [27 — Initial Source Registry Candidates](27_INITIAL_SOURCE_REGISTRY_CANDIDATES.md); entries there remain candidates until this registry's policy review is complete.
 
 | Connector family | Discovery / acquisition role | Typical output |
 |---|---|---|

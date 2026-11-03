@@ -45,7 +45,7 @@ The initial collector does not depend on an immature neural model: deterministic
 
 This is not a third-party data-collection service or a shared dataset network. Each installation owns its acquisition state and knowledge. Public-source retrieval does not authorize uploading personal conversations, local files, model weights or checkpoints. Collected information can be used for retrieval without changing model parameters; neural training remains a separate quality- and evaluation-gated operation.
 
-See [Autonomous Knowledge Acquisition](docs/24_AUTONOMOUS_KNOWLEDGE_ACQUISITION.md), [Knowledge Domain and Discovery Strategy](docs/25_KNOWLEDGE_DOMAIN_AND_DISCOVERY_STRATEGY.md), and [Source Registry and Connector Architecture](docs/26_SOURCE_REGISTRY_AND_CONNECTOR_ARCHITECTURE.md).
+See [Autonomous Knowledge Acquisition](docs/24_AUTONOMOUS_KNOWLEDGE_ACQUISITION.md), [Knowledge Domain and Discovery Strategy](docs/25_KNOWLEDGE_DOMAIN_AND_DISCOVERY_STRATEGY.md), and [Source Registry and Connector Architecture](docs/26_SOURCE_REGISTRY_AND_CONNECTOR_ARCHITECTURE.md), with an initial shortlist in [Initial Source Registry Candidates](docs/27_INITIAL_SOURCE_REGISTRY_CANDIDATES.md).
 
 ## Device-adaptive model and training
 
@@ -101,6 +101,7 @@ The documents under [docs/](docs/README.md) are the planning source of truth. Th
 | [24 — Autonomous Knowledge Acquisition](docs/24_AUTONOMOUS_KNOWLEDGE_ACQUISITION.md) | Self-directed public-source discovery, local knowledge processing and training handoff |
 | [25 — Knowledge Domain and Discovery Strategy](docs/25_KNOWLEDGE_DOMAIN_AND_DISCOVERY_STRATEGY.md) | General knowledge taxonomy, coverage mapping and autonomous topic prioritization |
 | [26 — Source Registry and Connector Architecture](docs/26_SOURCE_REGISTRY_AND_CONNECTOR_ARCHITECTURE.md) | Source permissions, connector routing, fetch jobs and network safety |
+| [27 — Initial Source Registry Candidates](docs/27_INITIAL_SOURCE_REGISTRY_CANDIDATES.md) | Named source shortlist, licensing constraints and first domain coverage mapping |
 
 ## Current implementation status
 
