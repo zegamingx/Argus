@@ -62,3 +62,15 @@ Before implementation planning:
 - links, source versions and review dates are checked.
 
 Passing the gate authorizes an implementation-plan review only, not automatic coding or production readiness.
+
+
+## 7. Build execution control
+
+Build execution is gated separately from source inspection and audit work.
+
+- During architecture audit and remediation, do not run Gradle build, test, lint or packaging tasks and do not trigger GitHub Actions.
+- Do not upload or publish build artifacts.
+- After the audit and remediation are complete and the final verification gate is explicitly accepted, perform the approved build from an immutable Git tag identifying the exact reviewed commit.
+- Any future CI build workflow must be tag-triggered and must omit artifact-upload/publishing steps unless separately authorized.
+
+A build result is valid only for the exact tagged commit and declared toolchain. A branch-head build is not a substitute for the approved tagged build.

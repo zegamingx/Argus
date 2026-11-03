@@ -39,7 +39,8 @@ Argus is intended to become a privacy-first, user-controlled, on-device intellig
 | [14 — Performance and Power](14_PERFORMANCE_POWER_THERMAL.md) | Benchmarks, memory budgets, thermal and energy |
 | [15 — Verification and Compatibility](15_VERIFICATION_COMPATIBILITY.md) | Tests, evidence and implementation completion gate |
 | [16 — Roadmap and Research](16_ROADMAP_RESEARCH_REGISTER.md) | Phases, technology radar and open research |
-| [17 — Current Repository Baseline](17_CURRENT_REPOSITORY_BASELINE.md) | Facts and gaps in inspected `main` |
+| [17 — Current Repository Baseline](17_CURRENT_REPOSITORY_BASELINE.md) | Facts and gaps in inspected snapshot |
+| [18 — Implementation Audit](18_IMPLEMENTATION_AUDIT.md) | Static findings, P0 acceptance gates and build restrictions |
 
 ## Status vocabulary
 
