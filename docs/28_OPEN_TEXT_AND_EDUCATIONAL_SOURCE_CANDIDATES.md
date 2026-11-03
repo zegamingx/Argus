@@ -226,7 +226,7 @@ For books with chapters or appendices under different licenses, split the rights
 
 ## 7. Training-corpus assembly policy
 
-The first open-text training corpus must be a deliberately selected subset, not a bulk mirror of every candidate collection.
+The first open-text ingestion pilot must be a deliberately selected subset, not a bulk mirror of every candidate collection. Exact title-level records and the recommended initial retrieval sample are listed in [29 — Curated Initial Text Seed Set](29_CURATED_INITIAL_TEXT_SEED_SET.md).
 
 Required gates:
 1. Exact item and edition are identified.
@@ -242,7 +242,7 @@ Required gates:
 11. The corpus version is immutable and checksummed.
 12. Model training and evaluation lineage references the exact corpus version.
 
-No candidate collection in this document is automatically approved for neural training. CC0/public-domain or CC BY items should be evaluated first because their rights restrictions are generally less complex, but still require exact-item verification and a use-specific review of model training, attribution and distribution.
+No candidate collection in this document is automatically approved for neural training. The title-level records in document 29 are retrieval-pilot candidates only and remain subject to separate training approval. CC0/public-domain or CC BY items should be evaluated first because their rights restrictions are generally less complex, but still require exact-item verification and a use-specific review of model training, attribution and distribution.
 
 The training pipeline must not fetch directly from a live book URL or train from an unreviewed queue.
 

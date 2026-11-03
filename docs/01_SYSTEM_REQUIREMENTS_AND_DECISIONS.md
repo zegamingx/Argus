@@ -149,6 +149,11 @@ Autonomous acquisition uses a local, versioned source registry and replaceable c
 
 Open-text catalogs and educational repositories are used for discovery, but full-text fetch, local retention, retrieval indexing, neural training and redistribution require separate item-level permissions. Free-to-read, downloadable or open-access labels are not training authorization. Non-commercial and share-alike content is held from default general training until Argus's distribution model and use-specific legal obligations are resolved. No collection-level label overrides a more restrictive item-level notice.
 
+### ADR-020 — Curated item-level text seed before bulk ingestion
+**Status:** Accepted pilot direction; selected items remain unapproved for neural training.
+
+The first document-ingestion pilot uses exact, individually identified books and modules with recorded landing-page rights evidence, source URLs, file checksums and attribution. It validates parsing, language/domain classification, local storage and retrieval before any training corpus is enabled. Catalog-level "open" status is not enough; every work and its third-party components require item-level review.
+
 ## 8. Revised open decisions
 
 These items remain open; they must not be filled with assumed values:
@@ -170,6 +175,7 @@ These items remain open; they must not be filled with assumed values:
 - Which candidate sources may be activated for retrieval versus neural training, after item-level rights and provider terms review.
 - Argus commercial-distribution decision and use-specific model-training review for CC BY, CC BY-SA, CC BY-NC and CC BY-NC-SA materials.
 - Exact item-level rights for open textbooks, OER, public-domain texts and Indonesian educational repositories.
+- Curated title-level seed selection and third-party asset audit before full-text acquisition.
 
 A fixed model parameter count is intentionally not an open global constant: it is an output of architecture research combined with each device's capability profile.
 
