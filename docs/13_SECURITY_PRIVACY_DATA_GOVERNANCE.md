@@ -50,3 +50,25 @@ A previously tracked private signing artifact has been removed from the current 
 ## 8. Incident and deletion model
 
 Define procedures for lost device, exposed signing key, malicious model package, data export, device transfer and user-requested deletion. Deletion must cover source records and derived artifacts subject to disclosed backup/retention rules.
+
+## 9. Local Knowledge Genesis and instance isolation
+
+The accepted model-origin policy is local initialization, not import of third-party pretrained weights as the Argus foundation.
+
+- Parameter initialization occurs on the user's device.
+- Model weights, optimizer state, checkpoints, memory and personal learning data remain in the app's local data boundary by default.
+- No central training server, federated learning, cross-user gradient aggregation, automatic model synchronization or cross-user weight exchange is permitted by the current design.
+- A model manifest must identify the instance and generation without exposing private conversation content.
+- Diagnostic export must be user-initiated and content-minimized. It must not silently attach weights, checkpoints or personal datasets.
+
+## 10. Bundled corpus governance
+
+Bundled general corpus data is not user personal data, but it still requires provenance and redistribution review. Record exact repository revision, source dataset, license and layered terms, attribution, preprocessing, filtering, split construction, file checksums and package version. Do not ship a dataset merely because a hosting page labels it open.
+
+The Small C4 dataset card states that its license inherits from original C4. The original C4 card identifies ODC-BY and also references Common Crawl terms. Distribution approval must evaluate those terms and provide required notices.
+
+## 11. Personal learning governance
+
+Personal learning is separate from general bootstrap learning. A user's interaction with Argus is not blanket training consent. The user must be able to understand, inspect, approve, reject, pause, revoke and delete personal learning candidates under the policy in [22 — General Corpus and Personal Learning](22_GENERAL_CORPUS_AND_PERSONAL_LEARNING.md).
+
+Do not promise exact unlearning from already modified neural parameters unless a tested rollback or reconstruction procedure can prove it. Retain generation lineage and known-good states.

@@ -1,49 +1,109 @@
-# Training and Continual Learning Architecture
+# Training and Learning Architecture
 
-**Status:** Proposed design; accelerator training is not assumed  
+**Status:** Accepted learning direction; algorithms and architecture-specific hyperparameters remain under research  
 **Last reviewed:** 2026-11-03
 
-## 1. Separate inference from learning
+## 1. Two distinct learning paths
 
-Inference, embeddings, evaluation and training have different operator, memory, latency and power profiles. A backend that runs forward inference may not support gradients, backward operators, optimizer states or parameter updates. Advertise these capabilities separately.
+Argus has two local learning paths with separate data provenance, permission and evaluation:
 
-## 2. Learning pipeline
+1. **General foundation learning** uses the bundled offline bootstrap corpus.
+2. **Personal learning** adapts the instance to the user's own experience and explicitly authorized information.
 
-`candidate capture → consent/classification → redaction → deduplication → quality scoring → user approval → dataset version → training → evaluation → promote or rollback`
+Both may eventually update the same instance-local model through a validated learning coordinator. They must not be treated as one undifferentiated queue.
 
-Raw screen, camera or file capture must never flow directly into training. A candidate needs provenance, consent, appropriate-use review and a retention policy.
+## 2. Genesis and application readiness
 
-## 3. Training strategies
+The first launch performs device assessment, configuration selection, model construction, parameter initialization and initial-generation persistence. It does not perform full corpus pretraining.
 
-| Strategy | Description | Mobile suitability |
-|---|---|---|
-| Memory/retrieval update | Store approved facts without changing weights | First-line adaptation |
-| Prompt/context tuning | Improve context assembly and templates | Low compute |
-| LoRA/adapters | Train a small parameter subset | Candidate for constrained local training |
-| Partial fine-tuning | Update selected base layers | High resource/stability risk |
-| Full fine-tuning | Update all model parameters | Not a default smartphone requirement |
-| Distillation | Train a smaller model from a teacher | Usually offline/development workflow |
+The application becomes usable after the initial generation is safely committed. Only after this readiness boundary may the general-learning scheduler enqueue or start bootstrap training. Full training must never be required to finish the splash screen.
 
-A GPU or NPU does not imply an efficient training path. NPU backward/optimizer support must be demonstrated; otherwise use a validated CPU/GPU path or do not offer that training mode.
+A newly initialized model may have very limited language capability. The UI and status model must distinguish constructed, initialized, training, trained and validated.
 
-## 4. Correctness and reproducibility
+## 3. General foundation learning
 
-Specify loss, optimizer, schedule, gradient accumulation, clipping, weight decay, mixed precision, checkpoint semantics, masks, sequence packing and evaluation. Validate gradients against finite differences or trusted reference implementations for supported kernels. Record seed, kernel nondeterminism and environment.
+General learning consumes the bundled corpus locally without requiring network access at training time.
 
-Dataset splits must prevent train/evaluation leakage. Report token-weighted and sequence-weighted metrics where relevant, and define the distinction.
+The current bootstrap candidate is Small C4. It is an initial learning source, not a pretrained model, not an exhaustive knowledge base and not a promise of broad language competence. Its exact revision, license, preprocessing, split quality and checksum must be pinned before distribution.
 
-## 5. Resource and lifecycle controls
+The scheduler may automatically make general learning eligible after Genesis readiness, subject to visible user controls and Android resource/lifecycle policy. It must be pausable, resumable and recoverable. Training progress must not block chat or ordinary app navigation.
 
-Budget weights, activations, gradients, optimizer moments, workspaces, batches and OS headroom. Support bounded batch/sequence sizes, cancellation/pause, periodic recoverable checkpoints, thermal/battery/memory admission control, foreground execution policy and process-death recovery.
+## 4. Personal learning and consent
 
-Parallel execution is not assumed faster. Compare wall-clock throughput, memory and thermal cost for each scheduling mode.
+Personal learning may use conversations, corrections, user-selected documents or other sources only when the corresponding permission and retention scope are enabled.
 
-## 6. Promotion and anti-forgetting
+Platform permission to access a source is not consent to retain or train on its contents. Every personal candidate must retain source provenance, timestamp, consent revision, sensitivity classification, redaction result, review status and deletion lineage.
 
-Candidate adapters pass held-out quality, regression, safety and resource checks. Promote atomically with version/provenance; retain last-known-good version; roll back on regression, corruption or runtime incompatibility. Replay/regularization must be justified by evaluation, not used as a slogan.
+Required candidate lifecycle:
 
-Users must be able to inspect, pause, reject and delete learning candidates, datasets and adapters. Use of an assistant does not imply consent to train.
+~~~text
+SOURCE AVAILABLE
+      |
+      v
+PERMISSION + PURPOSE CHECK
+      |
+      v
+CLASSIFICATION / REDACTION
+      |
+      v
+REVIEWABLE CANDIDATE
+      |
+      +--> REJECTED / REVOKED / DELETED
+      |
+      v
+EXPLICIT APPROVAL
+      |
+      v
+TRAINING CANDIDATE
+      |
+      v
+VALIDATION + CHECKPOINT
+      |
+      v
+PROMOTED GENERATION or ROLLBACK
+~~~
 
-## 7. Background consolidation
+Unapproved or revoked candidates must never reach an optimizer update. Raw captures must not be directly enqueued into training.
 
-A sleep/consolidation workflow may run only under explicit scheduling and platform constraints. Charging, idle and thermal-safe states are useful heuristics, not guarantees of unlimited background execution.
+## 5. Memory is not parameter training
+
+Memory/retrieval can preserve inspectable facts, preferences and history without changing model weights. Parameter training is a separate operation with numerical risk, resource cost and more difficult deletion semantics.
+
+Use memory as the first-line adaptation when it satisfies the need. Use personal parameter learning only when explicitly allowed and supported by evaluation and rollback.
+
+## 6. Training mathematics and optimizer
+
+The initial optimizer and training algorithm are not selected until architecture research is complete. Do not hard-code Q/V LoRA as the only trainable parameter set. A from-scratch foundation-training path must implement a mathematically complete backward graph for every parameter claimed to be trainable.
+
+The selected profile must define objective and loss reduction; sequence packing, masking and context semantics; trainable/frozen parameter groups; optimizer and version; learning-rate schedule; gradient accumulation/reduction and clipping; weight decay; precision and numerical stability; determinism; and general/personal evaluation sets.
+
+The loss, forward graph, gradients and optimizer updates must be checked against a trusted reference and finite-difference fixtures before training is enabled.
+
+## 7. Device-adaptive workload
+
+The initial model configuration is chosen using measured device capability. During training, a separate controller adapts active workload to live conditions such as available memory, memory pressure, CPU/GPU/NPU runtime availability and measured execution, thermal status and sustained performance, battery/power mode, Android foreground/background restrictions, user controls, and storage headroom.
+
+Possible controls include worker concurrency, CPU thread count, microbatch size, accumulation strategy where mathematically equivalent, backend choice, checkpoint timing and pause/resume. Changing optimizer semantics, precision, sequence packing or gradient reduction must be versioned and validated. It is not an ordinary thermal response.
+
+## 8. Background scheduling and recovery
+
+General learning is background work after app readiness. Android may stop, defer or constrain work; no scheduler guarantees uninterrupted execution.
+
+The design must include durable job/session identity, user-visible status and pause/stop controls, correct Android background/foreground execution policy, periodic recoverable checkpoints, process-death recovery, atomic promotion and last-known-good rollback, and typed failure reasons.
+
+Do not start a training worker as a constructor side effect. The Genesis coordinator or scheduler must start it only after the initial model generation is committed and readiness has been published.
+
+## 9. Instance isolation
+
+Every general and personal training run belongs to one local instance. No central training server, federated update, cross-user data collection, model synchronization, optimizer-state exchange or weight exchange is part of the accepted design.
+
+## 10. Evaluation and anti-forgetting
+
+General and personal capabilities require separate evaluation:
+- General held-out loss and language-quality checks.
+- Language coverage and robustness checks relevant to the corpus and actual usage.
+- Personal task/fact recall checks for explicitly approved data.
+- Regression tests for capabilities that existed before the update.
+- Safety, privacy and runtime/resource checks.
+
+A lower training loss alone does not prove improved useful capability. Candidate generations are promoted only after evaluation, checkpoint validation and rollback readiness.

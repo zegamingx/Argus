@@ -74,3 +74,23 @@ Build execution is gated separately from source inspection and audit work.
 - Any future CI build workflow must be tag-triggered and must omit artifact-upload/publishing steps unless separately authorized.
 
 A build result is valid only for the exact tagged commit and declared toolchain. A branch-head build is not a substitute for the approved tagged build.
+
+## 8. Genesis and device-adaptive verification gates
+
+The target architecture requires additional verification before it can be described as implemented:
+
+| Area | Required evidence |
+|---|---|
+| First-launch readiness | Model initialization and initial generation commit complete before app-ready state; no corpus training on the blocking startup path |
+| Random initialization | Architecture-specific initializer tests, valid distributions/ranges, independent instance outputs and deterministic test fixtures |
+| Model identity | Unique instance/generation IDs, architecture/tokenizer fingerprints and exact tensor manifest |
+| Full-state persistence | Every model tensor and required optimizer/scheduler/RNG state round-trips; corruption and partial writes are rejected |
+| Device profile | Actual memory headroom, supported runtime/operators, thermal and benchmark inputs are recorded with source and confidence |
+| Adaptive training | Workload responds to memory/thermal/power conditions without corrupting optimizer semantics or model structure |
+| Background lifecycle | Pause, process death, Android reclaim, resume, notification and foreground-service policy are tested on named OS versions |
+| Corpus | Source revision, provenance, license notices, split integrity, tokenizer token count, deduplication and checksum are reproducible |
+| Personal learning | Unapproved/revoked candidates cannot update weights; general and personal data lineage remain separate |
+| Instance isolation | No hidden model/data/gradient network path; no cross-user synchronization or shared training state |
+| Architecture evolution | Candidate generation, tensor migration, regression gates and rollback are tested before promotion |
+
+The application must not claim that a model has learned general language capability merely because Genesis initialization completed. Report constructed, initialized, trained and validated as separate lifecycle facts.

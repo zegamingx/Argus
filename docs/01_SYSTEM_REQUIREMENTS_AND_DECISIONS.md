@@ -89,3 +89,60 @@ Universal tokens/sec, memory, temperature and battery limits are intentionally T
 ## 6. Open decisions
 
 Minimum RAM; initial ABI scope; first-class model/task families; persistent-data defaults and retention; whether first release permits only adapter training; signed model manifests; platform support tiers; and acceptance threshold for thermal stability.
+
+## 7. Accepted Argus Genesis decisions — 2026-11-03
+
+The following decisions supersede earlier open assumptions about importing a pretrained base model or selecting one fixed model size.
+
+### ADR-009 — Local Knowledge Genesis
+**Status:** Accepted direction.
+
+Each Argus installation creates its own model state locally from architecture-specific random initialization. An externally pretrained model is not the foundation or identity of Argus. The initial model is not considered language-capable merely because it has been initialized; capability develops through training.
+
+### ADR-010 — First-launch creation without training lockout
+**Status:** Accepted direction.
+
+First launch performs device assessment, configuration selection, model construction, parameter initialization and durable registration of the initial generation. The application becomes available after those steps. General-corpus pretraining is not a prerequisite for opening the application and must not run as a blocking splash-screen task.
+
+### ADR-011 — Bundled bootstrap corpus
+**Status:** Accepted direction; source acceptance gate remains open.
+
+General foundation data is bundled for offline availability. Small C4 is the current initial bootstrap candidate, not the complete lifelong knowledge source. Exact source revision, license terms, attribution, data quality, split integrity and package checksums must be verified before distribution.
+
+### ADR-012 — Independent model instances
+**Status:** Accepted direction.
+
+Each user's model state and evolution remain local to that instance. No central learning server, federated learning, shared gradient updates, automatic model synchronization or cross-user weight exchange is part of the design.
+
+### ADR-013 — Device-adaptive model and training
+**Status:** Accepted direction.
+
+The initial model configuration is selected from measured device capability. During operation, training workload adapts to current memory, thermal, power, backend and Android lifecycle conditions. There is no universal parameter count or fixed training batch for all devices.
+
+### ADR-014 — Architecture research before selection
+**Status:** Accepted direction.
+
+The initial neural architecture family remains undecided. Transformer, state-space/recurrent and hybrid families are research candidates. No candidate becomes the Argus architecture without comparative evidence and a reviewed decision record.
+
+### ADR-015 — Separate general learning and personal learning
+**Status:** Accepted direction.
+
+Bundled general learning may be scheduled in the background after Genesis readiness. Personal learning uses only data covered by explicit user permission and a reviewable provenance/retention lifecycle. Memory updates and parameter updates are separate operations.
+
+## 8. Revised open decisions
+
+These items remain open; they must not be filled with assumed values:
+
+- Initial architecture family and first supported module set.
+- Tokenizer family, vocabulary policy and Unicode behavior.
+- Exact Small C4 revision and corpus acceptance/redistribution review.
+- Preprocessing, deduplication, train/validation/test partition and language diagnostics.
+- Device capability benchmark protocol and admission thresholds.
+- Architecture-specific initializer policies.
+- Optimizer, loss, sequence packing, batch and training hyperparameters.
+- Android background scheduling, foreground-service use and user-facing controls.
+- Checkpoint cadence, crash recovery and model-generation promotion policy.
+- Personal-learning consent wording, candidate retention and post-training revocation strategy.
+- Criteria and migration rules for later architecture evolution.
+
+A fixed model parameter count is intentionally not an open global constant: it is an output of architecture research combined with each device's capability profile.

@@ -40,3 +40,23 @@ Final RAM, tokens/sec, latency, temperature and battery targets are TBD until de
 7. Backend routing and thermal-aware scheduling.
 
 Never trade correctness, privacy or device safety for a headline benchmark.
+
+## 7. Genesis and training measurements
+
+Add measurements for the from-scratch learning lifecycle, not only inference:
+
+- Time to complete device assessment.
+- Model graph construction and parameter initialization time.
+- Initial tensor bytes written and peak memory during Genesis.
+- Time from application process start to usable application state.
+- Background general-learning tokens/sec and optimizer updates/sec.
+- Training peak and sustained memory, including gradients and optimizer state.
+- Energy per training token/update where measurable.
+- Pause latency after thermal, memory, battery or user stop signals.
+- Checkpoint duration, bytes written and recovery time after process death.
+
+Report both the initial device capability profile and the live state that caused workload adaptation. Do not combine a short peak throughput result with a sustained training claim.
+
+## 8. Adaptive-workload measurement rule
+
+The device profile chooses a safe configuration envelope; the live controller selects a workload inside that envelope. A thermal pause or memory-pressure reduction must not silently alter the architecture, optimizer definition or already committed training history. Any change to sequence packing, precision, batch semantics or optimizer configuration must be versioned in the training session manifest and validated for numerical correctness.

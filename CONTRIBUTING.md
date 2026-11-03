@@ -1,37 +1,49 @@
 # Contributing to Argus
 
-First off, thanks for taking the time to contribute to the future of on-device AGI! 🧠⚡
+Argus is an experimental local-first Android AI research project. The current repository contains an early prototype; major Genesis, learning, runtime and evolution capabilities remain design targets. Contributions must distinguish implemented behavior from planned architecture.
 
-Argus is an experimental local-first Android AI framework. The current repository contains an early prototype; major runtime and agent capabilities remain design targets. Contributions must distinguish implemented behavior from planned architecture.
+## Core project rules
 
-## 🚫 The "Golden Rules" of Argus
+1. **Local Knowledge Genesis:** do not introduce third-party pretrained weights as the foundation or identity of Argus.
+2. **Independent instances:** do not add central training, federated learning, cross-user model/gradient exchange or automatic model synchronization.
+3. **No silent collection:** source access is not consent to retain or train. Personal data requires purpose-specific permission and an enforceable candidate lifecycle.
+4. **Local-first operation:** core model creation, learning, inference and personal memory are designed to remain on-device. Any user-requested network action must be disclosed.
+5. **External data is untrusted:** web, file, screen and OCR content must not become instructions or training data merely because it was retrieved.
+6. **No simulated acceleration:** fallback must be transparent. Report the backend that actually executed the workload.
+7. **No unsupported claims:** do not describe a design target as implemented or verified without code and test evidence.
 
-Before writing code, ensure your contribution respects these core tenets:
+## Genesis and learning rules
 
-1. **NO CLOUD AI / APIS:** Never introduce a dependency on OpenAI, Anthropic, Google Gemini, or any external LLM API. AI inference must use local runtimes. Optional web retrieval is a separate network feature and must be disclosed.
-2. **NO TELEMETRY:** No Firebase Analytics, no Crashlytics, no Mixpanel, no Sentry. If the app needs to log an error, it logs it to a local, user-exportable file.
-3. **NO SILENT CAPTURE:** Never bypass system consent dialogs. Screen and Camera agents must always respect the global kill-switch and system indicators.
-4. **EXTERNAL DATA IS UNTRUSTED:** Web fetchers and file parsers must sanitize inputs to prevent prompt injection. Never pass raw external text directly into the system prompt without wrapping it in untrusted data tags.
-5. **NO MOCKS IN PRODUCTION:** Fallback mechanisms must be transparent. If the NPU fails, route to CPU and log it. Do not fake responses.
+- First launch creates the local model instance: device assessment, viable configuration, model graph construction, parameter initialization and initial-generation commit.
+- Application readiness must not wait for full general-corpus pretraining.
+- General learning uses the approved bundled bootstrap corpus and runs after readiness under Android scheduling/resource constraints.
+- Personal learning is separate from general learning and requires explicit scope, provenance, classification, approval, revocation and deletion controls.
+- Model configuration is device-adaptive; live training workload is condition-adaptive.
+- Architecture, tokenizer and optimizer choices remain research decisions until an approved ADR is recorded.
+- Do not hard-code Transformer or Q/V LoRA as Argus-wide requirements before research and review.
 
-## 🛠️ Development Setup
+## Development setup
 
-- **Language:** Kotlin 2.2.10 (current app); C++20 is a future native-runtime target.
-- **JDK:** 21 (LTS)
-- **Android Studio:** Ladybug or newer
-- **Build:** Gradle 9.3.1, AGP 9.1.1
-- **Native toolchain:** NDK r27+ and CMake are planned prerequisites; the current source tree has no native C++ module.
-- **Architecture:** MVVM + Clean Architecture + Multi-Agent Orchestrator
+- **Language:** Kotlin 2.2.10 in the inspected application prototype.
+- **JDK expectation:** 21 LTS.
+- **Build:** Gradle 9.3.1, AGP 9.1.1 in the inspected repository snapshot.
+- **Native toolchain:** NDK/CMake are research/development candidates; the inspected source tree has no native C++ module.
+- **Architecture:** follow the current documentation and baseline; do not assume that all target layers exist in code.
 
-## 📥 Pull Request Process
+## Pull request process
 
-1. Fork the repo and create your branch from `main`.
-2. If you've added code that requires native compilation (JNI/C++), ensure it builds for `arm64-v8a`. Test on both Snapdragon and MediaTek devices if possible.
-3. Ensure your code passes the Privacy & Security lint rules (no hardcoded URLs, no background network calls without explicit user trigger).
-4. Update the `README.md` or architecture diagrams if your PR changes the core Agent flow or Memory schema.
-5. Ensure your code does not introduce catastrophic forgetting in the continual learning pipeline.
+1. Branch from the agreed working branch and explain the design impact.
+2. Include tests for numerical, lifecycle, persistence, security or device behavior changed by the PR.
+3. Update requirements, architecture, audit and baseline documents when behavior changes.
+4. Preserve the privacy and independent-instance rules.
+5. Do not introduce build artifacts or model weights without documented provenance, licensing and explicit review.
 
-## 🧪 Testing Requirements
+## Testing expectations
 
-- **Privacy Suite:** Any PR touching perception (Screen/Camera) must include tests verifying that `FLAG_SECURE` apps are ignored and the kill-switch halts capture within <1 second.
-- **Injection Tests:** Any PR touching web fetching or file parsing must include adversarial prompt injection tests.
+- **Numerical:** trusted-reference parity and finite-difference gradient checks for trainable operations.
+- **Persistence:** complete model/checkpoint round trips, checksum failures and interrupted-write recovery.
+- **Privacy:** consent defaults, revocation, approval enforcement, data deletion and no hidden network paths.
+- **Runtime:** verified execution, numerical tolerance and observable fallback.
+- **Device:** memory pressure, thermal throttling, Android lifecycle and process-death recovery.
+
+A test suite or build result is valid only for the exact source revision, toolchain and device configuration that were actually tested.

@@ -1,348 +1,150 @@
-<div align="center">
-
-<img src="public/assets/argus_icon.png" width="140" alt="Argus logo: a glowing cyan cybernetic eye with radiating neural circuitry on a dark background" />
-
 # ARGUS
 
-### Your Pocket AGI — Local-First. On-Device by Default. User-Controlled Network.
+### One Origin. Independent Evolution.
 
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.2.10-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
-[![AGP](https://img.shields.io/badge/AGP-9.1.1-3DDC84?logo=android&logoColor=white)](https://developer.android.com/build)
-[![Gradle](https://img.shields.io/badge/Gradle-9.3.1-02303A?logo=gradle&logoColor=white)](https://gradle.org)
-[![JDK](https://img.shields.io/badge/JDK-21%20LTS-orange?logo=openjdk&logoColor=white)](https://openjdk.org)
-[![minSdk](https://img.shields.io/badge/minSdk-33-222?logo=android)](https://developer.android.com/tools)
-[![targetSdk](https://img.shields.io/badge/targetSdk-36-222?logo=android)](https://developer.android.com/tools)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+Argus is an experimental, local-first Android AI research project exploring a personal intelligence created and developed on the user's own device.
 
-> *A hundred eyes. One mind. On-device by design.*
+The intended direction is **Local Knowledge Genesis**: Argus creates its own model instance from locally initialized parameters instead of adopting an externally pretrained model as its identity. Each installation develops independently from its own origin, local general-learning material and explicitly authorized personal experience.
 
-Argus is an experimental **local-first AI framework for Android**.
-The current repository contains an early Kotlin prototype. Hardware acceleration,
-multi-agent orchestration, persistent memory and continual learning are design
-targets documented in `docs/`, not verified product capabilities.
+> **Research status:** the repository currently contains an early Kotlin prototype. The Genesis Engine, reliable from-scratch training, adaptive training controller, persistent model generations, production hardware acceleration and architecture evolution are design targets, not verified capabilities.
 
-Local model inference is the design goal. Web retrieval is a separate network
-feature that makes outbound HTTP requests to public sources. See the
-[repository baseline](docs/17_CURRENT_REPOSITORY_BASELINE.md) for the inspected
-implementation and its current limitations.
+## Accepted product direction
 
-</div>
-
----
-
-## 📚 Engineering Documentation
-
-The `docs/` directory is the planning source of truth for Argus requirements, architecture, processor/GPU/NPU support, SoC compatibility, AI runtimes, models, learning, memory, platform expansion, security, performance and verification.
-
-**Documentation-first phase:** the architecture diagrams and capability descriptions below include target designs. They must not be read as proof that every feature or accelerator is implemented. See [Engineering Documentation Index](docs/README.md) and [Current Repository Baseline](docs/17_CURRENT_REPOSITORY_BASELINE.md) for inspected facts and open gaps.
-
----
-
-## ⚠️ Status & Disclaimer
-
-> **Research-grade, pre-alpha software.**
-> Argus is an exploration of what a *personal, local, lifelong-learning*
-> intelligence can look like on mobile hardware. Expect rough edges,
-> breaking changes, and heavy compute. **Not** intended for production
-> or safety-critical use.
-
-All perception features (screen capture, camera, accessibility) are
-**opt-in, user-consented, indicator-visible, and pausable at any time**.
-
----
-
-## 🧠 Product Direction
-
-| ✅ Is | ❌ Is Not |
+| Argus is intended to be | Argus is not intended to be |
 |---|---|
-| A local-first AGI *architecture* (perception → memory → reasoning → action → learning) | A wrapper around a cloud LLM API |
-| A multi-agent system running asynchronously on-device | A single-prompt chatbot |
-| A continual learner via lightweight adapters (LoRA) + memory consolidation | A full fine-tuning pipeline |
-| No analytics or telemetry by design; network retrieval is explicit and documented | A silent data collector |
+| A personal model instance created locally on first launch | A wrapper around a downloaded pretrained model |
+| Local-first, with the user's model state kept on that device | A central training service or shared global model |
+| Independently evolved by each user | A system that exchanges weights, gradients or private training data between users |
+| Adapted to the device's measured capability and current operating conditions | A fixed-size model or fixed training workload for every phone |
+| Initialized before the user enters the app, then trained in the background | A first-launch screen that blocks until pretraining finishes |
+| Capable of separating general learning, personal memory and personal parameter learning | A silent collector that treats every interaction as training consent |
 
----
+These are approved architectural intentions. They do not mean the current application already implements them.
 
-## ✨ Target Capability Areas
+## Local Knowledge Genesis
 
-- **On-device inference** — local LLM / VLM / OCR / embedding models with
-  hardware-aware routing across **NPU (Hexagon / APU) → GPU (Vulkan compute) → CPU (NEON)**.
-- **Multi-agent core** — Perception, Reasoning, Action, and Memory agents
-  coordinated by an orchestrator over a local message bus.
-- **Human-like memory** — episodic, semantic (knowledge graph), procedural,
-  plus a local vector index for retrieval.
-- **Sleep & consolidation** — deferred "dreaming" phase (charging + idle +
-  thermal-safe) that replays, prunes, and consolidates memories without
-  catastrophic forgetting.
-- **Continual learning** — capture → PII redaction → dedup → **user approval**
-  → LoRA adapter training → evaluation → automatic rollback.
-- **Screen understanding** — MediaProjection + OCR + UI-tree analysis with
-  consent dialog, persistent indicator, and secure-app exclusion.
-- **Camera vision** — foreground-only document scan, object understanding,
-  visual QA.
-- **Web grounding without cloud AI** — raw HTTP fetch + readability
-  extraction + local summarization; web content is treated as *untrusted
-  data, never as instructions*.
-- **Autonomous action (opt-in)** — UI automation with sandboxed dry-run and
-  **biometric gate** for sensitive operations.
-- **Full transparency dashboards** — model stats (params, quantization,
-  context, tok/s, memory, backend) and training pipeline state
-  (queued / approved / rejected / trained / failed + reasons).
-- **Kill switch** — one global pause that halts every capture, training,
-  fetch, and background agent.
+The first-launch sequence is deliberately short and does not include a full training run:
 
----
+1. Assess the device's available compute and memory capabilities.
+2. Select a viable configuration from architecture research and the device budget.
+3. Construct the model structure and initialize its parameters locally.
+4. Persist a valid initial model identity and generation manifest.
+5. Mark Genesis initialization complete and open the application.
 
-## 🏗️ Architecture
+**The application must not wait for general-corpus pretraining to finish.** General learning is scheduled after the application becomes available. It runs in the background, can be paused, and must recover from Android process or scheduling interruptions.
 
-```mermaid
-graph TD
-    subgraph Perception
-        SR[Screen Reader<br/>MediaProjection + OCR]
-        CV[Camera Vision<br/>CameraX + VLM]
-        UA[UI Analyzer<br/>Accessibility Tree]
-        WF[Web Fetcher<br/>HTTP + Readability]
-    end
+A newly initialized model is not already a competent language assistant. Random initialization creates the model's starting state; training data and computation develop its capabilities over time.
 
-    subgraph Core[Argus Core - Multi-Agent]
-        ORC[Agent Orchestrator]
-        PA[Perception Agent]
-        RA[Reasoning Agent<br/>Local LLM + Planner]
-        AA[Action Agent<br/>UI Automator]
-        MA[Memory Agent]
-    end
+See [Argus Genesis Engine](docs/20_ARGUS_GENESIS_ENGINE.md).
 
-    subgraph Memory
-        EM[(Episodic<br/>Room / SQLite)]
-        SM[(Semantic<br/>Knowledge Graph)]
-        PM[(Procedural<br/>Skill Scripts)]
-        VM[(Vector Index<br/>Embeddings)]
-    end
+## Device-adaptive model and training
 
-    subgraph Runtime[Hardware-Aware Runtime]
-        HR[Hardware Router]
-        NPU[NPU - Hexagon / APU]
-        GPU[GPU - Vulkan Compute]
-        CPU[CPU - ARM NEON]
-    end
+Argus does not have one universal parameter count, layer count, batch size or training duration.
 
-    subgraph Learning[Continual Learning]
-        RED[PII Redactor]
-        TQ[Training Queue]
-        LORA[LoRA Trainer]
-        EVAL[Evaluator + Rollback]
-        SLP[Sleep Consolidator<br/>WorkManager]
-    end
+The device capability profile determines the feasible initial model configuration. During later work, a separate training controller adapts workload to live conditions such as memory pressure, thermal status, battery policy, actual compute backend, storage and foreground/background restrictions.
 
-    SR --> PA
-    CV --> PA
-    UA --> PA
-    WF --> PA
-    PA --> ORC
-    ORC --> RA
-    ORC --> AA
-    ORC --> MA
-    MA --> EM
-    MA --> SM
-    MA --> PM
-    MA --> VM
-    RA --> HR
-    HR --> NPU
-    HR --> GPU
-    HR --> CPU
-    PA --> RED --> TQ --> LORA --> EVAL
-    SLP --> LORA
-    EVAL --> RA
-```
+The controller may adjust bounded workload parameters or pause and resume work. It must not mutate model architecture or optimizer semantics casually in the middle of a training session. Any structural model change is a separately validated generation transition.
 
-### Memory Model
+See [Device-Adaptive Model and Training](docs/21_DEVICE_ADAPTIVE_MODEL_AND_TRAINING.md).
 
-| Type | Contents | Engine |
-|---|---|---|
-| Episodic | Events, conversations, context snapshots | Room / SQLite (encrypted) |
-| Semantic | Facts, preferences, entity relations | Embedded knowledge graph |
-| Procedural | Learned UI task scripts ("how to do X") | Versioned skill store |
-| Vector | Chunk embeddings for retrieval (RAG) | Local ANN index |
+## General learning and personal evolution
 
-### Learning Pipeline
+Argus uses two distinct learning paths:
 
-```
-capture → redact (PII/OTP/secrets) → dedupe → score → USER APPROVAL
-        → LoRA train (charging+idle+thermal-safe) → eval benchmark
-        → promote adapter | auto-rollback
-```
+- **General foundation learning:** a bundled offline bootstrap corpus provides initial general text exposure. Small C4 is the current bootstrap candidate, subject to revision pinning, provenance, license review, quality filtering and packaging verification. It is not a pretrained model and is not intended to contain all future knowledge.
+- **Personal learning:** the instance may adapt to the owner's language, corrections, preferences and selected information over time. Access to a conversation, file, screen or sensor does not itself authorize retention or training. Personal parameter updates require explicit permission and a reviewable data lifecycle.
 
-Raw captures are **never** trained on directly. Unanswerable queries become
-*training candidates*, not training data.
+Memory retrieval and model-parameter learning are separate mechanisms. Memory can preserve inspectable facts without immediately changing model weights.
 
----
+See [General Corpus and Personal Learning](docs/22_GENERAL_CORPUS_AND_PERSONAL_LEARNING.md).
 
-## ⚙️ Proposed Hardware-Aware Runtime
+## Neural architecture research
 
-| Tier | Backend | Use Case |
-|---|---|---|
-| 1 | NPU (Qualcomm Hexagon / MediaTek APU) | Always-on perception, light inference |
-| 2 | GPU (Vulkan compute) | Heavy inference, adapter training |
-| 3 | CPU (ARM NEON, mmap) | Fallback, low-thermal mode |
+The initial neural architecture has **not** been selected. Transformer, state-space/recurrent and hybrid families are research candidates, not settled implementation choices. Argus should keep model description, tensor contracts, module registration and execution backends sufficiently decoupled to permit future research, while requiring explicit compatibility, migration and evaluation for every architecture change.
 
-The proposed hardware router will inspect SoC identity, CPU ISA, GPU queues/features, runtime availability, usable memory, drivers and thermal state. It must validate model/operator compatibility and actual execution before reporting acceleration. The current `HardwareProfile` performs heuristic discovery only; see [the repository baseline](docs/17_CURRENT_REPOSITORY_BASELINE.md).
+See [Neural Architecture Research Plan](docs/23_NEURAL_ARCHITECTURE_RESEARCH_PLAN.md).
 
----
+## Individual intelligence and privacy boundaries
 
-## 🛠️ Tech Stack
+- Every installation receives a distinct local instance identity and independently initialized parameters.
+- There is no central training server, cross-user model aggregation, federated learning, automatic model synchronization or exchange of gradients.
+- User data, memory, checkpoints and model weights remain local by default.
+- User-triggered web retrieval is a separate network operation and must disclose its destination and purpose.
+- Personal training sources require consent, provenance, classification, appropriate redaction, review, revocation and deletion controls.
+- Bundled corpus data is governed by its own provenance and license obligations; it is not user personal data.
 
-| Layer | Choice |
+## Engineering documentation
+
+The documents under [docs/](docs/README.md) are the planning source of truth. They distinguish accepted direction, research questions, existing implementation facts and future work. A design document does not prove that a feature exists in code.
+
+| Document | Purpose |
 |---|---|
-| Language | Kotlin 2.2.10 (current app); C++20 (future native target) |
-| Build | Gradle 9.3.1, AGP 9.1.1, JDK 21 LTS |
-| UI | Jetpack Compose (Material 3) |
-| Dependency injection | No DI framework is configured in the current app module |
-| Async | Kotlin Coroutines; WorkManager remains a future scheduling option |
-| Storage | Room/DataStore dependencies are declared; persistent encrypted memory is not implemented |
-| Inference | Kotlin prototype; native llama.cpp, ONNX Runtime and MediaPipe integrations are not included in the current build |
-| Native | No CMake/JNI module is present in the inspected source tree |
-| Vision | CameraX dependencies; OCR integration is not evidenced in the current source |
-| Min / Target SDK | 33 / 36 |
+| [01 — System Requirements and Decisions](docs/01_SYSTEM_REQUIREMENTS_AND_DECISIONS.md) | Requirements and accepted design decisions |
+| [02 — System Architecture](docs/02_SYSTEM_ARCHITECTURE.md) | System boundaries and data/control flows |
+| [17 — Current Repository Baseline](docs/17_CURRENT_REPOSITORY_BASELINE.md) | Inspected implementation facts and gaps |
+| [18 — Implementation Audit](docs/18_IMPLEMENTATION_AUDIT.md) | Static audit findings |
+| [19 — P0 Remediation Design](docs/19_P0_REMEDIATION_DESIGN.md) | Correctness and privacy remediation contracts |
+| [20 — Argus Genesis Engine](docs/20_ARGUS_GENESIS_ENGINE.md) | First-launch model creation and readiness |
+| [21 — Device-Adaptive Model and Training](docs/21_DEVICE_ADAPTIVE_MODEL_AND_TRAINING.md) | Hardware capability and live workload control |
+| [22 — General Corpus and Personal Learning](docs/22_GENERAL_CORPUS_AND_PERSONAL_LEARNING.md) | Bundled bootstrap data and user-specific learning |
+| [23 — Neural Architecture Research Plan](docs/23_NEURAL_ARCHITECTURE_RESEARCH_PLAN.md) | Architecture candidate comparison and selection gates |
 
----
+## Current implementation status
 
-## 📱 Requirements
+The inspected application contains a Kotlin experimental neural engine, tokenizer, queue/worker prototype, preliminary hardware profile, accessibility and foreground services, Compose screens, and an in-memory world model. The audit found important correctness, state-persistence, concurrency, privacy and capability-reporting gaps.
 
-**Build machine**
-- JDK 21, Android Studio (latest stable), NDK r27+, CMake 3.22+
-- ~15 GB free disk (toolchain + model artifacts)
+In particular:
+- The current training update is not a complete, verified backpropagation implementation.
+- Current checkpoint behavior does not persist a complete model and optimizer state.
+- Existing capture and training paths do not consistently enforce the intended consent and approval model.
+- Hardware identification is heuristic and does not prove GPU or NPU execution.
+- Persistent memory and the proposed multi-agent architecture are not verified in the inspected source.
 
-**Target device**
-- Android 13+ (API 33), **ARM64-v8a only**
-- 8 GB+ RAM recommended (12 GB+ for >1B-param models)
-- 15 GB+ free storage for models + datasets
-- Vulkan 1.1+ recommended (optional, CPU fallback exists)
+Do not enable or describe the prototype training path as reliable model learning until the P0 acceptance gates have been implemented and verified. See [18](docs/18_IMPLEMENTATION_AUDIT.md) and [19](docs/19_P0_REMEDIATION_DESIGN.md).
 
----
+## Platform and toolchain snapshot
 
-## 🚀 Getting Started
+The current repository is an Android project. The values below describe the checked-in prototype, not a promise of the final AGE runtime.
 
-```bash
-git clone https://github.com/<your-org>/argus.git
-cd argus
-git submodule update --init --recursive   # llama.cpp, onnxruntime-mobile, etc.
-```
+| Item | Current repository snapshot |
+|---|---|
+| Application ID | `com.argus.agi` |
+| Language | Kotlin 2.2.10 |
+| Android Gradle Plugin | 9.1.1 |
+| Gradle wrapper | 9.3.1 |
+| JDK expectation | 21 LTS |
+| minSdk / targetSdk | 33 / 36 |
+| Native C++ / JNI runtime | Not present in the inspected source tree |
 
-Place model artifacts (BYO weights — see [Model Licensing](#model-licensing)):
+Keep hardware backends behind capability-checked adapters. A SoC name, API feature flag or installed dependency is not proof that a model actually ran on an accelerator.
 
-```
-/storage/emulated/0/Android/data/com.argus.agi/files/models/
-├── argus-core-1.7b-q4_k_m.gguf    # reasoning / chat
-├── argus-vision-0.6b-q4.gguf      # image understanding
-├── argus-ocr-0.1b-f16.tflite      # screen text extraction
-└── argus-embed-0.3b-f16.onnx      # retrieval embeddings
-```
+## Build and development
 
-Build & install:
+The commands below describe a local developer workflow. They are not evidence that the current branch has passed a build or test run.
 
-```bash
+~~~bash
+git clone https://github.com/zegamingx/Argus.git
+cd Argus
 ./gradlew :app:assembleDebug
-adb install app/build/outputs/apk/debug/app-debug.apk
-```
+~~~
 
-First launch runs the onboarding: storage grant → model integrity check
-(SHA-256) → tiny inference smoke test → optional perception consents.
+The current application prototype must not be confused with the future Genesis flow. Do not add externally pretrained model weights as a substitute for Local Knowledge Genesis.
 
----
+## License and data provenance
 
-## Current Project Structure
+- **Code:** Apache-2.0; see [LICENSE](LICENSE).
+- **General corpus:** Small C4 is a proposed bundled bootstrap source. Its dataset card says it inherits the original C4 license. The original C4 card identifies ODC-BY and also references Common Crawl terms. Record the exact source revision, attribution, applicable terms, preprocessing and checksums before distribution.
+- **Model weights:** Argus's intended foundation is initialized locally. No externally pretrained model weights are required by the accepted Genesis direction.
+- **Icon and brand:** See repository notices.
 
-```
-app/src/main/
-├── java/com/argus/agi/
-│   ├── model/       # Prototype neural engine, tokenizer, training queue, world model
-│   ├── sensor/      # Device guard, hardware profile, web retrieval
-│   ├── service/     # Accessibility and foreground services
-│   └── ui/          # ViewModel, Compose screens and theme
-└── res/             # Android resources and service configuration
+## Roadmap
 
-docs/                # Engineering specifications and research
-```
+1. Complete architecture-family research and tokenizer research.
+2. Finalize corpus provenance and preprocessing.
+3. Specify device capability profiling and adaptive model/training budgets.
+4. Specify Genesis initialization, model identity, checkpoint and recovery contracts.
+5. Resolve training correctness and personal-data governance P0 issues.
+6. Implement and validate general background learning.
+7. Add personal learning, generation-safe evolution and additional runtime backends only after their acceptance gates pass.
 
-The target architecture is documented separately. This tree describes the inspected source layout, not the future module design.
-
----
-
-## 🔐 Privacy & Security Model
-
-- **Local-first.** Core model execution is designed to work offline. Web retrieval makes outbound HTTP requests to public sources and is a separate network feature.
-- **No telemetry.** No analytics, no crash reporting, no third-party SDKs
-  with network permissions. Logs are local and user-exportable only.
-- **Consent-first perception.** MediaProjection / camera / accessibility
-  require explicit grants, show persistent indicators, and honor a global
-  kill switch that halts all capture within one second.
-- **Sensitive-app exclusion.** Banking, password managers, and
-  `FLAG_SECURE` surfaces are blacklisted by default.
-- **Redaction before storage.** PII, credentials, OTPs, and secrets are
-  scrubbed pre-queue; raw frames are never persisted unapproved.
-- **Prompt-injection defense.** All external content (web, files, OCR,
-  screen) is sandboxed as data; tool calls require policy checks, and
-  sensitive actions require biometric confirmation.
-- **Data protection (planned).** Encryption, atomic model updates and deletion across source records and derived indexes must be specified before persistent memory is introduced.
-
-Report vulnerabilities privately via `SECURITY.md` — do not file public issues.
-
----
-
-## 🧪 Testing
-
-- **Unit:** agent routing, redaction rules, memory CRUD, adapter eval gates.
-- **Instrumented:** inference smoke tests, capture pause latency (<1 s),
-  no-network assertions with internet disabled.
-- **Privacy suite:** secure-app exclusion, redaction recall, deletion
-  completeness.
-- **Adversarial:** prompt-injection corpus from web/file/OCR channels.
-- **Device matrix:** Snapdragon/Adreno + MediaTek/Mali, RAM 4–12 GB,
-  API 33–36, battery-saver and thermal-throttle scenarios.
-
----
-
-## 🗺️ Roadmap
-
-- [x] Local chat + RAG + file/image import
-- [ ] Web fetch grounding + citations
-- [ ] On-demand screen understanding
-- [ ] Sleep consolidation + LoRA continual learning
-- [ ] Autonomous action with biometric gate
-- [ ] Multi-device federated memory (local LAN only)
-
----
-
-## 🤝 Contributing
-
-Contributions welcome — especially in quantization, Vulkan kernels, and
-on-device training stability. Read `CONTRIBUTING.md`, keep commits signed,
-and respect the privacy-first design principles: **no network by default,
-no mocks in production, no silent capture, ever.**
-
----
-
-## 📄 License & Model Licensing
-
-- **Code:** Apache-2.0 (see [LICENSE](LICENSE)).
-- **Models:** Argus ships **no weights**. You supply your own models under
-  their respective licenses (GGUF/ONNX/TFLite artifacts are user-provided).
-- **Icon & brand:** © Argus Project.
-
----
-
-## 🙏 Acknowledgements
-
-[llama.cpp](https://github.com/ggerganov/llama.cpp) ·
-[ONNX Runtime](https://onnxruntime.ai) ·
-[MediaPipe](https://developers.google.com/mediapipe) ·
-[AndroidX](https://developer.android.com/jetpack) ·
-and every developer who believed a phone could hold a mind.
-
----
-
-<div align="center">
-
-**A hundred eyes. One mind. Local-first intelligence.**
-Built with 🔥 on ARM64.
-
-</div>
+**Documentation-first work does not authorize implementation, builds, workflow dispatches or artifact publication.**

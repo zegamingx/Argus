@@ -1,54 +1,102 @@
-# Model Architecture and Artifact Compatibility
+# Model Architecture, Genesis and Identity
 
-**Status:** Proposed model governance and compatibility design  
+**Status:** Accepted Genesis direction; initial architecture family under research  
 **Last reviewed:** 2026-11-03
 
-## 1. Model task families
+## 1. Model origin
 
-Argus may manage language models (LLM/SLM), vision-language models, image encoders, embeddings, speech recognition/synthesis, audio understanding, OCR/document layout, rerankers, classifiers and deterministic policy/utility components. One model should not be forced to perform every task. Registry entries must state their actual task capability.
+Argus uses **Local Knowledge Genesis**. Each installation constructs its own model from an architecture selected for that device and initializes its parameters locally using module-specific initialization policies.
 
-## 2. Architecture metadata
+An external pretrained model is not the foundation of Argus. A downloaded model must not be relabeled as the Argus-origin model. The current repository prototype is not yet a complete implementation of this model-origin contract.
 
-Record: encoder/decoder/encoder-decoder; dense or mixture-of-experts; attention type; GQA/MQA; sliding-window behavior; context length; positional encoding; tokenizer family; special tokens; image/audio input path; cache format; adapter compatibility; operator coverage; supported runtime; model license.
+Random initialization is only an initial numerical state. It does not confer general language competence. General capability must be learned through sufficient, validated training data and computation.
 
-An architecture name does not guarantee that a runtime can execute it.
+## 2. Architecture research status
 
-## 3. Artifact formats
+The initial neural architecture is deliberately undecided. Candidate families include decoder-only Transformers and attention variants, state-space and recurrent sequence models, hybrid architectures, and additional candidates where evidence supports them.
 
-| Format | Purpose | Caveat |
-|---|---|---|
-| GGUF | Packed/quantized LLM artifacts, commonly used by llama.cpp | Runtime-specific tensor and operator support |
-| ONNX | Interchange/deployment graphs | Execution provider and operator support vary |
-| TFLite/LiteRT | Mobile and edge inference | Delegate/compiler/operator support varies |
-| SafeTensors | Tensor weight container | Not an executable runtime/model by itself |
-| Vendor formats | QAIRT/QNN, RKNN and other compiled artifacts | Tied to target, compiler and runtime versions |
+The first choice must be based on training and inference benchmarks on representative Android devices, numerical correctness, memory, thermal behavior, runtime/operator coverage and extensibility. Do not assume a Transformer is the permanent Argus architecture.
 
-Conversion must record provenance and numerical validation. Do not assume conversion preserves tokenizer semantics or model output.
+## 3. Architecture-agnostic model description
 
-## 4. Quantization and precision
+The model description layer should represent:
+- Module identity, family and version.
+- Input/output tensor contracts.
+- Tensor names, shapes, dtypes, layouts and parameter roles.
+- Initialization policy and configuration.
+- Forward and backward operator requirements.
+- State/cache semantics and sequence behavior.
+- Constraints required for serialization, migration and runtime dispatch.
 
-Track FP32, FP16, BF16, INT8, INT4 and other precisions only when the selected runtime/model supports them. Record weight and activation precision separately, scale granularity, group size, calibration dataset, outlier handling, KV-cache precision and measured quality impact. INT8 TOPS cannot be used as an FP16 or tokens/sec promise.
+A module registry and model graph are intended to separate architecture description from hardware execution. This is an extensibility contract, not a claim that arbitrary neural graphs can already be generated or trained.
 
-## 5. Model manifest
+## 4. Device-adaptive configuration
 
-Every model package should contain:
-- stable model ID and revision;
-- architecture/task tags;
-- artifact names, sizes and SHA-256;
-- tokenizer assets, vocabulary and special-token map;
-- format, quantization and context constraints;
-- runtime/backend requirements and minimum versions;
-- license, attribution and redistribution constraints;
-- source and conversion provenance;
-- safety notes and known limitations;
-- benchmark and evaluation reports.
+There is no universal parameter count, layer count, hidden size, context length, vocabulary size or batch size for every user.
 
-## 6. Loading and prompt contract
+Genesis derives a feasible model configuration from a measured device capability profile and the capabilities of the researched architecture. It must account for usable memory headroom rather than total advertised RAM, measured CPU capability and supported ISA, actually available and validated GPU/NPU runtime paths, training versus inference memory requirements, thermal/power sustainability and storage budget.
 
-Validate checksum, manifest schema, tokenizer consistency, runtime compatibility, memory estimate and license metadata before loading. Never silently substitute a tokenizer, vocabulary or model revision. Failed loads must leave the previous active model intact.
+The selected architecture and dimensions are recorded in the generation manifest. A live workload controller may reduce work or pause training, but it cannot silently resize model tensors or change architecture during an update.
 
-Context assembly must preserve role boundaries, source provenance and truncation policy. Web/file/screen content is isolated as untrusted context. Dynamic token registration is not acceptable for a fixed pretrained model unless vocabulary and model tensors are explicitly extended and validated together.
+## 5. Parameter initialization
 
-## 7. Evaluation and promotion
+Every module declares its own initialization policy. Do not apply one initializer blindly to all tensors.
 
-Evaluate instruction following, language coverage, factuality, safety, tool behavior, retrieval quality, latency and resource cost. Quantized or adapter-modified variants must be compared with a known baseline before promotion.
+The policy must account for parameter role, fan-in/fan-out, normalization semantics, residual paths, embedding/output parameterization and architecture-specific stability requirements.
+
+Each model instance receives independent initialization. Persist:
+- Initializer algorithm and version per parameter group.
+- Configuration and tensor-shape fingerprint.
+- Instance and generation identifiers.
+- Random-generator metadata sufficient for controlled tests and recovery.
+- The committed initial parameter state.
+
+A reproducible test fixture may use a fixed seed. Production instances must not all share a universal seed or identical initialized weights.
+
+## 6. Tokenizer contract
+
+Tokenizer selection remains open. Candidate approaches include byte-level encoding, byte-level BPE and a vocabulary trained from the accepted local corpus.
+
+Once a model generation begins training, its tokenizer revision and token-ID mapping are immutable for that generation. Every checkpoint and model manifest must include the tokenizer fingerprint and vocabulary/special-token metadata. A tokenizer change creates a new compatible generation or requires explicit tensor migration; runtime vocabulary growth is not allowed.
+
+The tokenizer must define Unicode, malformed byte sequence, whitespace, normalization, unknown-token and special-token behavior. Tokenizer research and language evaluation are required before final selection.
+
+## 7. Model identity and generation manifest
+
+Each installation owns a unique instance identity. Each successful model state is a generation with a unique generation identifier and immutable manifest.
+
+The manifest should record:
+- Instance ID and generation ID.
+- Parent generation, if any.
+- Architecture family, module versions and configuration fingerprint.
+- Tokenizer ID, revision and fingerprint.
+- Parameter names, shapes, dtypes, layouts and checksums.
+- Initialization policy and version.
+- Corpus/training provenance and training configuration.
+- Device capability profile used for configuration.
+- Validation results and promotion state.
+- Checkpoint schema version.
+
+Personal conversation content must not be embedded in a public or remotely transmitted model manifest.
+
+## 8. Model state and artifacts
+
+The native Argus model-state format must preserve the complete tensor set and metadata needed to reconstruct the exact generation. Optimizer and scheduler state belongs in resumable training checkpoints, not necessarily in an inference-only export.
+
+GGUF, ONNX, TFLite/LiteRT, SafeTensors and vendor formats may be evaluated as interoperability or deployment/export formats. Their existence does not establish that Argus should import third-party pretrained weights or that a format preserves every training-state detail.
+
+Every load or restore validates manifest schema, architecture fingerprint, tokenizer fingerprint, tensor inventory, tensor sizes, dtypes, checksums and finite values before publishing state.
+
+## 9. Generation promotion and rollback
+
+A candidate generation is isolated while training or structural migration occurs. It becomes active only after numerical and serialization integrity checks pass, general evaluation meets its regression threshold, personal evaluation passes where applicable, runtime/resource compatibility is satisfied, and a recoverable checkpoint/manifest is committed atomically.
+
+Keep a last-known-good generation. Failed or regressing candidates must not replace it.
+
+## 10. Explicit non-goals
+
+- No fixed-size foundation model shared across every device.
+- No external pretrained base model as Argus identity.
+- No automatic cross-user weight or gradient sharing.
+- No architecture self-modification without candidate validation.
+- No claim that a newly initialized model is already an intelligent assistant.

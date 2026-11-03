@@ -62,3 +62,55 @@ Android is the first target. Android permissions, SAF, MediaProjection, Accessib
 ## 8. Architecture outputs still required
 
 Before implementation, specify module/API contracts, error taxonomy, event/message schema, model lifecycle, concurrency rules, data schema, deployment diagrams and sequence diagrams. Diagrams must not imply an unimplemented component already exists.
+
+## 9. Argus Genesis and independent-instance integration
+
+The accepted target architecture adds a Genesis subsystem between application startup and long-running learning. It is a planned design, not an existing implementation.
+
+~~~text
+Application Launch
+       |
+       v
+Genesis Coordinator
+       |
+       +--> Device Capability Assessment
+       |
+       +--> Architecture Candidate / Configuration
+       |
+       +--> Model Graph Construction
+       |
+       +--> Per-Instance Parameter Initialization
+       |
+       +--> Initial Generation Manifest + Atomic Commit
+       |
+       v
+Application Ready
+       |
+       +--> Background General-Learning Scheduler
+       |
+       +--> Personal Interaction / Memory Services
+                    |
+                    +--> Explicitly Authorized Personal-Learning Candidates
+                    |
+                    +--> Validated Model-Generation Updates
+~~~
+
+### 9.1 Startup boundary
+
+Only device assessment required for configuration, model construction, parameter initialization and initial-state persistence belong to the blocking Genesis phase. Full corpus tokenization and pretraining do not belong on the splash-screen critical path.
+
+The application may enter its usable state only after a valid initial model generation has been committed. If initialization fails, the app must expose a recoverable state rather than silently creating a partially initialized model.
+
+### 9.2 Learning boundaries
+
+General learning consumes the bundled bootstrap corpus and is scheduled after the application is ready. Personal learning has an independent permission and candidate-review boundary. Both use the same instance-local model-generation manager, but retain separate provenance, objectives, evaluation and deletion lineage.
+
+### 9.3 Instance isolation
+
+An instance has its own instance identifier, model generations, weights, checkpoints, memory and authorized personal dataset. No central coordinator receives the model, gradient, optimizer state or personal learning corpus. Cross-user model aggregation and automatic synchronization are outside scope.
+
+### 9.4 Device adaptation boundaries
+
+The Genesis-time capability profile constrains the initial model configuration. A separate runtime controller constrains current workload based on live conditions. Neither controller may silently change architecture or model tensor shapes during a training step; structural changes require a candidate generation, migration and validation.
+
+Detailed contracts are in [20 — Argus Genesis Engine](20_ARGUS_GENESIS_ENGINE.md) and [21 — Device-Adaptive Model and Training](21_DEVICE_ADAPTIVE_MODEL_AND_TRAINING.md).

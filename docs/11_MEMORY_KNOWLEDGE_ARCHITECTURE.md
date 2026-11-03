@@ -37,3 +37,19 @@ Use encrypted, transaction-safe storage for sensitive memory. Keep embeddings li
 ## 6. Current prototype boundary
 
 The current `WorldModel` uses an in-memory concurrent map and state flows. It is not yet a persistent episodic/semantic/procedural/vector-memory subsystem. See [17 — Current Repository Baseline](17_CURRENT_REPOSITORY_BASELINE.md).
+
+## 7. Relationship to Local Knowledge Genesis and personal learning
+
+Memory and neural parameter learning are separate systems with different latency, consent and verification requirements.
+
+- A conversation may update short-lived working context without being retained.
+- A user-approved fact may be stored as an inspectable episodic or semantic memory without changing model weights.
+- A personal-learning candidate may be considered for parameter training only under a distinct permission and candidate lifecycle.
+- A training candidate must preserve provenance to its source records and the model generation it influenced.
+- Deleting a source must remove or invalidate its derived memory/index records and trigger the documented model rollback/rebuild policy where trained parameters were affected.
+
+General-corpus training and personal training also retain separate dataset lineage. The general bootstrap corpus is not a license to train on personal conversations or captured screen content.
+
+## 8. Instance-local memory
+
+All memory, embeddings, summaries, skill records and model parameters belong to one Argus instance. No cross-user memory pool, central semantic store or automatic memory synchronization is planned. Any future user-directed export or device migration must be separately specified, encrypted, explicit and independently revocable; it must not introduce background sharing.

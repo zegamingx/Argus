@@ -237,3 +237,71 @@ The following decisions must be resolved before implementation:
 5. What retention period and rollback policy apply to approved candidate data and trained adapter revisions?
 
 Until these are resolved and the P0 verification matrix is approved, all P0 findings remain OPEN.
+
+## 12. Superseding architecture decision — Local Knowledge Genesis
+
+**Decision date:** 2026-11-03  
+**Status:** Accepted design direction. This section supersedes conflicting assumptions in earlier sections of this draft.
+
+The earlier version of this remediation document assumed an externally pretrained base-model artifact and Q/V LoRA as the initial trainable set. Those assumptions are no longer the Argus target.
+
+### 12.1 Replacement model-origin contract
+
+Argus follows Local Knowledge Genesis:
+- Each installation constructs its own model and initializes its parameters locally.
+- No externally pretrained weights are required or used as the Argus foundation.
+- Architecture family is not selected yet; it must pass the research gate in [23 — Neural Architecture Research Plan](23_NEURAL_ARCHITECTURE_RESEARCH_PLAN.md).
+- The initial model configuration is derived from the device capability profile, not a global parameter-count target.
+- Genesis initialization is completed and committed before the application is marked ready. General pretraining does not block first launch.
+
+The replacement for the old base-model artifact contract is a **Genesis model-state contract**. Its manifest must include instance/generation IDs, architecture/module versions, configuration fingerprint, tokenizer revision/fingerprint, tensor names/shapes/dtypes/layouts, module-specific initializer metadata, tensor checksums, device configuration evidence and generation lineage.
+
+The implementation must persist every initialized tensor. A random initialization routine without a durable manifest and full-state checkpoint does not satisfy this contract.
+
+### 12.2 Replacement initial training contract
+
+Q/V LoRA is not the approved initial training strategy. The trainable parameter set depends on the architecture selected for from-scratch learning. Before enabling any training:
+- Define every trainable and frozen tensor group.
+- Implement a mathematically complete backward path for every trainable parameter.
+- Validate gradients and optimizer updates against a trusted reference and finite-difference fixtures.
+- Serialize all optimizer and scheduler state needed for exact resume.
+- Prove that a controlled training fixture changes only the intended parameter state.
+
+The current incomplete prototype update remains disabled or explicitly experimental until these gates pass.
+
+### 12.3 General and personal learning worker policy
+
+Do not start workers as constructor or singleton side effects.
+
+- **General learning:** after the initial generation is committed and the application is ready, the Genesis coordinator may schedule background learning from the bundled offline corpus according to visible user controls and Android lifecycle/resource policy. It must be resumable and must never block first-launch readiness.
+- **Personal learning:** may run only from repository-issued candidates with current, explicit permission and approval. Screen, chat, file and web access do not imply training consent.
+- The two paths retain separate provenance, evaluation and deletion lineage.
+
+### 12.4 Device-adaptive training policy
+
+Genesis-time capability assessment selects the feasible model configuration. A separate live controller adjusts workload or pauses work for current memory, thermal, battery, backend, storage and Android scheduling conditions. It must not mutate architecture, tensor shapes or optimizer semantics without a versioned candidate configuration and validation.
+
+### 12.5 Revised unresolved decisions
+
+The following replace the old external-base-model and Q/V-LoRA decisions:
+1. Initial architecture family and supported module set.
+2. Tokenizer family, revision and Unicode policy.
+3. Exact Small C4 source revision, license/notice review and packaging choice.
+4. Corpus preprocessing, token count and split construction.
+5. Device capability profile and measurable admission thresholds.
+6. Module-specific initialization and randomness policy.
+7. Architecture-specific objective, optimizer and training profile.
+8. Android background scheduling and user controls.
+9. Checkpoint cadence, full-state recovery and generation promotion.
+10. Personal-learning consent, retention and post-training revocation strategy.
+
+### 12.6 P0 acceptance interpretation
+
+The P0 findings remain open until verified. In particular:
+- AUD-001 remains a critical training-mathematics defect.
+- AUD-002 remains a critical full-state persistence/recovery defect.
+- AUD-003/AUD-004 remain privacy and approval blockers.
+- AUD-013 remains a tokenizer/vocabulary invariant problem.
+- AUD-014 is reinterpreted as a missing Genesis identity and complete model-state contract; absence of a pretrained third-party artifact is intentional.
+
+Verification must follow documents 20–23 and the gates in document 15. No build, tests, workflow dispatch or artifact upload is authorized by this addendum.

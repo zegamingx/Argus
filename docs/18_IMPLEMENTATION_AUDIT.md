@@ -319,3 +319,22 @@ No application source was modified in this pass. All six P0 items remain OPEN. N
 ### P0-C clarification — screen-context retention is a separate data path
 
 The AccessibilityService writes captured text to both the training queue and `WorldModel.updateScreenContext()`. Blocking only `TrainingManager.enqueueData()` would therefore not fully contain unapproved screen-data retention. The remediation must gate the world-model/context write independently and distinguish transient context from retained candidate data. A UI status label or excluded-app checkbox is not a substitute for an enforceable consent state.
+
+## 8. Architectural decision update — Local Knowledge Genesis
+
+**Decision date:** 2026-11-03  
+**Status:** Accepted design direction; implementation remains unverified.
+
+The original AUD-014 wording assumed Argus would load a separately pretrained base-model artifact. That assumption has been superseded by the accepted **Local Knowledge Genesis** direction:
+
+- Argus intentionally begins with locally initialized parameters for each independent instance.
+- Absence of an externally pretrained base-model bundle is no longer a product defect.
+- The actual defect remains: the current prototype does not persist and restore a complete, verifiable model state, tokenizer contract and required optimizer state.
+- The replacement acceptance requirement is a versioned Genesis manifest, complete tensor inventory, architecture/tokenizer fingerprints, per-instance identity, initialization metadata and atomic full-state persistence.
+- Random initialization must not be presented as learned language capability. General learning remains a separate background phase after app readiness.
+
+The historical source observations in AUD-014 and P0-B remain valid for the inspected prototype. Their former recommendation to select an imported pretrained artifact is not a current Argus design requirement.
+
+The audit's proposed Q/V LoRA-only training path is also superseded as a target assumption. The initial trainable parameter set and optimizer must be researched against the architecture selected for from-scratch learning; no LoRA-only contract is approved.
+
+This addendum changes the target design, not the inspected code, and does not close AUD-001, AUD-002, AUD-013, AUD-014 or any privacy finding.
