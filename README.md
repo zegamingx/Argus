@@ -14,13 +14,17 @@
 [![targetSdk](https://img.shields.io/badge/targetSdk-36-222?logo=android)](https://developer.android.com/tools)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-> *A hundred eyes. One mind. Zero cloud.*
+> *A hundred eyes. One mind. On-device by design.*
 
-Argus is an experimental **on-device AGI framework** for Android.
-It perceives (screen, camera, files, web), remembers (episodic / semantic /
-procedural memory), reasons (local LLM + multi-agent planner), acts
-(opt-in UI automation), and **continually learns** — without a single byte
-of user data ever leaving the device.
+Argus is an experimental **local-first AI framework for Android**.
+The current repository contains an early Kotlin prototype. Hardware acceleration,
+multi-agent orchestration, persistent memory and continual learning are design
+targets documented in `docs/`, not verified product capabilities.
+
+Local model inference is the design goal. Web retrieval is a separate network
+feature that makes outbound HTTP requests to public sources. See the
+[repository baseline](docs/17_CURRENT_REPOSITORY_BASELINE.md) for the inspected
+implementation and its current limitations.
 
 </div>
 
