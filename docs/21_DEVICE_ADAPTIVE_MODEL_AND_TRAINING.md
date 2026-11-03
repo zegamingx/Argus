@@ -109,7 +109,13 @@ Expose the actual active state and explain adaptations:
 
 The UI must not overstate precision of OS signals or claim training is real-time if displayed values are stale.
 
-## 9. Verification plan
+## 9. Acquisition resource boundary
+
+The same measured Device Capability Profile informs autonomous knowledge acquisition, but model and acquisition workloads use separate resource reservations. Model weights, inference workspaces, optimizer state and checkpoint recovery capacity must be reserved before corpus storage, parser buffers, indexes or tokenization caches receive a budget.
+
+See [32 — Device-Adaptive Knowledge Acquisition and Corpus Budgeting](32_DEVICE_ADAPTIVE_KNOWLEDGE_ACQUISITION.md) for the acquisition profile and device-specific corpus policy.
+
+## 10. Verification plan
 
 Use representative low-, mid- and high-capability Android devices. Measure configuration selection, peak/sustained memory, training throughput, energy, thermal response, pause latency, checkpoint reliability and recovery after process death. Keep exact device, OS, driver, runtime, model and dataset revisions with every result.
 

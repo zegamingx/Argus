@@ -242,7 +242,7 @@ Network requests expose ordinary connection metadata to remote destinations. The
 
 ## 12. Resource controls and scheduling
 
-Connector and source limits must be enforced centrally and per source. Controls include:
+Connector and source limits must be enforced centrally, per source and within the device-specific acquisition profile. Controls include:
 
 - Per-source rate and concurrency limits.
 - Global network concurrency.
@@ -256,7 +256,7 @@ Connector and source limits must be enforced centrally and per source. Controls 
 
 The operating system may defer background execution. Jobs must be resumable and bounded; no permanent hidden service or scheduling workaround is allowed. Network acquisition and neural training have separate queues and coordinated resource admission.
 
-No numeric quotas, concurrency counts or refresh intervals are fixed here. They must be calibrated by device class, source terms and measured results.
+No numeric quotas, concurrency counts or refresh intervals are fixed here. They must be calibrated by device class, source terms and measured results. The device-level budget, storage tiers, tokenizer cache compatibility and runtime admission model are specified in [32 — Device-Adaptive Knowledge Acquisition and Corpus Budgeting](32_DEVICE_ADAPTIVE_KNOWLEDGE_ACQUISITION.md).
 
 ## 13. Source update and revocation handling
 

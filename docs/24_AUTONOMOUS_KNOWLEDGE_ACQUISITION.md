@@ -228,7 +228,9 @@ Personal learning remains governed by [22 — General Corpus and Personal Learni
 
 ## 12. Device, network and storage policy
 
-Acquisition must operate within explicit budgets for:
+Acquisition must operate within a per-instance Device-Adaptive Acquisition Profile. The profile uses device capability evidence shared with model configuration, but applies a separate resource reservation for network intake, parsing, retention, indexing and tokenization. See [32 — Device-Adaptive Knowledge Acquisition and Corpus Budgeting](32_DEVICE_ADAPTIVE_KNOWLEDGE_ACQUISITION.md).
+
+The profile must enforce explicit budgets for:
 
 - Network access and allowed connection type.
 - Requests per source and total request concurrency.
