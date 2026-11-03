@@ -25,14 +25,15 @@ These are required changes, not safeguards already present in the current source
 
 The P0 work has hard dependencies. The recommended order is:
 
-1. **Genesis identity:** define the per-instance model/generation identity and versioned manifest for locally initialized parameters (AUD-014).
-2. **Tokenizer invariants:** select and freeze a tokenizer revision per generation; validate vocabulary and all dependent tensor shapes (AUD-013).
-3. **Learning mathematics:** after architecture and training-feasibility decisions, define the trainable parameter groups, loss reduction and complete backward graph (AUD-001).
-4. **State durability:** persist the exact model-generation, mutable tensor and optimizer state with atomic recovery (AUD-002).
-5. **Data governance:** enforce provenance, rights, consent, classification, redaction, review, revocation and deletion according to general-versus-personal data policy (AUD-003/AUD-004).
-6. **Worker integration:** only then connect eligible immutable general-corpus candidates and explicitly approved personal candidates to the validated training path.
+1. **Genesis identity contract:** define the architecture-agnostic per-instance and generation identity, immutable manifest boundary and atomic first-generation publication (AUD-014). This contract can be designed now; concrete tensor inventory and configuration are instantiated only after the upstream research gates.
+2. **From-scratch feasibility:** define and measure the useful-learning target, model/data/compute envelope, device tiers and stop criteria. Follow the research order in [16 — Roadmap and Research Register](16_ROADMAP_RESEARCH_REGISTER.md).
+3. **Tokenizer and architecture decisions:** evaluate tokenizer candidates on versioned fixtures, then compare architecture candidates with the selected common input representation and equivalent budgets. Freeze a tokenizer revision and architecture/configuration fingerprint before creating a trainable generation (AUD-013).
+4. **Learning mathematics:** define the trainable parameter groups, loss reduction, complete backward graph and optimizer semantics only for the architecture that passes the feasibility and selection gates (AUD-001).
+5. **State durability:** persist the exact candidate-generation, optimizer and resumable-session state with atomic recovery (AUD-002).
+6. **Data governance:** enforce source rights/provenance for general corpus inputs and consent/classification/redaction/review/revocation/deletion for personal inputs (AUD-003/AUD-004).
+7. **Worker integration:** only then connect immutable eligible general-corpus shards and explicitly approved personal candidates to the validated training path.
 
-A later item must not be used to bypass an earlier prerequisite. For example, a durable checkpoint cannot make an invalid gradient correct, and a correct gradient cannot make unapproved data permissible.
+A later item must not bypass an earlier prerequisite. A correct checkpoint cannot make invalid gradients correct; correct gradients cannot authorize unlicensed or unapproved data; and a passing unit-level kernel test cannot establish that a complete model can be trained within a target device's sustained resource envelope.
 
 ## 3. Genesis model-state identity contract — AUD-014
 
@@ -52,7 +53,23 @@ Genesis must initialize the complete required tensor inventory, validate shapes/
 
 A deterministic seed is appropriate for numerical fixtures and reproducible tests. Production instances must receive independent initialization state. Random initialization is the intended origin of a new Argus generation; it must not be described as learned language capability.
 
-The current prototype's incomplete checkpoint is a persistence/identity defect, not evidence that a third-party pretrained artifact is missing. Architecture and tokenizer decisions remain governed by documents 20 and 23.
+The current prototype's incomplete checkpoint is a persistence/identity defect, not evidence that a third-party pretrained artifact is missing. Architecture and tokenizer decisions remain governed by documents 09, 16, 20 and 23.
+
+### 3.1 Genesis-to-training handoff
+
+Genesis readiness is a hard transaction boundary, not a training milestone:
+
+1. Genesis creates and commits the complete initial generation and its immutable manifest.
+2. Only after that commit succeeds may the app publish GENESIS_READY and APPLICATION_READY.
+3. A learning session references the exact active parent-generation ID and manifest digest. It must not modify the committed parent generation in place.
+4. Training operates on an isolated child candidate generation (or an equivalent copy-on-write state) with its own generation ID, parent reference, configuration fingerprint and candidate-state manifest.
+5. Checkpoints bind the candidate state to the exact parent digest, tokenizer revision, training session and immutable input-data revision.
+6. A candidate becomes active only after its model state and manifest are durably committed and all required numerical, general-evaluation, personal-evaluation, compatibility and resource gates pass.
+7. A rejected, interrupted or regressing candidate must not replace the active generation. The last-known-good generation remains loadable.
+
+The active generation may remain available for inference while a candidate is being trained only when the device-admission profile proves that the combined memory and execution budget is safe. Concurrency is not assumed; a device may serialize inference and training or pause one workload.
+
+GENESIS_READY therefore means **constructed, initialized, persisted and recoverable**. It does not mean trained, evaluated, promoted or generally capable. The background learning scheduler is downstream of APPLICATION_READY, as specified in [20 — Argus Genesis Engine](20_ARGUS_GENESIS_ENGINE.md) and [10 — Training and Learning Architecture](10_TRAINING_LEARNING_ARCHITECTURE.md).
 
 ## 4. Tokenizer and vocabulary contract — AUD-013
 
@@ -116,14 +133,25 @@ A resumable training checkpoint must reconstruct the exact state needed to conti
 - Tokenizer ID, revision, vocabulary size and fingerprint.
 - Every mutable/trainable model tensor, including exact shape and data type; immutable tensor groups must be covered by the generation manifest and verified digest.
 - Optimizer moments for every trainable tensor, optimizer step and schedule state.
-- Training configuration, approved dataset revision/digest and completed update counters.
+- Training session ID, configuration fingerprint, immutable corpus/dataset manifest revision and digest, data-shard identity, sampler/shuffle state and next uncommitted work-item cursor.
+- RNG state for every stochastic operation in the supported training profile, or an explicit declaration that deterministic replay is not supported for that operation/backend.
+- Precision/scaler state where applicable, backend/runtime identifier and deterministic-operation profile.
+- Idempotency information sufficient to prove which work items or batches are already included in the last committed update.
 - Checkpoint schema version, payload length and checksum.
 
-Any immutable tensor payload may be referenced by the active generation's immutable digest rather than duplicated, provided the loader verifies that exact generation before restoring mutable state.
+For the initial P0 contract, checkpoints are committed only at completed optimizer-update boundaries. An interruption during a microbatch or gradient-accumulation interval discards that uncommitted work and resumes from the last durable cursor. If mid-accumulation checkpoints are introduced later, partial gradients and every associated accumulation counter become mandatory checkpoint state.
+
+A training checkpoint is distinct from the immutable Genesis/model-generation manifest:
+- The generation manifest identifies the committed parent or promoted generation and its complete tensor inventory.
+- The candidate checkpoint records the working child-generation tensor state plus the optimizer/scheduler and session state required to resume.
+- A checkpoint may reference immutable parent tensors by digest only when the loader verifies that exact parent generation and every referenced tensor before restoration.
+- An architecture migration or tokenizer change is a new generation/migration transaction, not an ordinary in-place checkpoint update.
 
 ### 6.1 Write protocol
 
 Use an atomic same-filesystem replacement protocol, such as Android's `AtomicFile` or a rigorously implemented temporary-file, flush/sync and rename sequence. Never overwrite the last-known-good checkpoint in place.
+
+The logical durable transaction must bind together the candidate model tensors after a complete optimizer update, optimizer/scheduler and applicable RNG/precision state, the data cursor, and the idempotency record for the work item or batch. Persist a self-consistent checkpoint bundle to isolated temporary storage, validate it, then atomically publish one commit manifest/pointer that identifies all components. Do not advance the durable data cursor independently of the model/optimizer update: otherwise process death can cause an already-applied sample to be applied a second time.
 
 The save operation must return a typed success/failure result. A failed save must not be swallowed and must not result in a completed/promoted training record. Keep a last-known-good checkpoint separate from an unpromoted candidate checkpoint.
 
@@ -181,37 +209,60 @@ Required lifecycle:
 
 Alternative terminal states include `REJECTED`, `REVOKED`, `FAILED` and `DELETED`. Only `APPROVED` candidates with current consent and matching policy/dataset revisions may enter training. A boolean flag supplied by an arbitrary caller is not sufficient authorization. Queue labels, screen copy and notifications may say “approved” only when the candidate store has persisted and verified that status; presentation text must not imply an approval gate that the runtime does not enforce.
 
-Chat prompts, file contents, image-derived metadata and web snippets must use this same candidate lifecycle. Web results remain untrusted evidence and are never training data merely because retrieval occurred or model confidence was low.
+Training admission must preserve the distinction between two data classes rather than treating every input as a generic user-approved record:
+
+- **General corpus input:** require immutable source/item provenance, a verified training-use permission decision, applicable notices/attribution, quality and sensitivity checks, deterministic preprocessing, deduplication/split integrity, and an immutable corpus manifest/digest. General public-source eligibility does not depend on personal screen-capture consent. An unknown or incompatible rights state fails closed.
+- **Personal input:** use the candidate lifecycle above. Require source-specific consent, classification, redaction, explicit user approval, current policy revision and revocation/deletion lineage before an optimizer update.
+
+Chat prompts, screen-derived content, personal files, imports and image-derived personal metadata are personal inputs unless an independently reviewed policy establishes another classification. Retrieved web pages are untrusted evidence; retrieval alone never makes them training inputs. Public web material intended for general learning must enter through the general source-registry and rights/quality pipeline in documents 24–28, not through the personal-candidate approval shortcut.
 
 ### 7.4 Revocation and post-training deletion
 
-Track which approved dataset revision contributed to each candidate adapter/model revision. Keep each committed generation immutable and train into isolated, versioned candidate generations. If a candidate is deleted or consent is revoked after promotion, Argus must be able to roll back to a known model-generation revision and rebuild from the remaining approved dataset.
+Track every general-corpus manifest, personal-candidate ID, consent-policy revision and training-session input digest that contributed to each candidate or promoted generation. Keep committed generations immutable and train into isolated, versioned child generations. The lineage must identify a known eligible ancestor and the exact input set needed to reconstruct a generation.
 
-Do not promise exact unlearning from weights that have been irreversibly merged. If provenance and rollback cannot be guaranteed, the system must disclose the limitation and must not promote that training output as a deletable user-controlled memory.
+If a personal candidate is deleted or consent is revoked after promotion, do not claim that the information has been removed from model weights merely because its source record was deleted. Where the retained lineage and compute budget permit, rebuild a clean descendant from an eligible ancestor using only the remaining permitted inputs, then validate and promote it. Otherwise disclose the limitation and preserve a clearly identified rollback path; do not describe irreversible weight changes as deletable user-controlled memory.
+
+General-corpus rights withdrawal or source-license changes require a separate source-policy response. Do not treat a personal-consent revocation as the legal basis for general-source data, or vice versa.
 
 ## 8. Worker and failure behavior
 
 The worker must be started explicitly by a user-authorized training action, not from a constructor or application singleton initialization. It must accept only repository-issued approved records, not arbitrary raw strings.
 
-For each record:
+For each work item or batch:
 
-1. Revalidate approval, consent revision, dataset revision and model/tokenizer identity.
-2. Build the update in isolated candidate state.
-3. Validate loss, gradients, optimizer moments and updated parameters.
-4. Persist a recoverable checkpoint.
-5. Mark the record trained only after the required persistence and evaluation gates succeed.
+1. Resolve its immutable identity, source class, content/dataset digest and provenance.
+2. Revalidate the correct admission policy: source-rights and corpus-manifest eligibility for general data; current consent, classification, redaction, approval and revocation state for personal data.
+3. Verify active parent-generation, candidate-generation, tokenizer and training-session compatibility.
+4. Derive a stable idempotency key from the session, data revision and work-item/batch identity.
+5. Execute the update in isolated candidate state. Do not mutate the active parent generation.
+6. Validate loss, gradients, optimizer state and all updated tensors before committing the update.
+7. Atomically persist the candidate model/optimizer state, session cursor and idempotency result at the supported checkpoint boundary.
 
-Expected item-level failures must be recorded without silently killing the worker. Model corruption, non-finite updates, incompatible state or checkpoint failure must pause the session and preserve the last-known-good model. Never publish a partially applied optimizer update.
+A work item may be marked APPLIED_TO_CANDIDATE only after the checkpoint containing its update and idempotency record is durable. This status does not mean the candidate model generation passed evaluation or became active. Keep work-item outcomes separate from generation lifecycle:
+
+CANDIDATE → VALIDATING → PROMOTED
+
+or
+
+CANDIDATE → VALIDATING → REJECTED
+
+Only a generation that passes all promotion gates may become active. Do not label a dataset item, session or model as generally trained/validated solely because an optimizer update was computed or a checkpoint was written.
+
+Expected item-level failures must be recorded without silently killing the worker. Model corruption, non-finite updates, incompatible state or checkpoint failure must pause the session and preserve the last-known-good model. Process-death recovery must not duplicate a committed update or skip an uncommitted one.
 
 ## 9. Required verification matrix before P0 closure
 
 | Area | Required evidence |
 |---|---|
-| Genesis model state | Generation-manifest validation, digest mismatch rejection, missing/extra tensor rejection and deterministic reload |
+| Genesis model state | Generation-manifest validation, digest mismatch rejection, missing/extra tensor rejection, independent instance identity, atomic first-generation commit and deterministic test-fixture reload |
+| Genesis-to-learning handoff | No worker before APPLICATION_READY; the learning session references the exact immutable parent generation and creates an isolated child candidate |
+| Candidate promotion | Active parent remains unchanged until a fully validated candidate is atomically promoted; rejection and rollback preserve the last-known-good generation |
 | Tokenizer | Stable fingerprint, fixed vocabulary, unknown Unicode behavior and tensor-shape invariants |
 | Gradients | Reference parity and finite-difference checks for every declared trainable parameter group |
 | Optimizer | Correct accumulation/reduction, step count, bias correction, clipping and frozen-weight immutability |
-| Checkpoint | Exact model-generation and optimizer-state round trip, corruption/truncation rejection and interrupted-write recovery |
+| Checkpoint | Exact candidate tensor, optimizer/scheduler, RNG/precision, sampler-cursor and idempotency round trip; corruption/truncation rejection and interrupted-write recovery |
+| Resume idempotency | Process death around update/checkpoint/cursor publication cannot duplicate a committed batch or skip uncommitted work |
+| Data admission | General corpus requires rights/provenance/quality manifest; personal inputs require current consent, redaction and explicit approval |
 | Consent | Default-off settings, independent consent scopes and immediate revocation behavior |
 | Capture | Package/window mismatch, password fields, excluded/unknown app and redaction adversarial fixtures |
 | Approval | Rejected/unreviewed samples never reach the optimizer; imported and web data require the same approval |

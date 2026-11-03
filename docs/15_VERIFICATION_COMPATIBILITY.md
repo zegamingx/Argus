@@ -1,7 +1,7 @@
 # Verification, Validation and Compatibility
 
 **Status:** Proposed verification plan  
-**Last reviewed:** 2026-11-03
+**Last reviewed:** 2026-11-04
 
 ## 1. Evidence principle
 
@@ -16,7 +16,7 @@ Compatibility applies to an exact configuration. "Snapdragon supported" or "Mali
 - **Device:** thermal/memory pressure, lifecycle, permission revocation, low storage and background policy.
 - **Security:** prompt injection, path traversal, malicious models, secure-surface exclusion, permission abuse and no-network assertions.
 - **Performance:** reproducible workload and sustained thermal runs.
-- **Recovery:** process kill, OS reclaim, partial writes, adapter promotion and rollback.
+- **Recovery:** process kill, OS reclaim, partial writes, candidate-generation promotion and rollback.
 
 ## 3. Backend validation sequence
 
@@ -82,6 +82,9 @@ The target architecture requires additional verification before it can be descri
 | Area | Required evidence |
 |---|---|
 | First-launch readiness | Model initialization and initial generation commit complete before app-ready state; no corpus training on the blocking startup path |
+| Genesis-to-training handoff | The immutable Genesis parent generation is identified by digest; training starts only after readiness and writes an isolated child candidate |
+| Candidate promotion | A candidate is promoted only after required numerical, evaluation, compatibility and resource gates; failed candidates cannot replace the active generation |
+| Resume transaction | Candidate tensors, optimizer/session state, RNG profile, data cursor and idempotency markers recover as one logical checkpoint transaction |
 | Random initialization | Architecture-specific initializer tests, valid distributions/ranges, independent instance outputs and deterministic test fixtures |
 | Model identity | Unique instance/generation IDs, architecture/tokenizer fingerprints and exact tensor manifest |
 | Full-state persistence | Every model tensor and required optimizer/scheduler/RNG state round-trips; corruption and partial writes are rejected |

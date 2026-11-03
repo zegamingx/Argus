@@ -1,7 +1,7 @@
 # Argus Genesis Engine
 
 **Status:** Accepted product flow and architecture direction; implementation not present  
-**Last reviewed:** 2026-11-03
+**Last reviewed:** 2026-11-04
 
 ## 1. Purpose
 
@@ -84,7 +84,7 @@ Production initialization is independent per instance. A deterministic seed may 
 
 ### 4.5 Initial generation commit
 
-Write the model state and manifest to a temporary generation directory. Validate tensor inventory, checksums, architecture/tokenizer fingerprints and storage completion. Commit the generation atomically. Incomplete temporary state must remain distinguishable from an active generation.
+Write the model state and manifest to a temporary generation directory. Validate tensor inventory, checksums, architecture/tokenizer fingerprints and storage completion. Commit the generation atomically. Incomplete temporary state must remain distinguishable from an active generation. The initial generation becomes immutable once published. Later learning must create an isolated child candidate generation and must not modify this committed generation in place; see [19 — P0 Remediation Design](19_P0_REMEDIATION_DESIGN.md) for the Genesis-to-training transaction and promotion contract.
 
 ### 4.6 Readiness publication
 
@@ -109,7 +109,7 @@ General foundation learning begins from the bundled bootstrap corpus according t
 
 The acquisition engine does not depend on a capable neural model at startup. Its first discovery cycle uses deterministic topic policies and a reviewed source registry. Model-assisted topic proposals are a later capability and remain policy-controlled. See [24 — Autonomous Knowledge Acquisition](24_AUTONOMOUS_KNOWLEDGE_ACQUISITION.md).
 
-The scheduler may defer work because of thermal pressure, low memory, battery/power mode, storage pressure, user preference or Android lifecycle restrictions. Deferral is not failure. The job must resume from a valid checkpoint.
+The scheduler may defer work because of thermal pressure, low memory, battery/power mode, storage pressure, user preference or Android lifecycle restrictions. Deferral is not failure. The job must resume from a valid checkpoint whose parent-generation digest and durable data cursor still match. A resumed session must not replay an already committed optimizer update or skip an uncommitted work item. Active-generation promotion remains separate from checkpoint recovery; see [19 — P0 Remediation Design](19_P0_REMEDIATION_DESIGN.md).
 
 ## 7. Instance and generation identity
 
