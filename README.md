@@ -249,23 +249,21 @@ First launch runs the onboarding: storage grant → model integrity check
 
 ---
 
-## 📂 Project Structure
+## Current Project Structure
 
 ```
 app/src/main/
-├── cpp/                          # Native inference, Vulkan kernels, JNI
-│   └── CMakeLists.txt
-└── java/com/argus/agi/
-    ├── core/
-    │   ├── agent/                # Orchestrator + Perception/Reasoning/Action/Memory agents
-    │   ├── memory/               # Episodic, Semantic, Procedural, Vector + SleepConsolidator
-    │   ├── model/                # LocalInference, ModelManager, HardwareRouter
-    │   └── training/             # TrainingQueue, LoRATrainer, DataRedactor, Evaluator
-    ├── perception/               # ScreenReader, CameraVision, UIAnalyzer, WebFetcher
-    ├── action/                   # UIAutomator, AppLauncher, BiometricGate
-    ├── ui/                       # chat/, dashboard/, privacy/, settings/
-    └── di/                       # Hilt modules
+├── java/com/argus/agi/
+│   ├── model/       # Prototype neural engine, tokenizer, training queue, world model
+│   ├── sensor/      # Device guard, hardware profile, web retrieval
+│   ├── service/     # Accessibility and foreground services
+│   └── ui/          # ViewModel, Compose screens and theme
+└── res/             # Android resources and service configuration
+
+docs/                # Engineering specifications and research
 ```
+
+The target architecture is documented separately. This tree describes the inspected source layout, not the future module design.
 
 ---
 
