@@ -1,8 +1,8 @@
 # P0 Remediation Design
 
 **Status:** Proposed engineering contract; pending review  
-**Branch:** `master`  
-**Review date:** 2026-11-03  
+**Branch:** `main`  
+**Review date:** 2026-11-04  
 **Scope:** Documentation only. No source changes, build, tests, workflow execution or artifacts are authorized by this document.
 
 This document translates the confirmed P0 findings into an implementation contract. It is intentionally narrower than the complete Argus target architecture. GPU/NPU acceleration, multi-agent orchestration, multimodal inference and persistent semantic memory are outside this P0 remediation.
@@ -15,7 +15,7 @@ Before training is enabled in a future implementation:
 
 - Remove implicit training from chat, web retrieval, file import, image import and AccessibilityService callbacks.
 - Do not start the training worker as a side effect of constructing `TrainingManager`.
-- Keep the train operation unavailable unless the model artifact, tokenizer, gradient, checkpoint and candidate-approval gates in this document are satisfied.
+- Keep the train operation unavailable unless the Genesis model-state identity, tokenizer, gradient, checkpoint and applicable data-governance gates in this document are satisfied.
 - Do not label a sample or model as trained when the optimizer update or checkpoint write failed.
 - Preserve the current implementation as an experimental prototype until these conditions are met.
 
@@ -25,40 +25,43 @@ These are required changes, not safeguards already present in the current source
 
 The P0 work has hard dependencies. The recommended order is:
 
-1. **Model identity:** select and verify a base-model artifact and its tokenizer (AUD-014).
-2. **Vocabulary invariants:** freeze the vocabulary per model revision and validate every dependent tensor shape (AUD-013).
-3. **Learning mathematics:** define the trainable parameters, loss reduction and complete backward graph (AUD-001).
-4. **State durability:** persist the exact model/adapter and optimizer state with atomic recovery (AUD-002).
-5. **Data governance:** enforce explicit consent, classification, redaction, review and revocation for all learning sources (AUD-003/AUD-004).
-6. **Worker integration:** only then connect approved records to the validated training path.
+1. **Genesis identity:** define the per-instance model/generation identity and versioned manifest for locally initialized parameters (AUD-014).
+2. **Tokenizer invariants:** select and freeze a tokenizer revision per generation; validate vocabulary and all dependent tensor shapes (AUD-013).
+3. **Learning mathematics:** after architecture and training-feasibility decisions, define the trainable parameter groups, loss reduction and complete backward graph (AUD-001).
+4. **State durability:** persist the exact model-generation, mutable tensor and optimizer state with atomic recovery (AUD-002).
+5. **Data governance:** enforce provenance, rights, consent, classification, redaction, review, revocation and deletion according to general-versus-personal data policy (AUD-003/AUD-004).
+6. **Worker integration:** only then connect eligible immutable general-corpus candidates and explicitly approved personal candidates to the validated training path.
 
 A later item must not be used to bypass an earlier prerequisite. For example, a durable checkpoint cannot make an invalid gradient correct, and a correct gradient cannot make unapproved data permissible.
 
-## 3. Base-model artifact contract — AUD-014
+## 3. Genesis model-state identity contract — AUD-014
 
-The first trainable model must have a stable identity. A model package should include a manifest containing:
+The first trainable model generation must have a stable, independently verifiable identity even though its parameters originate from local initialization rather than an imported pretrained artifact.
 
-- Model ID, revision and immutable artifact digest.
-- Architecture family/version and all dimensions and operator-relevant configuration.
-- Tensor names, shapes, data types, layout and quantization metadata.
-- Tokenizer ID/revision, complete vocabulary or tokenizer payload, special-token IDs and fingerprint.
-- Model provenance, source, license and permitted-use metadata.
-- Expected weight-file sizes and cryptographic checksums.
+The Genesis manifest must include:
 
-The loader must read into an isolated candidate state, validate the complete manifest and every tensor, reject missing/extra/incompatible tensors, reject non-finite values, and publish the state only after the entire load succeeds. An incomplete or incompatible package must leave the last-known-good model unchanged.
+- Unique instance ID and generation ID, plus an optional parent-generation ID.
+- Architecture family/version, module versions, dimensions and operator-relevant configuration fingerprint.
+- Tokenizer ID/revision, tokenizer payload or immutable asset reference, special-token IDs and fingerprint.
+- Tensor names, shapes, data types, layouts, initialization policy/version and integrity checksums.
+- Initialization seed metadata sufficient for audit/recovery without forcing identical production weights across installations.
+- Device capability/configuration evidence used for admission.
+- Model-state schema version and storage format version.
 
-Randomly initialized weights may be used for deterministic numerical tests with an explicit seed. They must not be represented as a pretrained model, a restored model or a production model available for fine-tuning.
+Genesis must initialize the complete required tensor inventory, validate shapes/dtypes/ranges and reject non-finite values. It must persist the initial generation through an isolated temporary state and atomic commit. The active generation is published only after the manifest and every tensor have passed validation. An incomplete generation must never replace the last-known-good generation.
 
-No base-model artifact is currently evidenced in the inspected repository tree. Selecting the model and confirming its license and provenance remain unresolved decisions; the implementation must not fabricate a bundled model or assume a vendor format.
+A deterministic seed is appropriate for numerical fixtures and reproducible tests. Production instances must receive independent initialization state. Random initialization is the intended origin of a new Argus generation; it must not be described as learned language capability.
+
+The current prototype's incomplete checkpoint is a persistence/identity defect, not evidence that a third-party pretrained artifact is missing. Architecture and tokenizer decisions remain governed by documents 20 and 23.
 
 ## 4. Tokenizer and vocabulary contract — AUD-013
 
 The recommended first implementation uses an immutable vocabulary for each model revision:
 
-- The tokenizer payload and fingerprint are part of the base-model artifact.
+- The tokenizer payload and fingerprint are part of the model-generation manifest.
 - Inference, evaluation and training use the same tokenizer instance/configuration and do not register new tokens at runtime.
 - Unknown input follows the tokenizer's explicit unknown-token or byte-fallback policy.
-- Model tensors and optimizer state are dimensioned from the validated artifact vocabulary, not from a mutable runtime map.
+- Model tensors and optimizer state are dimensioned from the validated generation tokenizer vocabulary, not from a mutable runtime map.
 - A vocabulary change creates a new model revision and requires an explicit migration/reinitialization of all dependent tensors, optimizer moments and checkpoint metadata.
 
 The current `ensureVocabCapacity()` behavior, which expands embeddings and output-head rows without expanding optimizer moments, must not be retained. A successful forward pass does not prove optimizer-state compatibility.
@@ -106,14 +109,14 @@ One optimizer step represents one completed optimizer update, not one token posi
 
 A resumable training checkpoint must reconstruct the exact state needed to continue:
 
-- Base-model ID, immutable digest and architecture fingerprint.
+- Model instance ID, generation ID, model-state digest and architecture/configuration fingerprint.
 - Tokenizer ID, revision, vocabulary size and fingerprint.
-- Every trainable adapter tensor, including exact shape and data type.
+- Every mutable/trainable model tensor, including exact shape and data type; immutable tensor groups must be covered by the generation manifest and verified digest.
 - Optimizer moments for every trainable tensor, optimizer step and schedule state.
 - Training configuration, approved dataset revision/digest and completed update counters.
 - Checkpoint schema version, payload length and checksum.
 
-Frozen base weights may be referenced by immutable artifact digest rather than duplicated, provided the loader verifies that exact artifact before restoring the adapter.
+Any immutable tensor payload may be referenced by the active generation's immutable digest rather than duplicated, provided the loader verifies that exact generation before restoring mutable state.
 
 ### 6.1 Write protocol
 
@@ -179,7 +182,7 @@ Chat prompts, file contents, image-derived metadata and web snippets must use th
 
 ### 7.4 Revocation and post-training deletion
 
-Track which approved dataset revision contributed to each candidate adapter/model revision. Keep the base model immutable and train into versioned adapter candidates. If a candidate is deleted or consent is revoked after promotion, Argus must be able to roll back to a known adapter revision and rebuild from the remaining approved dataset.
+Track which approved dataset revision contributed to each candidate adapter/model revision. Keep each committed generation immutable and train into isolated, versioned candidate generations. If a candidate is deleted or consent is revoked after promotion, Argus must be able to roll back to a known adapter revision and rebuild from the remaining approved dataset.
 
 Do not promise exact unlearning from weights that have been irreversibly merged. If provenance and rollback cannot be guaranteed, the system must disclose the limitation and must not promote that training output as a deletable user-controlled memory.
 
@@ -203,9 +206,9 @@ Expected item-level failures must be recorded without silently killing the worke
 |---|---|
 | Base model | Artifact manifest validation, digest mismatch rejection, missing/extra tensor rejection and deterministic reload |
 | Tokenizer | Stable fingerprint, fixed vocabulary, unknown Unicode behavior and tensor-shape invariants |
-| Gradients | Reference parity and finite-difference checks for every trainable LoRA tensor |
+| Gradients | Reference parity and finite-difference checks for every declared trainable parameter group |
 | Optimizer | Correct accumulation/reduction, step count, bias correction, clipping and frozen-weight immutability |
-| Checkpoint | Exact adapter/optimizer round trip, corruption/truncation rejection and interrupted-write recovery |
+| Checkpoint | Exact model-generation and optimizer-state round trip, corruption/truncation rejection and interrupted-write recovery |
 | Consent | Default-off settings, independent consent scopes and immediate revocation behavior |
 | Capture | Package/window mismatch, password fields, excluded/unknown app and redaction adversarial fixtures |
 | Approval | Rejected/unreviewed samples never reach the optimizer; imported and web data require the same approval |
@@ -230,78 +233,26 @@ A tag is a release/build boundary, not permission to skip source review or verif
 
 The following decisions must be resolved before implementation:
 
-1. Which base-model artifact is selected, and what are its license, provenance, architecture and tokenizer?
-2. Does that base model contain compatible Q/V LoRA adapters, or must the adapter architecture be redesigned?
+1. Which architecture and tokenizer are selected after the feasibility and comparative research gates, and what are their exact versioned contracts?
+2. Which parameter groups are trainable for the selected from-scratch architecture, and which optimizer semantics are correct for those groups?
 3. What exact optimizer and hyperparameter configuration is the first supported training profile?
 4. What screen-perception and learning-consent wording/scopes should the user approve?
 5. What retention period and rollback policy apply to approved candidate data and trained adapter revisions?
 
 Until these are resolved and the P0 verification matrix is approved, all P0 findings remain OPEN.
 
-## 12. Superseding architecture decision — Local Knowledge Genesis
+## 12. Cross-document authority
 
-**Decision date:** 2026-11-03  
-**Status:** Accepted design direction. This section supersedes conflicting assumptions in earlier sections of this draft.
+This document defines P0 correctness, persistence, privacy and approval gates. It does not select the neural architecture, tokenizer, optimizer or per-device model dimensions.
 
-The earlier version of this remediation document assumed an externally pretrained base-model artifact and Q/V LoRA as the initial trainable set. Those assumptions are no longer the Argus target.
+The controlling design references are:
+- [01 — System Requirements and Decisions](01_SYSTEM_REQUIREMENTS_AND_DECISIONS.md) for accepted product decisions and ADRs.
+- [09 — Model Architecture](09_MODEL_ARCHITECTURE.md) and [20 — Argus Genesis Engine](20_ARGUS_GENESIS_ENGINE.md) for local model origin, generation identity and first-launch readiness.
+- [21 — Device-Adaptive Model and Training](21_DEVICE_ADAPTIVE_MODEL_AND_TRAINING.md) for capability admission and runtime workload adaptation.
+- [22 — General Corpus and Personal Learning](22_GENERAL_CORPUS_AND_PERSONAL_LEARNING.md) for the distinct general and personal learning data paths.
+- [23 — Neural Architecture Research Plan](23_NEURAL_ARCHITECTURE_RESEARCH_PLAN.md) for architecture/tokenizer research and trainable-parameter decisions.
+- [13 — Security and Data Governance](13_SECURITY_PRIVACY_DATA_GOVERNANCE.md) for cross-system privacy and data-governance requirements.
 
-### 12.1 Replacement model-origin contract
+**Supersession rule:** any remaining historical reference in this document to a pretrained base-model artifact or Q/V LoRA is not an Argus target requirement. Such wording must be read only as a description of the prototype's historical assumptions or defects. The accepted target is a locally initialized, versioned Genesis generation with an architecture-specific training contract.
 
-Argus follows Local Knowledge Genesis:
-- Each installation constructs its own model and initializes its parameters locally.
-- No externally pretrained weights are required or used as the Argus foundation.
-- Architecture family is not selected yet; it must pass the research gate in [23 — Neural Architecture Research Plan](23_NEURAL_ARCHITECTURE_RESEARCH_PLAN.md).
-- The initial model configuration is derived from the device capability profile, not a global parameter-count target.
-- Genesis initialization is completed and committed before the application is marked ready. General pretraining does not block first launch.
-
-The replacement for the old base-model artifact contract is a **Genesis model-state contract**. Its manifest must include instance/generation IDs, architecture/module versions, configuration fingerprint, tokenizer revision/fingerprint, tensor names/shapes/dtypes/layouts, module-specific initializer metadata, tensor checksums, device configuration evidence and generation lineage.
-
-The implementation must persist every initialized tensor. A random initialization routine without a durable manifest and full-state checkpoint does not satisfy this contract.
-
-### 12.2 Replacement initial training contract
-
-Q/V LoRA is not the approved initial training strategy. The trainable parameter set depends on the architecture selected for from-scratch learning. Before enabling any training:
-- Define every trainable and frozen tensor group.
-- Implement a mathematically complete backward path for every trainable parameter.
-- Validate gradients and optimizer updates against a trusted reference and finite-difference fixtures.
-- Serialize all optimizer and scheduler state needed for exact resume.
-- Prove that a controlled training fixture changes only the intended parameter state.
-
-The current incomplete prototype update remains disabled or explicitly experimental until these gates pass.
-
-### 12.3 General and personal learning worker policy
-
-Do not start workers as constructor or singleton side effects.
-
-- **General learning:** after the initial generation is committed and the application is ready, the Genesis coordinator may schedule background learning from the bundled offline corpus according to visible user controls and Android lifecycle/resource policy. It must be resumable and must never block first-launch readiness.
-- **Personal learning:** may run only from repository-issued candidates with current, explicit permission and approval. Screen, chat, file and web access do not imply training consent.
-- The two paths retain separate provenance, evaluation and deletion lineage.
-
-### 12.4 Device-adaptive training policy
-
-Genesis-time capability assessment selects the feasible model configuration. A separate live controller adjusts workload or pauses work for current memory, thermal, battery, backend, storage and Android scheduling conditions. It must not mutate architecture, tensor shapes or optimizer semantics without a versioned candidate configuration and validation.
-
-### 12.5 Revised unresolved decisions
-
-The following replace the old external-base-model and Q/V-LoRA decisions:
-1. Initial architecture family and supported module set.
-2. Tokenizer family, revision and Unicode policy.
-3. Exact Small C4 source revision, license/notice review and packaging choice.
-4. Corpus preprocessing, token count and split construction.
-5. Device capability profile and measurable admission thresholds.
-6. Module-specific initialization and randomness policy.
-7. Architecture-specific objective, optimizer and training profile.
-8. Android background scheduling and user controls.
-9. Checkpoint cadence, full-state recovery and generation promotion.
-10. Personal-learning consent, retention and post-training revocation strategy.
-
-### 12.6 P0 acceptance interpretation
-
-The P0 findings remain open until verified. In particular:
-- AUD-001 remains a critical training-mathematics defect.
-- AUD-002 remains a critical full-state persistence/recovery defect.
-- AUD-003/AUD-004 remain privacy and approval blockers.
-- AUD-013 remains a tokenizer/vocabulary invariant problem.
-- AUD-014 is reinterpreted as a missing Genesis identity and complete model-state contract; absence of a pretrained third-party artifact is intentional.
-
-Verification must follow documents 20–23 and the gates in document 15. No build, tests, workflow dispatch or artifact upload is authorized by this addendum.
+All P0 findings remain OPEN until their evidence requirements are met. This document is a design contract, not implementation evidence.

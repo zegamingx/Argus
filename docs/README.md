@@ -1,6 +1,6 @@
 # Argus Engineering Documentation
 
-**Review date:** 2026-11-03 · **Status:** Design baseline · **Branch:** main · **Scope:** Documentation only
+**Review date:** 2026-11-04 · **Status:** Design baseline · **Branch:** main · **Scope:** Documentation only
 
 This directory is the engineering source of truth for Argus planning. It distinguishes accepted design direction, current repository facts, unresolved research and future implementation. A design document does not prove a capability exists in the application.
 

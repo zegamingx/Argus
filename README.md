@@ -162,12 +162,14 @@ The current application prototype must not be confused with the future Genesis f
 
 ## Roadmap
 
-1. Complete architecture-family research and tokenizer research.
-2. Finalize corpus provenance and preprocessing.
-3. Specify device capability profiling and adaptive model/training budgets.
-4. Specify Genesis initialization, model identity, checkpoint and recovery contracts.
-5. Resolve training correctness and personal-data governance P0 issues.
-6. Implement and validate general background learning.
-7. Add personal learning, generation-safe evolution and additional runtime backends only after their acceptance gates pass.
+1. Complete the documentation and evidence audit, including the P0 remediation design and all cross-document dependencies.
+2. Establish from-scratch training feasibility targets and measurable device/resource constraints.
+3. Evaluate tokenizer candidates on versioned multilingual/domain fixtures, then freeze a comparison fixture.
+4. Compare architecture candidates under equivalent data, tokenizer, parameter/compute budgets and target-device constraints.
+5. Finalize corpus provenance, item-level rights, preprocessing, packaging and general/personal data separation.
+6. Complete Genesis, model-state, checkpoint/recovery, lifecycle, security and verification contracts.
+7. Pass the implementation-readiness audit before preparing a dependency-ordered implementation plan.
+
+These are planning gates, not authorization to implement. The detailed phase and research register in [16](docs/16_ROADMAP_RESEARCH_REGISTER.md) is authoritative.
 
 **Documentation-first work does not authorize implementation, builds, workflow dispatches or artifact publication.**

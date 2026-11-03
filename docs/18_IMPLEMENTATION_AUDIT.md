@@ -159,7 +159,7 @@ The Gradle build and tests were not executed during this review, so compilation 
 
 ## 3. Recommended remediation order
 
-1. **P0 — Establish a verifiable base model and immutable tokenizer contract:** AUD-014 and AUD-013.
+1. **P0 — Establish the Local Knowledge Genesis model-state identity and immutable tokenizer contract:** AUD-014 and AUD-013. The former pretrained-base-model requirement is superseded.
 2. **P0 — Learning correctness and checkpoint integrity:** AUD-001 and AUD-002.
 3. **P0 — Privacy/data governance and explicit approval:** AUD-003 and AUD-004.
 3. **P1 — Concurrency, lifecycle and durability:** AUD-008 and AUD-009.
@@ -208,6 +208,8 @@ This is not a valid implementation of the documented full cross-entropy/LoRA lea
 6. Add regression tests for empty input, one-token input, maximum sequence length, new vocabulary entries and non-finite values.
 
 ### P0-B — Model-state and checkpoint contract (AUD-002)
+
+**Genesis alignment:** the following source observations remain valid, but the target contract is a locally initialized Genesis generation, not an imported pretrained base-model artifact.
 
 The current constructor initializes embedding, positional, attention, feed-forward and output-head weights randomly. No pretrained model-weight loader is evidenced in the inspected class. The checkpoint writes only the four LoRA matrices and the Adam step, even though the current update mutates the output head. It also omits optimizer moments and dynamic tokenizer vocabulary.
 
@@ -262,7 +264,7 @@ When a newly registered token is used as a target, `trainStep()` can index `mHea
 3. Add deterministic tests for unseen Unicode, non-ASCII input, vocabulary/model-version mismatch and checkpoint compatibility.
 4. Prove that an invalid sample is marked failed without killing the worker, while non-finite or partially applied updates stop the training session safely.
 
-The recommended first implementation is an immutable vocabulary tied to the base-model artifact. Dynamic vocabulary expansion should remain unsupported until its state migration is designed and tested.
+The recommended first implementation is an immutable vocabulary tied to the model-generation manifest and tokenizer fingerprint. Dynamic vocabulary expansion should remain unsupported until its state migration is designed and tested.
 
 ## 6. Build and Actions execution policy
 
@@ -285,14 +287,14 @@ This is a process constraint, not a claim that the current code has passed build
 | AUD-003 capture privacy/consent | OPEN | Consent, identity validation, redaction and exclusion tests |
 | AUD-004 approval workflow | OPEN | Candidate lifecycle tests proving only approved records train |
 | AUD-013 vocabulary/optimizer shape | OPEN | Fixed-vocabulary or atomic resize contract, tensor invariants and worker-survival tests |
-| AUD-014 base-model artifact and deterministic loading | OPEN | Verified artifact manifest, complete loader and model/tokenizer compatibility tests |
+| AUD-014 Genesis model identity and deterministic state restoration | OPEN | Versioned Genesis manifest, complete tensor inventory, per-instance identity, initialization metadata, full-state persistence and model/tokenizer compatibility tests |
 
 No P0 source remediation has been performed in this audit update. No build, test, lint, package task or GitHub Actions workflow was run.
 
 
 ## 8. Verification pass 2 — source-level confirmation
 
-This pass re-opened the current model, tokenizer, training manager, accessibility service, application wiring, ViewModel and perception UI on `master`. It confirms the following implementation facts:
+This historical pass re-opened the model, tokenizer, training manager, accessibility service, application wiring, ViewModel and perception UI on the then-audited `master` snapshot. It confirms the following implementation facts:
 
 - `ArgusNeuralEngine` creates its base embedding, attention, feed-forward and output-head matrices from random values. Its checkpoint loader restores LoRA arrays and the optimizer step only; there is no complete base-model artifact loader in the inspected tree. This confirms AUD-014 and strengthens the model-state concern in AUD-002.
 - `Tokenizer.encode(..., autoRegister = true)` can grow the vocabulary at runtime. `ensureVocabCapacity()` grows `wEmbed` and `wHead`, but `mHead` and `vHead` remain sized to the original vocabulary. A newly registered target token can therefore cause an out-of-bounds optimizer-state access during `trainStep()`. This confirms AUD-013.
@@ -305,9 +307,9 @@ This pass re-opened the current model, tokenizer, training manager, accessibilit
 
 Training must not be re-enabled merely by fixing the array bounds or checkpoint format. The complete prerequisite chain is:
 
-1. A verified base-model artifact and matching immutable tokenizer.
+1. A verified Genesis model identity/state manifest and matching immutable tokenizer.
 2. A declared trainable-parameter set and mathematically complete backward pass.
-3. A checkpoint that reconstructs model, optimizer and tokenizer identity exactly.
+3. A checkpoint that reconstructs the exact model generation, optimizer and tokenizer identity.
 4. A typed candidate lifecycle that enforces classification, redaction, explicit approval and revocation.
 5. A worker that consumes only approved, version-matched records and fails closed on corruption or non-finite updates.
 
@@ -335,6 +337,6 @@ The original AUD-014 wording assumed Argus would load a separately pretrained ba
 
 The historical source observations in AUD-014 and P0-B remain valid for the inspected prototype. Their former recommendation to select an imported pretrained artifact is not a current Argus design requirement.
 
-The audit's proposed Q/V LoRA-only training path is also superseded as a target assumption. The initial trainable parameter set and optimizer must be researched against the architecture selected for from-scratch learning; no LoRA-only contract is approved.
+The audit's proposed Q/V LoRA-only training path is superseded as a target assumption. The initial trainable parameter set and optimizer must be researched against the architecture selected for from-scratch learning; no LoRA-only contract is approved.
 
 This addendum changes the target design, not the inspected code, and does not close AUD-001, AUD-002, AUD-013, AUD-014 or any privacy finding.
