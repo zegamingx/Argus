@@ -51,18 +51,18 @@ All perception features (screen capture, camera, accessibility) are
 
 ---
 
-## 🧠 What Argus Is (and Is Not)
+## 🧠 Product Direction
 
 | ✅ Is | ❌ Is Not |
 |---|---|
 | A local-first AGI *architecture* (perception → memory → reasoning → action → learning) | A wrapper around a cloud LLM API |
 | A multi-agent system running asynchronously on-device | A single-prompt chatbot |
 | A continual learner via lightweight adapters (LoRA) + memory consolidation | A full fine-tuning pipeline |
-| A privacy fortress: 0 telemetry, 0 analytics, 0 exfiltration | A data collector |
+| No analytics or telemetry by design; network retrieval is explicit and documented | A silent data collector |
 
 ---
 
-## ✨ Feature Highlights
+## ✨ Target Capability Areas
 
 - **On-device inference** — local LLM / VLM / OCR / embedding models with
   hardware-aware routing across **NPU (Hexagon / APU) → GPU (Vulkan compute) → CPU (NEON)**.
@@ -176,7 +176,7 @@ Raw captures are **never** trained on directly. Unanswerable queries become
 
 ---
 
-## ⚙️ Hardware-Aware Runtime
+## ⚙️ Proposed Hardware-Aware Runtime
 
 | Tier | Backend | Use Case |
 |---|---|---|
@@ -184,10 +184,7 @@ Raw captures are **never** trained on directly. Unanswerable queries become
 | 2 | GPU (Vulkan compute) | Heavy inference, adapter training |
 | 3 | CPU (ARM NEON, mmap) | Fallback, low-thermal mode |
 
-The `HardwareRouter` probes SoC, GPU family (Adreno / Mali), Vulkan compute
-support, RAM, and thermal state at boot, then selects a device profile
-(`low` / `medium` / `high`). Unstable GPU drivers trigger automatic CPU
-fallback with degraded context length.
+The proposed hardware router will inspect SoC identity, CPU ISA, GPU queues/features, runtime availability, usable memory, drivers and thermal state. It must validate model/operator compatibility and actual execution before reporting acceleration. The current `HardwareProfile` performs heuristic discovery only; see [the repository baseline](docs/17_CURRENT_REPOSITORY_BASELINE.md).
 
 ---
 
