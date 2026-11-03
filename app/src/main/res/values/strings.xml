@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">A.R.G.U.S</string>
+    <string name="accessibility_service_description">A.R.G.U.S Autonomous Screen Perception: Membaca teks pada layar secara lokal untuk melatih model AGI dan mengeksekusi aksi cerdas tanpa mengirim data ke server mana pun.</string>
+</resources>

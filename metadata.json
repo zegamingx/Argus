@@ -1,0 +1,6 @@
+{
+  "name": "A.R.G.U.S",
+  "description": "Your pocket AGI: sees, learns, remembers. 100% on-device.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["A.R.G.U.S"]
+}

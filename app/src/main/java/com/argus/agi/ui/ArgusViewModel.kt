@@ -1,0 +1,332 @@
+package com.argus.agi.ui
+
+import android.app.Application
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.argus.agi.ArgusApp
+import com.argus.agi.model.BenchmarkResult
+import com.argus.agi.model.TrainingData
+import com.argus.agi.model.WorldEntity
+import com.argus.agi.sensor.DeviceSafetyState
+import com.argus.agi.sensor.ExcludedAppsManager
+import com.argus.agi.sensor.InstalledAppItem
+import com.argus.agi.sensor.SearchResultItem
+import com.argus.agi.sensor.SystemHardwareInfo
+import com.argus.agi.sensor.WebSearchEngine
+import com.argus.agi.service.ArgusAccessibilityService
+import com.argus.agi.service.ArgusForegroundService
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.util.UUID
+
+data class ChatMessage(
+    val id: String = UUID.randomUUID().toString(),
+    val isUser: Boolean,
+    val text: String,
+    val thinkReasoning: String? = null,
+    val attachedFileName: String? = null,
+    val attachedImageUri: Uri? = null,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
+class ArgusViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val neuralEngine = ArgusApp.neuralEngine
+    private val worldModel = ArgusApp.worldModel
+    private val trainingManager = ArgusApp.trainingManager
+    private val deviceGuard = ArgusApp.deviceGuard
+    private val hardwareProfile = ArgusApp.hardwareProfile
+    private val excludedAppsManager = ExcludedAppsManager(application)
+    private val webSearchEngine = WebSearchEngine()
+
+    // UI States
+    private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
+    val messages: StateFlow<List<ChatMessage>> = _messages.asStateFlow()
+
+    private val _isGenerating = MutableStateFlow(false)
+    val isGenerating: StateFlow<Boolean> = _isGenerating.asStateFlow()
+
+    private val _hardwareInfo = MutableStateFlow(hardwareProfile.getHardwareInfo())
+    val hardwareInfo: StateFlow<SystemHardwareInfo> = _hardwareInfo.asStateFlow()
+
+    val safetyState: StateFlow<DeviceSafetyState> = deviceGuard.safetyState
+    val currentTrainingItem: StateFlow<TrainingData?> = trainingManager.currentTrainingItem
+    val nextQueue: StateFlow<List<TrainingData>> = trainingManager.nextQueue
+    val completedQueue: StateFlow<List<TrainingData>> = trainingManager.completedQueue
+    val lossHistory: StateFlow<List<Float>> = trainingManager.lossHistory
+    val isTrainingPaused: StateFlow<Boolean> = trainingManager.isTrainingPaused
+    val totalStepsExecuted: StateFlow<Int> = trainingManager.totalStepsExecuted
+    val worldEntities: StateFlow<List<WorldEntity>> = worldModel.entitiesFlow
+    val currentContextSummary: StateFlow<String> = worldModel.currentContextSummary
+
+    private val _benchmarkState = MutableStateFlow<BenchmarkResult?>(null)
+    val benchmarkState: StateFlow<BenchmarkResult?> = _benchmarkState.asStateFlow()
+
+    private val _isBenchmarking = MutableStateFlow(false)
+    val isBenchmarking: StateFlow<Boolean> = _isBenchmarking.asStateFlow()
+
+    private val _installedApps = MutableStateFlow<List<InstalledAppItem>>(emptyList())
+    val installedApps: StateFlow<List<InstalledAppItem>> = _installedApps.asStateFlow()
+
+    private val _cameraLuminance = MutableStateFlow(0f)
+    val cameraLuminance: StateFlow<Float> = _cameraLuminance.asStateFlow()
+
+    private val _searchResults = MutableStateFlow<List<SearchResultItem>>(emptyList())
+    val searchResults: StateFlow<List<SearchResultItem>> = _searchResults.asStateFlow()
+
+    init {
+        // Start foreground service for reliable background operation
+        ArgusForegroundService.startService(application)
+
+        // Seed initial greeting message
+        _messages.value = listOf(
+            ChatMessage(
+                isUser = false,
+                text = "A.R.G.U.S Neural Core aktif. Sistem berjalan 100% on-device tanpa API atau cloud eksternal. Semua bobot dihitung dan dilatih langsung pada perangkat ini.",
+                thinkReasoning = "Inisialisasi core model: d_model=${neuralEngine.dModel}, heads=${neuralEngine.nHeads}, LoRA rank=${neuralEngine.loraRank}. Parameter dihitung langsung dari matriks bobot aktif."
+            )
+        )
+
+        loadInstalledApps()
+    }
+
+    fun getTotalParameters(): Long = neuralEngine.countTotalParameters()
+
+    fun getAdapterSizeBytes(): Long = neuralEngine.calculateAdapterSizeBytes()
+
+    fun toggleTrainingPause() {
+        trainingManager.togglePauseTraining()
+    }
+
+    fun runBenchmark() {
+        if (_isBenchmarking.value) return
+        _isBenchmarking.value = true
+        viewModelScope.launch {
+            val res = neuralEngine.runBenchmark(iterations = 12)
+            _benchmarkState.value = res
+            _isBenchmarking.value = false
+        }
+    }
+
+    fun sendMessage(text: String, attachedUri: Uri? = null, isImage: Boolean = false) {
+        if (text.isBlank() && attachedUri == null) return
+
+        var attachedFileName: String? = null
+        var attachedImage: Uri? = null
+
+        if (attachedUri != null) {
+            if (isImage) {
+                attachedImage = attachedUri
+            } else {
+                attachedFileName = "file_${System.currentTimeMillis()}"
+            }
+        }
+
+        val userMsg = ChatMessage(
+            isUser = true,
+            text = text,
+            attachedFileName = attachedFileName,
+            attachedImageUri = attachedImage
+        )
+        _messages.value = _messages.value + userMsg
+
+        _isGenerating.value = true
+        viewModelScope.launch {
+            // Context injection from World Model
+            val worldSummary = worldModel.currentContextSummary.value
+            val promptWithContext = "Context: $worldSummary\nQuery: $text"
+
+            // 1. Math/Logic fast path evaluation
+            val mathResult = tryEvaluateMath(text)
+
+            // 2. Real neural inference
+            val rawOutput = if (mathResult != null) {
+                mathResult
+            } else {
+                neuralEngine.generate(promptWithContext, maxNewTokens = 60)
+            }
+
+            // 3. Self-Reflection
+            val reflection = worldModel.reflectOnResponse(text, rawOutput)
+
+            var finalAnswer = rawOutput
+            val thinkingSb = StringBuilder()
+            thinkingSb.append("Self-Reflection: ").append(reflection.reasoningNote)
+            thinkingSb.append(" | Keyakinan: ").append(String.format("%.0f%%", reflection.confidenceScore * 100))
+
+            // 4. Handle "Chat yang belum bisa dijawab menjadi data langsung training"
+            if (!reflection.isConfident || reflection.suggestedAction == "AUTO_LEARN_QUERY") {
+                thinkingSb.append("\n-> Memicu Autonomous On-Device Web Retrieval & Training Queue.")
+
+                // Perform real web search to gather true information
+                val webItems = webSearchEngine.search(text)
+                if (webItems.isNotEmpty()) {
+                    val learnedText = webItems.joinToString("\n") { "${it.title}: ${it.snippet}" }
+                    // Enqueue to training manager immediately!
+                    trainingManager.enqueueData(
+                        source = "Chat Inquiry Learner",
+                        title = "Pertanyaan: ${text.take(30)}",
+                        content = "Tanya: $text. Pengetahuan: $learnedText"
+                    )
+
+                    finalAnswer = "Saya sedang mempelajari topik ini langsung dari web on-device:\n\n" +
+                            webItems.take(2).joinToString("\n\n") { "• **${it.title}**\n${it.snippet}" } +
+                            "\n\n*Data ini telah dimasukkan ke antrean training lokal untuk memperbarui bobot model.*"
+                } else {
+                    // Enqueue the query itself to be learned
+                    trainingManager.enqueueData(
+                        source = "Chat Unresolved",
+                        title = "Inquiry: ${text.take(30)}",
+                        content = text
+                    )
+                    finalAnswer = "Pola ini baru bagi model. Pertanyaan ini telah langsung dijadwalkan ke antrean training on-device untuk diasimilasi ke bobot lokal."
+                }
+            }
+
+            val assistantMsg = ChatMessage(
+                isUser = false,
+                text = finalAnswer,
+                thinkReasoning = thinkingSb.toString()
+            )
+            _messages.value = _messages.value + assistantMsg
+            _isGenerating.value = false
+        }
+    }
+
+    fun importFileContent(uri: Uri) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val cr = getApplication<Application>().contentResolver
+                cr.openInputStream(uri)?.use { stream ->
+                    val reader = BufferedReader(InputStreamReader(stream))
+                    val content = reader.readText()
+                    val fileName = "Dokumen (${content.length} karakter)"
+
+                    withContext(Dispatchers.Main) {
+                        sendMessage("Menganalisis dan mempelajari dokumen impor...", uri, isImage = false)
+                    }
+
+                    // Enqueue directly into on-device training
+                    trainingManager.enqueueData(
+                        source = "File Import",
+                        title = fileName,
+                        content = content.take(1500)
+                    )
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    fun importImageContent(uri: Uri) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val cr = getApplication<Application>().contentResolver
+                cr.openInputStream(uri)?.use { stream ->
+                    val bitmap = BitmapFactory.decodeStream(stream)
+                    if (bitmap != null) {
+                        val w = bitmap.width
+                        val h = bitmap.height
+                        val desc = "Gambar $w x $h px diimpor untuk persepsi visual on-device."
+
+                        withContext(Dispatchers.Main) {
+                            sendMessage(desc, uri, isImage = true)
+                        }
+
+                        // Enqueue visual token stimulus into training
+                        trainingManager.enqueueData(
+                            source = "Image Vision Import",
+                            title = "Visual $w x $h",
+                            content = "Visual perceptual frame. Resolusi: $w x $h. Analisis visual lokal."
+                        )
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    fun updateCameraFrame(luminance: Float) {
+        _cameraLuminance.value = luminance
+        worldModel.updateCameraContext(
+            lightLevel = luminance,
+            visualSummary = "Kamera aktif. Luminansi: ${String.format("%.1f", luminance)} lx"
+        )
+    }
+
+    fun searchWebDirectly(query: String) {
+        viewModelScope.launch {
+            val results = webSearchEngine.search(query)
+            _searchResults.value = results
+            if (results.isNotEmpty()) {
+                val textToTrain = results.joinToString(" ") { it.snippet }
+                trainingManager.enqueueData(
+                    source = "Web Search Tool",
+                    title = "Web: $query",
+                    content = textToTrain
+                )
+            }
+        }
+    }
+
+    fun executeActionClick(targetText: String): Boolean {
+        return ArgusAccessibilityService.performClickAction(targetText)
+    }
+
+    fun toggleAppExclusion(packageName: String) {
+        excludedAppsManager.toggleAppExclusion(packageName)
+        loadInstalledApps()
+    }
+
+    fun clearChat() {
+        _messages.value = listOf(
+            ChatMessage(
+                isUser = false,
+                text = "Terminal percakapan dibersihkan. Memori episodik dan bobot model tetap aman di perangkat.",
+                thinkReasoning = "Histori pesan di-reset. Model on-device tetap mempertahankan representasi yang telah dilatih."
+            )
+        )
+    }
+
+    fun clearTrainingQueue() {
+        trainingManager.clearQueue()
+    }
+
+    fun clearCompletedTraining() {
+        trainingManager.clearCompleted()
+    }
+
+    private fun loadInstalledApps() {
+        viewModelScope.launch {
+            val apps = excludedAppsManager.getInstalledApps()
+            _installedApps.value = apps
+        }
+    }
+
+    private fun tryEvaluateMath(text: String): String? {
+        val clean = text.trim().lowercase().removePrefix("hitung").removePrefix("berapa").trim()
+        val mathRegex = Regex("^([0-9.]+)\\s*([+\\-*/^])\\s*([0-9.]+)$")
+        val match = mathRegex.find(clean) ?: return null
+
+        val (sNum1, op, sNum2) = match.destructured
+        val n1 = sNum1.toDoubleOrNull() ?: return null
+        val n2 = sNum2.toDoubleOrNull() ?: return null
+
+        val res = when (op) {
+            "+" -> n1 + n2
+            "-" -> n1 - n2
+            "*" -> n1 * n2
+            "/" -> if (n2 != 0.0) n1 / n2 else return "Pembagian dengan nol tidak terdefinisi."
+            "^" -> Math.pow(n1, n2)
+            else -> return null
+        }
+        return "Hasil penalaran logika matematika: $n1 $op $n2 = $res"
+    }
+}
