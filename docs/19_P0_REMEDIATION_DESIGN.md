@@ -203,11 +203,17 @@ Replace raw-text training enqueue with a provenance-bearing candidate record. At
 - Content digest and dataset revision.
 - Review status, approval timestamp and rejection/revocation status.
 
-Required lifecycle:
+Required personal-candidate approval lifecycle:
 
-`CAPTURED → CLASSIFIED → REDACTED → PENDING_REVIEW → APPROVED → TRAINING → TRAINED`
+`CAPTURED → CLASSIFIED → REDACTED → PENDING_REVIEW → APPROVED`
 
-Alternative terminal states include `REJECTED`, `REVOKED`, `FAILED` and `DELETED`. Only `APPROVED` candidates with current consent and matching policy/dataset revisions may enter training. A boolean flag supplied by an arbitrary caller is not sufficient authorization. Queue labels, screen copy and notifications may say “approved” only when the candidate store has persisted and verified that status; presentation text must not imply an approval gate that the runtime does not enforce.
+Alternative terminal states include `REJECTED`, `REVOKED`, `FAILED` and `DELETED`. Approval makes a personal candidate eligible for the separately tracked training-work lifecycle; it does not mean an optimizer update has happened.
+
+The training-work lifecycle is:
+
+`ELIGIBLE → QUEUED → APPLYING → APPLIED_TO_CANDIDATE`
+
+It may instead end in `FAILED`, `REVOKED` or `DEFERRED`. Model-generation validation and promotion are a third, separate lifecycle defined in section 8. Only `APPROVED` personal candidates with current consent and matching policy/dataset revisions may enter the personal training queue. A boolean flag supplied by an arbitrary caller is not sufficient authorization. Queue labels, screen copy and notifications may say “approved” only when the candidate store has persisted and verified that status; presentation text must not imply an approval gate that the runtime does not enforce.
 
 Training admission must preserve the distinction between two data classes rather than treating every input as a generic user-approved record:
 
@@ -226,7 +232,7 @@ General-corpus rights withdrawal or source-license changes require a separate so
 
 ## 8. Worker and failure behavior
 
-The worker must be started explicitly by a user-authorized training action, not from a constructor or application singleton initialization. It must accept only repository-issued approved records, not arbitrary raw strings.
+The worker may start only after APPLICATION_READY, through the post-Genesis scheduler under visible owner policy, and never as a constructor or application-singleton side effect. General-corpus learning may be scheduled according to the general-learning policy and user controls. Personal-learning work requires a repository-issued approved candidate and current explicit consent. The worker must accept typed items from immutable eligible general-corpus manifests or approved personal candidates, not arbitrary raw strings.
 
 For each work item or batch:
 
@@ -265,7 +271,7 @@ Expected item-level failures must be recorded without silently killing the worke
 | Data admission | General corpus requires rights/provenance/quality manifest; personal inputs require current consent, redaction and explicit approval |
 | Consent | Default-off settings, independent consent scopes and immediate revocation behavior |
 | Capture | Package/window mismatch, password fields, excluded/unknown app and redaction adversarial fixtures |
-| Approval | Rejected/unreviewed samples never reach the optimizer; imported and web data require the same approval |
+| Approval | Rejected/unreviewed personal candidates never reach the optimizer; general web sources require independent rights/provenance/quality admission, and retrieval snippets alone never qualify |
 | Deletion | Candidate lineage, generation rollback and reconstruction without deleted/revoked samples |
 | Worker | Bad sample isolation, fatal-error pause, process interruption and restart behavior |
 
