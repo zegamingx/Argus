@@ -1,16 +1,16 @@
 # Security & Privacy Policy
 
-Argus is an on-device AGI framework. Because it operates with high-level permissions (Screen Capture, Camera, Accessibility, Storage), security and privacy are the foundational pillars of this project. 
+Argus is an experimental local-first Android AI framework. Because the design includes high-trust capabilities such as screen capture, camera and AccessibilityService, privacy and security are primary engineering requirements.
 
-We adhere to a strict **Zero-Exfiltration** policy. User data never leaves the device unless explicitly requested by the user (e.g., fetching a specific web page).
+Local inference is designed to run on-device. Web retrieval is a separate network feature: it sends the submitted search query to public search endpoints and retrieves their responses. It must not silently transmit captured screens, camera frames, imported files, conversation history, memory or model weights.
 
 ## 🛡️ The Argus Threat Model
 
 1. **Zero Exfiltration:** Argus must NEVER send user data (screens, camera frames, files, chat history, memory dumps) to external servers. There is no telemetry, no analytics, and no crash reporting to third parties.
 2. **Prompt Injection Defense:** External content (web pages, OCR'd text, imported files) is treated as **untrusted data**. It must never be executed as system instructions or tool calls without explicit user approval and sandboxing.
 3. **Silent Capture Prevention:** MediaProjection and Camera access must always show a system-level indicator. A global "kill switch" must instantly sever all perception pipelines.
-4. **Local Data at Rest:** All episodic/semantic memory, LoRA adapters, and training candidates must be encrypted using Android Keystore-backed encryption (e.g., SQLCipher) where applicable.
-5. **Biometric Gating:** Any autonomous action that modifies state outside the app (e.g., sending a message, making a purchase, deleting a file) requires biometric confirmation or explicit user interaction.
+4. **Data at Rest (Design Requirement):** Persistent memory, LoRA adapters and training candidates must use a documented platform-backed encryption design before these stores are introduced. This is a target requirement, not a claim that the current prototype already provides it.
+5. **Action Authorization (Design Requirement):** Any future action that changes state outside the app (for example, sending a message, making a purchase or deleting a file) must require explicit user authorization. Biometric confirmation may provide an additional gate but does not replace platform permissions.
 
 ## 🐛 Reporting a Vulnerability
 
