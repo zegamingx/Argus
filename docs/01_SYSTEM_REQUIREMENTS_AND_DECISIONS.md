@@ -1,0 +1,91 @@
+# System Requirements and Initial Architecture Decisions
+
+**Status:** Draft baseline — proposed requirements and decisions require review.  
+**Last reviewed:** 2026-11-03
+
+## 1. Product and system boundary
+
+Argus aims to coordinate local AI capabilities under user control. It is not inherently a cloud LLM client, a universal hardware driver, a replacement for OS security, a guarantee of universal accelerator support, or a full-model training system on every phone.
+
+Local inference and private memory are the default. User-requested web retrieval or model downloads may use the network, but must be explicit, purpose-limited and visible. Private captures, chats, files, weights and memory must not be silently uploaded.
+
+## 2. Requirement rules
+
+Every requirement needs a unique ID, rationale, priority, platform, dependencies, measurable acceptance criteria, verification method and status. Avoid "fast", "smart" or "supports all devices" without a testable definition.
+
+Priority: **MUST** release-blocking; **SHOULD** strong default with documented exception; **MAY** optional.
+
+## 3. Initial requirements
+
+### Product and operation
+- **SYS-001 MUST:** Core local tasks remain usable with networking disabled.
+- **SYS-002 MUST:** Network tasks are user-initiated or explicitly enabled, with destination and purpose disclosed.
+- **SYS-003 MUST:** No telemetry or analytics may transmit private user content.
+- **SYS-004 MUST:** Users can pause/stop perception, learning and autonomous action from a visible control.
+- **SYS-005 MUST:** Consequential external actions require explicit user confirmation.
+- **SYS-006 MUST:** Captured/imported content is untrusted input, never trusted instructions.
+
+### Model and compute
+- **AI-001 MUST:** Model metadata includes architecture, format, tokenizer, context, quantization, license, checksum and runtime requirements.
+- **AI-002 MUST:** Backend selection validates operator/precision support, memory, driver/runtime and device state.
+- **AI-003 MUST:** A CPU correctness path exists for the supported model subset.
+- **AI-004 MUST:** Runtime telemetry identifies the backend actually used.
+- **AI-005 SHOULD:** Inference and training have separate capability and memory budgets.
+- **AI-006 MUST:** Unsupported operators fail clearly or use a validated fallback.
+
+### Hardware and platform
+- **HW-001 MUST:** Reported hardware identity is distinct from verified accelerator availability.
+- **HW-002 MUST:** CPU ISA features are discovered through supported OS/runtime mechanisms, not branding alone.
+- **HW-003 MUST:** GPU checks validate compute queues, required features, storage formats and driver behavior.
+- **HW-004 MUST:** NPU support is reported per runtime, model and operator set.
+- **HW-005 SHOULD:** Device profiles derive from measured resources and thermal behavior.
+- **HW-006 MUST:** Vendor SDKs stay behind platform-specific adapters.
+
+### Resources and reliability
+- **RES-001 MUST:** Model loading is preflighted against RAM/accelerator-memory budget.
+- **RES-002 MUST:** Context, KV cache, batch and concurrency respect memory limits.
+- **RES-003 MUST:** Long jobs react to thermal/memory pressure, battery policy and cancellation.
+- **REL-001 MUST:** Model/adapter promotion is atomic and recoverable.
+- **REL-002 MUST:** Interrupted training cannot corrupt the last known-good checkpoint.
+- **REL-003 SHOULD:** Failures expose actionable reason codes.
+
+### Security and governance
+- **SEC-001 MUST:** Data classes, retention, access and deletion are documented.
+- **SEC-002 MUST:** Secrets and signing materials never enter source control.
+- **SEC-003 MUST:** Capture obeys platform consent, indicators, secure-surface rules and revocation.
+- **SEC-004 MUST:** Model and memory artifacts are integrity-checked.
+- **SEC-005 SHOULD:** Sensitive data at rest uses platform-backed encryption with documented key lifecycle.
+
+## 4. Quantitative requirements
+
+Universal tokens/sec, memory, temperature and battery limits are intentionally TBD. Define workload and device tiers first, then set measurable thresholds using the benchmark method in [14 — Performance and Power](14_PERFORMANCE_POWER_THERMAL.md).
+
+## 5. Initial Architecture Decision Records
+
+### ADR-001 — Documentation-first
+**Status:** Accepted working rule for this planning phase. Build and review documentation on `main` before implementation. No source-code changes are authorized by this ADR.
+
+### ADR-002 — Vendor-independent hardware abstraction
+**Status:** Proposed. Shared logic depends on capability interfaces; vendor runtimes stay in adapters. This costs more discovery/test work but reduces vendor lock-in.
+
+### ADR-003 — Report verified execution only
+**Status:** Proposed. An NPU/GPU label requires successful representative model execution and output validation, not just SoC identification.
+
+### ADR-004 — Separate inference and training capability
+**Status:** Proposed. Forward inference does not prove support for gradients, backward ops or optimizer state.
+
+### ADR-005 — NNAPI is not the long-term Android foundation
+**Status:** Proposed. Prioritize current LiteRT APIs and validated vendor routes; retain NNAPI only as justified legacy compatibility. NNAPI was deprecated in Android 15; recheck upstream lifecycle before coding.
+
+### ADR-006 — Explicit network exceptions
+**Status:** Proposed. Local operation is default; web fetch/model download are distinct user-controlled network actions. Product wording must accurately explain this.
+
+### ADR-007 — No performance promise before representative tests
+**Status:** Proposed. Establish targets by device tier and workload after defining reproducible benchmarks.
+
+### ADR-008 — Platform adapters are not interchangeable
+**Status:** Proposed. Android, embedded Linux, desktop and Apple deployments need distinct OS/driver/packaging integrations.
+
+## 6. Open decisions
+
+Minimum RAM; initial ABI scope; first-class model/task families; persistent-data defaults and retention; whether first release permits only adapter training; signed model manifests; platform support tiers; and acceptance threshold for thermal stability.
