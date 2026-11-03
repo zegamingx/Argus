@@ -6,7 +6,7 @@
 
 ## 1. Purpose and decision boundary
 
-This document records a first named-source shortlist for the sixteen-domain knowledge map. It is not a blanket allowlist, legal opinion or authorization to scrape every page on a listed domain.
+This document records a first named-source shortlist for the sixteen-domain knowledge map. It is not a blanket allowlist, legal opinion or authorization to scrape every page on a listed domain. Full-text educational and OER sources are covered separately in [28 — Open Text and Educational Source Candidates](28_OPEN_TEXT_AND_EDUCATIONAL_SOURCE_CANDIDATES.md).
 
 Each source must receive a registry entry with an exact endpoint or dataset, current terms evidence, permitted operations, rate/resource limits and review date before the connector may use it.
 

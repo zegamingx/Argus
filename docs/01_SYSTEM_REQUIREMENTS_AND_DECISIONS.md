@@ -144,6 +144,11 @@ The initial knowledge map contains sixteen broad domains and supports hierarchic
 
 Autonomous acquisition uses a local, versioned source registry and replaceable connector interfaces. Permissions are evaluated independently for discovery, fetch, transient processing, full-text retention, excerpt/metadata retention, retrieval indexing, neural training and redistribution. Unknown permission fails closed for the affected operation. Connectors cannot grant or broaden permissions. Initial collection uses bounded direct requests through approved connectors, not a shared residential-proxy network or third-party customer traffic.
 
+### ADR-019 — Open-text source and training eligibility separation
+**Status:** Accepted governance direction; item-level rights and model-training legal review remain required.
+
+Open-text catalogs and educational repositories are used for discovery, but full-text fetch, local retention, retrieval indexing, neural training and redistribution require separate item-level permissions. Free-to-read, downloadable or open-access labels are not training authorization. Non-commercial and share-alike content is held from default general training until Argus's distribution model and use-specific legal obligations are resolved. No collection-level label overrides a more restrictive item-level notice.
+
 ## 8. Revised open decisions
 
 These items remain open; they must not be filled with assumed values:
@@ -163,6 +168,8 @@ These items remain open; they must not be filled with assumed values:
 - Topic-priority weights, freshness intervals and breadth-scheduling calibration for autonomous acquisition.
 - Initial named source allowlist, source-specific use rights and discovery-provider selection.
 - Which candidate sources may be activated for retrieval versus neural training, after item-level rights and provider terms review.
+- Argus commercial-distribution decision and use-specific model-training review for CC BY, CC BY-SA, CC BY-NC and CC BY-NC-SA materials.
+- Exact item-level rights for open textbooks, OER, public-domain texts and Indonesian educational repositories.
 
 A fixed model parameter count is intentionally not an open global constant: it is an output of architecture research combined with each device's capability profile.
 
