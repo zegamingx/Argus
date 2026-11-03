@@ -154,6 +154,11 @@ Open-text catalogs and educational repositories are used for discovery, but full
 
 The first document-ingestion pilot uses exact, individually identified books and modules with recorded landing-page rights evidence, source URLs, file checksums and attribution. It validates parsing, language/domain classification, local storage and retrieval before any training corpus is enabled. Catalog-level "open" status is not enough; every work and its third-party components require item-level review.
 
+### ADR-021 — Domain-balanced text acquisition
+**Status:** Accepted discovery direction; individual source activation remains open.
+
+The text-acquisition plan must expand beyond computing and information systems. The candidate pool should include mathematics, physical and life sciences, geography, history, philosophy and other underrepresented domains. Selection is driven by the sixteen-domain coverage map, item-level rights and evidence quality. A title's CC BY declaration does not automatically approve neural training or remove the need to inspect third-party components.
+
 ## 8. Revised open decisions
 
 These items remain open; they must not be filled with assumed values:

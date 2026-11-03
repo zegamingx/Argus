@@ -69,6 +69,7 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 | [27 — Initial Source Registry Candidates](27_INITIAL_SOURCE_REGISTRY_CANDIDATES.md) | Initial named-source shortlist, item-level rights, API constraints and domain coverage |
 | [28 — Open Text and Educational Source Candidates](28_OPEN_TEXT_AND_EDUCATIONAL_SOURCE_CANDIDATES.md) | Full-text OER candidates, content-rights matrix and Indonesian-language source strategy |
 | [29 — Curated Initial Text Seed Set](29_CURATED_INITIAL_TEXT_SEED_SET.md) | Exact title-level seed candidates, license evidence, PDF sources and retrieval-pilot selection |
+| [30 — Domain-Balanced Text Source Expansion](30_DOMAIN_BALANCED_TEXT_SOURCE_EXPANSION.md) | Additional full-text candidates mapped to underserved knowledge domains |
 
 ## Status vocabulary
 
@@ -83,6 +84,6 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 
 ## Change control and completion
 
-Material decisions belong in [01 — System Requirements and Decisions](01_SYSTEM_REQUIREMENTS_AND_DECISIONS.md). Unresolved questions belong in [16 — Roadmap and Research Register](16_ROADMAP_RESEARCH_REGISTER.md). Detailed Genesis, device adaptation, corpus, architecture, autonomous acquisition, knowledge-domain, source-connector, source-candidate, open-text and curated seed research belongs in documents 20–29.
+Material decisions belong in [01 — System Requirements and Decisions](01_SYSTEM_REQUIREMENTS_AND_DECISIONS.md). Unresolved questions belong in [16 — Roadmap and Research Register](16_ROADMAP_RESEARCH_REGISTER.md). Detailed Genesis, device adaptation, corpus, architecture, autonomous acquisition, knowledge-domain, source-connector, source-candidate, open-text, curated seed and domain-balanced text research belongs in documents 20–30.
 
 The documentation phase ends only when requirements, architecture, model and tokenizer research, corpus governance, resource budgets, verification strategy and cross-document consistency have been reviewed. Passing that gate authorizes an implementation-plan review only. It does not automatically authorize coding, builds or workflow execution.

@@ -204,7 +204,7 @@ These sample titles improve technical, social-science and Indonesian educational
 - Agriculture, environment and earth sciences.
 - Everyday practical knowledge and conversational language diversity.
 
-Discovery must continue to prioritize broad foundational coverage rather than repeatedly collecting more programming and information-systems books.
+Discovery must continue to prioritize broad foundational coverage rather than repeatedly collecting more programming and information-systems books. Additional mathematics, science, geography, philosophy and history candidates are recorded in [30 — Domain-Balanced Text Source Expansion](30_DOMAIN_BALANCED_TEXT_SOURCE_EXPANSION.md).
 
 ## 9. Evidence checked
 
