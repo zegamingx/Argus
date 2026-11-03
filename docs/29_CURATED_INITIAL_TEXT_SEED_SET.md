@@ -192,7 +192,7 @@ Before training:
 
 ## 8. Open gaps after this seed set
 
-These sample titles improve technical, social-science and Indonesian educational coverage, but substantial gaps remain:
+These sample titles improve technical, social-science and Indonesian educational coverage. The broader Indonesian OER candidate set is recorded in [31 — Indonesian-Language OER Source Expansion](31_INDONESIAN_LANGUAGE_OER_SOURCE_EXPANSION.md). Substantial gaps remain:
 
 - Indonesian language, grammar, literature and linguistics.
 - Core mathematics outside programming-oriented numerical methods.

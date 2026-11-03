@@ -248,6 +248,8 @@ The training pipeline must not fetch directly from a live book URL or train from
 
 ## 8. Indonesian-language coverage gaps
 
+A more specific institutional OER and SPADA program-source path is documented in [31 — Indonesian-Language OER Source Expansion](31_INDONESIAN_LANGUAGE_OER_SOURCE_EXPANSION.md).
+
 The current source shortlist does not yet provide sufficient broad, high-quality Indonesian-language educational text under clearly reusable terms.
 
 Near-term research should prioritize:

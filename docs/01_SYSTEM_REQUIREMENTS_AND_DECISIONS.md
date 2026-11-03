@@ -159,6 +159,11 @@ The first document-ingestion pilot uses exact, individually identified books and
 
 The text-acquisition plan must expand beyond computing and information systems. The candidate pool should include mathematics, physical and life sciences, geography, history, philosophy and other underrepresented domains. Selection is driven by the sixteen-domain coverage map, item-level rights and evidence quality. A title's CC BY declaration does not automatically approve neural training or remove the need to inspect third-party components.
 
+### ADR-022 — Indonesian-language source diversity
+**Status:** Accepted discovery direction; candidate institutions and item activation remain open.
+
+Argus must deliberately seek Indonesian-language material beyond technical/programming sources. Institutional OER catalogs and program-scoped grants are discovery channels, not blanket collection licenses. Each title requires individual source provenance, license evidence, third-party-content review and separate retrieval/training permissions. No single institution's repository is considered representative of Indonesian language or knowledge diversity.
+
 ## 8. Revised open decisions
 
 These items remain open; they must not be filled with assumed values:
@@ -181,6 +186,7 @@ These items remain open; they must not be filled with assumed values:
 - Argus commercial-distribution decision and use-specific model-training review for CC BY, CC BY-SA, CC BY-NC and CC BY-NC-SA materials.
 - Exact item-level rights for open textbooks, OER, public-domain texts and Indonesian educational repositories.
 - Curated title-level seed selection and third-party asset audit before full-text acquisition.
+- Indonesian OER source diversification beyond information systems, including individual item licenses and program-scoped grant provenance.
 
 A fixed model parameter count is intentionally not an open global constant: it is an output of architecture research combined with each device's capability profile.
 
