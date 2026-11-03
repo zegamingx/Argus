@@ -53,7 +53,7 @@ Checkpoint writing is a direct file overwrite with swallowed exceptions; there i
 
 When the AccessibilityService is enabled, it traverses the active window's accessibility tree, extracts text, and passes up to 400 characters to `TrainingManager.enqueueData()`. The training worker starts automatically and consumes queued items without a separate user approval step. There is no PII/OTP/credential redaction stage in this path.
 
-The exclusion manager has a small default package-name list and a user-editable exclusion set. A short package list is not a reliable guarantee that all banking, authentication, password-manager or other sensitive surfaces are excluded.
+The exclusion manager has a small default package-name list and a user-editable exclusion set. A short package list is not a reliable guarantee that all banking, authentication, password-manager or other sensitive surfaces are excluded. The inspected Settings screen exposes this exclusion list but no separate app-level consent for screen perception, retention of captured text or training from captured text. The Perception screen reports whether AccessibilityService is active; that service state is not a training-consent record. In addition, `WorldModel.updateScreenContext()` stores a 120-character screen-content snippet in its in-memory entity map before any candidate review or training approval.
 
 This conflicts with the documented learning pipeline, which requires redaction and explicit user approval before training, and with the security document's sensitive-data minimization requirements.
 
@@ -64,7 +64,7 @@ This conflicts with the documented learning pipeline, which requires redaction a
 **Severity:** HIGH  
 **Evidence:** `ui/ArgusViewModel.kt`, `sendMessage()`, `importFileContent()`, `importImageContent()`, `searchWebDirectly()`; `model/TrainingManager.kt`
 
-Unresolved chat queries, retrieved web snippets, imported document text, image-derived placeholder text and direct web-search snippets are sent straight to the training queue. The queue worker trains every item automatically. No candidate approval state, provenance review, dataset inspection or redaction decision is enforced between enqueue and training.
+Unresolved chat queries, retrieved web snippets, imported document text, image-derived placeholder text and direct web-search snippets are sent straight to the training queue. The queue worker trains every item automatically. No candidate approval state, provenance review, dataset inspection or redaction decision is enforced between enqueue and training. The Neural Core UI describes the queue as collecting approved inputs and waiting for approved input, but `TrainingManager` has no approval state or authorization check; the UI wording therefore overstates the enforcement that exists in code.
 
 **Required action:** Use a candidate store with provenance, sensitivity labels, preview, explicit approval/rejection and deletion. Web snippets must remain untrusted evidence and must not become training data merely because a query was unresolved.
 
@@ -314,3 +314,8 @@ Training must not be re-enabled merely by fixing the array bounds or checkpoint 
 The proposed implementation contract is documented in [P0 Remediation Design](19_P0_REMEDIATION_DESIGN.md). It is a design proposal, not an implementation or a closed audit finding.
 
 No application source was modified in this pass. All six P0 items remain OPEN. No build, test, lint, packaging task, GitHub Actions workflow or artifact upload was run.
+
+
+### P0-C clarification — screen-context retention is a separate data path
+
+The AccessibilityService writes captured text to both the training queue and `WorldModel.updateScreenContext()`. Blocking only `TrainingManager.enqueueData()` would therefore not fully contain unapproved screen-data retention. The remediation must gate the world-model/context write independently and distinguish transient context from retained candidate data. A UI status label or excluded-app checkbox is not a substitute for an enforceable consent state.

@@ -140,10 +140,10 @@ Publish restored state atomically only after every check succeeds. Otherwise ret
 Enabling Android AccessibilityService grants a platform capability; it is not consent to train on captured content. Keep separate user-controlled settings for:
 
 1. Screen perception/context access.
-2. Retaining eligible screen-derived candidates.
-3. Training from candidates after review and explicit approval.
+2. Retaining screen-derived text or creating a reviewable candidate.
+3. Training from a candidate after classification, redaction and explicit approval.
 
-All learning-related settings default to off. Revocation takes effect immediately for new capture and for any queued candidate not yet committed to an optimizer update.
+All three settings default to off. Screen perception permission alone must not authorize retention or training. When context-only perception is explicitly enabled but retention is not, any text may be used only as short-lived in-memory context for the active interaction; it must not be written to the WorldModel entity store, a candidate repository, the training queue, a log or a checkpoint. Revocation takes effect immediately for new capture and for any queued candidate not yet committed to an optimizer update.
 
 ### 7.2 Fail-closed screen capture
 
@@ -156,7 +156,7 @@ Before traversing an accessibility tree:
 - Apply deterministic secret/credential/OTP redaction before candidate persistence.
 - If classification, identity or redaction is uncertain, discard the content rather than enqueue it.
 
-The user must see when screen perception is active and be able to pause or revoke it without navigating through hidden controls.
+The user must see when screen perception is active and be able to pause or revoke it without navigating through hidden controls. The WorldModel context-write path must independently enforce the retention setting; preventing optimizer enqueue alone is insufficient because the current screen snippet is also stored in WorldModel.
 
 ### 7.3 Candidate lifecycle
 
@@ -173,7 +173,7 @@ Required lifecycle:
 
 `CAPTURED → CLASSIFIED → REDACTED → PENDING_REVIEW → APPROVED → TRAINING → TRAINED`
 
-Alternative terminal states include `REJECTED`, `REVOKED`, `FAILED` and `DELETED`. Only `APPROVED` candidates with current consent and matching policy/dataset revisions may enter training. A boolean flag supplied by an arbitrary caller is not sufficient authorization.
+Alternative terminal states include `REJECTED`, `REVOKED`, `FAILED` and `DELETED`. Only `APPROVED` candidates with current consent and matching policy/dataset revisions may enter training. A boolean flag supplied by an arbitrary caller is not sufficient authorization. Queue labels, screen copy and notifications may say “approved” only when the candidate store has persisted and verified that status; presentation text must not imply an approval gate that the runtime does not enforce.
 
 Chat prompts, file contents, image-derived metadata and web snippets must use this same candidate lifecycle. Web results remain untrusted evidence and are never training data merely because retrieval occurred or model confidence was low.
 
