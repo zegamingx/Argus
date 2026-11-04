@@ -80,6 +80,7 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 | [37 — Optimizer Research and Lion Assessment](37_OPTIMIZER_RESEARCH_AND_LION_ASSESSMENT.md) | AdamW/Lion/Adafactor comparison, Lion state-memory accounting, device-adaptive batch semantics and exact optimizer recovery |
 | [38 — G2 Architecture Comparative Synthesis](38_G2_ARCHITECTURE_COMPARATIVE_SYNTHESIS.md) | Cross-family trade-offs for Transformer, Mamba-2 SSD, RWKV-7 and hybrid; matched comparison rules and G4 deliverables |
 | [39 — Transformer Component Research and Pre-G4 Design Contracts](39_TRANSFORMER_COMPONENT_RESEARCH_AND_DESIGN_CONTRACTS.md) | Evidence and matched-comparison contracts for attention variants, position, FFN, normalization/residual topology, depth/width and embeddings |
+| [40 — Initialization and Width-Scaling Research](40_INITIALIZATION_AND_WIDTH_SCALING_RESEARCH.md) | Random-initialization contracts, residual/depth scaling, T-Fixup, DeepNorm, effective-theory initialization and μP/μTransfer across device-conditioned model widths |
 
 ## Status vocabulary
 
