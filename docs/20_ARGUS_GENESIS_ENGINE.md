@@ -68,7 +68,7 @@ A vendor name or advertised accelerator is only a discovery hint. An accelerator
 
 ### 4.2 Configuration selection
 
-Choose a configuration from architecture candidates that have passed the research/feasibility gate in [23 — Neural Architecture Research Plan](23_NEURAL_ARCHITECTURE_RESEARCH_PLAN.md), the from-scratch feasibility protocol in [33 — From-Scratch Training Feasibility](33_FROM_SCRATCH_TRAINING_FEASIBILITY.md), and the tokenizer contract gate in [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md), together with device memory and compute budgets, supported data types/operators, training memory needs, thermal sustainability and storage requirements.
+Choose a configuration from architecture candidates that have passed the research/feasibility gate in [23 — Neural Architecture Research Plan](23_NEURAL_ARCHITECTURE_RESEARCH_PLAN.md), the from-scratch feasibility protocol in [33 — From-Scratch Training Feasibility](33_FROM_SCRATCH_TRAINING_FEASIBILITY.md), the tokenizer contract gate in [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md), and the component evidence/disposition gate in [35 — Android Architecture Evidence and Component Comparison Matrix](35_ANDROID_ARCHITECTURE_EVIDENCE_AND_COMPONENT_MATRIX.md), together with device memory and compute budgets, supported data types/operators, training memory needs, thermal sustainability and storage requirements.
 
 There is no universal parameter count or fixed model tier. Record the selected configuration and the capability evidence used to select it.
 

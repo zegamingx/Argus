@@ -49,9 +49,9 @@ Those results belong to the paper's evaluated DNN workloads/devices. They are no
 
 ### 3.3 MobileFineTuner — mobile LLM fine-tuning
 
-[MobileFineTuner](https://arxiv.org/abs/2512.08211) describes a native C++ framework for full-parameter and PEFT fine-tuning on physical mobile phones. It studies parameter sharding, gradient accumulation, activation checkpointing, memory-efficient attention and energy-aware scheduling. Its PEFT workflow explicitly loads pretrained LLM parameters.
+[MobileFineTuner](https://arxiv.org/abs/2512.08211) describes a native C++ framework for full-parameter and PEFT fine-tuning on physical mobile phones. Its device table includes Huawei P50 Pro on Android 11 (Kirin 9000, 8 GB), iQOO 15 on Android 16 (Snapdragon 8 Elite Gen 5, 16 GB+16 GB), Huawei nova 9 Pro on HarmonyOS 2, and a MacBook Air. The Huawei nova and MacBook are not Android test devices. The paper's Full-FT evaluation uses GPT-2 124M on iQOO 15 with sequence length 128 and batch size 8. Its PEFT evaluation covers five models and six datasets across sequence lengths 128/256 on iQOO 15. The paper's device/optimization table also shows that selected workloads on the 8 GB Huawei P50 Pro need combinations of memory-efficient attention, activation checkpointing, gradient accumulation and parameter sharding.
 
-This is Category B evidence. It supports the feasibility of a mobile-native LLM fine-tuning runtime on the tested devices/configurations, not foundation pretraining from random initialization or universal Android accelerator support.
+This is Category B evidence. It supports native mobile LLM fine-tuning and provides measured system techniques, not foundation pretraining from random initialization or universal Android accelerator support. The paper's experimental results must be kept distinct from the current Android SDK surface; see section 3.12 and [35 — Android Architecture Evidence and Component Comparison Matrix](35_ANDROID_ARCHITECTURE_EVIDENCE_AND_COMPONENT_MATRIX.md).
 
 ### 3.4 Smartphone sustained-training study — thermal evidence
 
@@ -180,6 +180,19 @@ Record it as **PRIMARY-PAPER AUDIT PENDING**. Do not use numerical results, devi
 
 A technique must be evaluated separately from the system topology in which a paper deploys it. Reusing a memory optimization does not require adopting that paper's federated, collaborative or cloud-assisted data/model lifecycle.
 
+### 3.12 MobileFineTuner paper and current Android SDK are separate evidence
+
+The research paper [MobileFineTuner](https://arxiv.org/abs/2512.08211) reports full-parameter and PEFT experiments, but its currently published [Android SDK documentation](https://github.com/Edge-Intelligence-Lab/MobileFineTuner/blob/main/docs/ANDROID_SDK.md) exposes a narrower Android wrapper:
+- AAR/JNI integration to a native C++ operator/autograd/model/trainer core.
+- `arm64-v8a` as the documented Android ABI.
+- Runtime-supplied model assets from app-readable filesystem paths.
+- A Java API for LoRA setup and a `trainStep` call.
+- An instrumentation smoke test that executes one synthetic GPT-2 LoRA training step.
+
+The Android SDK documentation also states that its wrapper does not yet expose a full dataset loop or checkpoint manager. This is not a contradiction of the paper's broader experimental framework; it is a difference between research capability and the currently documented Android packaging/API surface.
+
+**Argus implication:** treat MobileFineTuner as a native training-step/reference-core candidate, not an immediately complete drop-in Argus training service. Audit source/license, random-init model construction, full backward/operator coverage, optimizer-state persistence, cancellation, data iteration, checkpointing and Android lifecycle before deciding whether to adapt it.
+
 ## 4. Claim ledger
 
 | ID | Claim | Evidence position | Argus status |
@@ -201,6 +214,7 @@ A technique must be evaluated separately from the system topology in which a pap
 | C-15 | Derivative-free optimization can reduce memory for on-device LLM fine-tuning | PocketLLM reports OPPO Reno 6 smartphone fine-tuning for pretrained RoBERTa-large and OPT-1.3B | **SUPPORTED, CATEGORY B** — convergence/compute trade-off must be measured separately |
 | C-16 | Smartphone LLM personalization can use cached personalized models selected via a server | XPerT uses cloud-cached personalized models and on-device fine-tuning | **SUPPORTED, SERVER-ASSISTED** — not a local-only Argus baseline |
 | C-17 | Prism demonstrates a specific on-device fine-tuning technique and numeric result | MobiCom 2026 program/proceedings metadata verifies the publication; full paper text was not audited in this pass | **PRIMARY-PAPER AUDIT PENDING** — no numeric or device claims may be adopted yet |
+| C-18 | The current MobileFineTuner Android SDK is a complete drop-in dataset/checkpoint training service | Its Android docs expose a LoRA `trainStep` API and one-step device smoke test; the documented wrapper does not expose a full dataset loop or checkpoint manager | **NOT ESTABLISHED** — treat as a native training-step/reference-core candidate, pending API/source audit |
 
 
 The ledger describes published evidence, not Argus implementation status. A category cannot be upgraded without a manifest identifying the exact weights, data, model, device and measurement protocol.
@@ -332,6 +346,7 @@ No answer is selected here.
 | E-012 | [MobiLLM, arXiv:2502.20421](https://arxiv.org/abs/2502.20421) | Server-assisted side-tuning, excluded from local-only baseline |
 | E-013 | [Android PowerManager API](https://developer.android.com/reference/android/os/PowerManager) | Thermal-status query/listener, API 29+ |
 | E-014 | [Android memory management](https://developer.android.com/topic/performance/memory/manage-app-memory) and [app memory budgets](https://developer.android.com/topic/performance/memory/app-memory-budgets) | Process memory and process-state budget evidence |
+| E-034 | [MobileFineTuner Android SDK documentation](https://github.com/Edge-Intelligence-Lab/MobileFineTuner/blob/main/docs/ANDROID_SDK.md), repository snapshot reviewed 2026-11-04 | Current AAR/JNI interface, arm64-v8a scope, LoRA `trainStep` and one-step synthetic GPT-2 smoke test | SDK wrapper currently differs in scope from the paper's broader experiments; no complete Android dataset loop/checkpoint manager is documented |
 
 | E-026 | [PocketLLM: Enabling On-Device Fine-Tuning for Personalized LLMs](https://aclanthology.org/2024.privatenlp-1.10/), PrivateNLP 2024 | OPPO Reno 6 smartphone fine-tuning with derivative-free optimization | Pretrained RoBERTa-large and OPT-1.3B; memory result does not prove from-scratch training or gradient-based convergence |
 | E-027 | [Confidant: Customizing Transformer-based LLMs via Collaborative Training on Mobile Devices](https://doi.org/10.1145/3680207.3723487), ACM MobiCom 2025 | Pipeline-parallel collaborative pretrained-LLM fine-tuning across mobile/edge devices | Cross-device activation/gradient exchange; Phi-2.7B run uses one phone and two laptops |
@@ -342,4 +357,4 @@ No answer is selected here.
 | E-032 | [Prism: Efficient Zeroth-Order Fine-Tuning for On-Device LLMs](https://doi.org/10.1145/3795866.3844151), ACM MobiCom 2026 | Publication identity and topic verified from conference/program metadata | Full paper/method/device results not yet audited; no quantitative claims accepted |
 | E-033 | [On-device Training: A First Overview on Existing Systems](https://doi.org/10.1145/3696003), ACM Transactions on Sensor Networks 2024 | Broad system taxonomy for resource-constrained on-device training | Survey across mixed device classes and DNN tasks; not proof of broad Android LLM pretraining |
 
-**Final position:** Android research already demonstrates practical LLM fine-tuning, local adapter updates, mobile GPU backward/layout optimization, and production federated language-model adaptation. Argus should reuse the established engineering lessons instead of rediscovering them. However, these results primarily use pretrained models, adaptation objectives, or collaborative/federated topologies. Broad general-purpose language pretraining from random initialization on one independent Android installation remains unproven. E1–E7 should therefore be narrowed to Argus-specific unknowns, not treated as a request to repeat published systems research.
+**Final position:** Android research already demonstrates practical LLM fine-tuning, local adapter updates, mobile GPU backward/layout optimization, and production federated language-model adaptation. Argus should reuse the established engineering lessons instead of rediscovering them. The MobileFineTuner paper and its current Android SDK API must be evaluated separately: research experiments are broader than the currently documented Android `trainStep` wrapper. Most mobile results still use pretrained models, adaptation objectives or collaborative/federated topologies. Broad general-purpose language pretraining from random initialization on one independent Android installation remains unproven. E1–E7 should therefore be narrowed to Argus-specific unknowns, not treated as a request to repeat published systems research. Component-level research and its provisional dispositions are tracked in [35 — Android Architecture Evidence and Component Comparison Matrix](35_ANDROID_ARCHITECTURE_EVIDENCE_AND_COMPONENT_MATRIX.md).

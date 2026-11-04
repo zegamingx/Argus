@@ -227,6 +227,28 @@ The input embedding matrix contains approximately (V 	imes d) parameters. If the
 
 A vocabulary that shortens every sequence may still be a poor device choice if it makes embeddings, optimizer state or the output head too large. Compare vocabulary sizes with both token-sequence costs and model-state costs, not token fertility alone.
 
+### Tied versus untied embeddings and output projection
+
+For each vocabulary budget and hidden dimension, report both:
+- **Tied:** input embedding and output projection share one parameter matrix, where the selected architecture/runtime supports the semantics correctly.
+- **Untied:** input embedding and output projection use separate parameter matrices.
+
+At fixed (V) and (d), tying can remove approximately one (V \\times d) parameter matrix from the model state. It also changes parameter sharing and optimization behavior, so it is not merely a storage toggle. Compare total parameter count, optimizer state, training update semantics, output-logit throughput and held-out language-model behavior under the same tokenizer/data budget. The tokenizer shortlist must report these two model-cost profiles; the final tie/untie decision remains an architecture decision, not a tokenizer-only decision.
+
+### Effective context and sequence packing
+
+For each tokenizer, report how many UTF-8 bytes, Unicode scalars and source-document spans fit into fixed token-context lengths. A 512-token context is not an equal amount of text across tokenizers. Measure the p50/p90/p99 byte coverage per context and the number of truncated document segments.
+
+Packing diagnostics must use the same documents and record:
+- useful target tokens versus padding/ignored positions;
+- document-boundary and BOS/EOS behavior;
+- cross-document attention masking or permitted packing policy;
+- loss-mask correctness across prompt/response and document boundaries;
+- token utilization per batch and number of source bytes represented;
+- effects of sequence length and packing on peak memory and attention compute.
+
+Do not freeze final context length, packing policy or training sample count from tokens alone before the tokenizer shortlist and architecture comparison are complete.
+
 ## 7. Controlled comparison protocol
 
 ### 7.1 Candidate matrix
@@ -375,6 +397,7 @@ A tokenizer candidate can advance only if it:
 7. Has a feasible Android deployment path with exact reference/Android conformance.
 8. Produces a stable, fingerprinted artifact compatible with Genesis/checkpoint contracts.
 9. Is evaluated with downstream model experiments before any claim that intrinsic metrics predict learned quality.
+10. Includes tied-versus-untied embedding/output-head cost profiles and byte/document coverage at candidate context lengths, with final choices explicitly deferred to architecture G1/G3 review.
 
 No candidate may be selected solely because it has:
 - The lowest mean token count.
@@ -404,6 +427,7 @@ The decision record remains **OPEN** until these questions are resolved with the
 
 - [33 — From-Scratch Training Feasibility](33_FROM_SCRATCH_TRAINING_FEASIBILITY.md) defines the device/resource and E1–E7 gates. Tokenizer work does not establish broad from-scratch feasibility.
 - [23 — Neural Architecture Research Plan](23_NEURAL_ARCHITECTURE_RESEARCH_PLAN.md) uses the selected, versioned tokenizer as a shared input contract for controlled architecture comparisons.
+- [35 — Android Architecture Evidence and Component Comparison Matrix](35_ANDROID_ARCHITECTURE_EVIDENCE_AND_COMPONENT_MATRIX.md) defines component-level research and identifies decisions blocked by tokenizer G1.
 - [22 — General Corpus and Personal Learning](22_GENERAL_CORPUS_AND_PERSONAL_LEARNING.md), documents 27–32, and the corpus phase define source rights, language/domain distribution and tokenizer-training data eligibility.
 - [20 — Argus Genesis Engine](20_ARGUS_GENESIS_ENGINE.md) requires the tokenizer identity before the initial model generation is committed.
 - [19 — P0 Remediation Design](19_P0_REMEDIATION_DESIGN.md) binds checkpoints and candidates to exact tokenizer fingerprints.
@@ -425,4 +449,4 @@ The decision record remains **OPEN** until these questions are resolved with the
 | E-024 | [Hugging Face Tokenizers components](https://huggingface.co/docs/tokenizers/main/en/components) | Normalizer, pre-tokenizer, byte-level alphabet and decoder pipeline concepts; API/version support must be checked before runtime selection |
 | E-025 | [tiktoken BPE design notes](https://github.com/openai/tiktoken/blob/main/README.md) | Byte-pair encoding reversibility/open-text properties as implementation reference; not a dependency selection |
 
-**Current decision:** no tokenizer is selected. The required next evidence is a versioned fixture, controlled candidate vocabulary sweeps, Unicode/special-token conformance, cross-language and domain metrics, model-state cost analysis, and an eventual Android runtime comparison. Only then may a tokenizer ADR be proposed.
+**Current decision:** no tokenizer is selected. Tokenizer evaluation proceeds in parallel with tokenizer-neutral architecture component research under [35 — Android Architecture Evidence and Component Comparison Matrix](35_ANDROID_ARCHITECTURE_EVIDENCE_AND_COMPONENT_MATRIX.md); G1 blocks final vocabulary/head/context/packing-dependent decisions. The required next evidence is a versioned fixture, controlled candidate vocabulary sweeps, Unicode/special-token conformance, cross-language and domain metrics, model-state cost analysis, and an eventual Android runtime comparison. Only then may a tokenizer ADR be proposed.

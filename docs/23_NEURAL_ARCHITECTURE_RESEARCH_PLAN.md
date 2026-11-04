@@ -66,18 +66,18 @@ Other architectures may be added when a credible paper, reproducible implementat
 
 ## 4. Experimental method
 
-1. Complete the candidate and fixture protocol in [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md); freeze one versioned tokenizer contract before controlled architecture comparisons.
-2. Build minimal, mathematically correct prototypes for each candidate family.
-3. Validate forward outputs, objective values, gradients and optimizer updates against trusted reference implementations.
-4. Measure training memory separately from inference memory.
-5. Benchmark at comparable parameter and compute budgets on named Android devices.
-6. Record backend actually used, including fallback and graph partitioning.
-7. Run sustained thermal tests; do not rank architectures on a short peak benchmark.
-8. Evaluate general text modeling and sequence behavior with held-out data.
-9. Inspect checkpoint recovery and model serialization.
-10. Publish trade-offs, uncertainty and rejected candidates before selecting the first architecture.
+1. Define the component inventory and tokenizer-neutral/tokenizer-sensitive boundaries using [35 — Android Architecture Evidence and Component Comparison Matrix](35_ANDROID_ARCHITECTURE_EVIDENCE_AND_COMPONENT_MATRIX.md).
+2. Extract Android prior-art findings at component level. Distinguish model architecture results from optimizer, runtime, memory-layout and lifecycle results.
+3. Run the tokenizer fixture and candidate comparison in [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md) in parallel with tokenizer-neutral architecture research. Freeze the tokenizer contract before any token-sensitive ablation or final model comparison.
+4. Build or select minimal, mathematically correct reference configurations for each retained component candidate; do not reimplement an existing training loop without first auditing reusable frameworks.
+5. Validate forward outputs, objective values, gradients and optimizer updates against trusted reference implementations.
+6. Measure training memory separately from inference memory, including activation and optimizer state.
+7. Compare one component at a time under matched data, parameters/compute, device and sustained conditions. Report parameter-matched and compute-matched results separately.
+8. Record backend actually used, including fallback and graph partitioning.
+9. Inspect checkpoint recovery, model serialization, initialization and candidate-generation compatibility.
+10. Publish evidence, uncertainty, component disposition (ADOPT/MODIFY/CUSTOM/DEFER/REJECT) and rejected alternatives before architecture freeze.
 
-The research corpus must be used consistently. Any corpus or tokenizer change during comparison must be versioned and documented.
+The research corpus must be used consistently. Any corpus or tokenizer change during comparison must be versioned and documented. Published Android fine-tuning speedups do not establish from-scratch architecture superiority.
 
 ## 5. Architecture-agnostic foundation requirements
 
@@ -96,11 +96,14 @@ This abstraction enables controlled research and future module families. It does
 ## 6. Selection gate
 
 An architecture may be selected only when:
-- The minimal implementation has mathematically validated training.
+- The from-scratch feasibility boundary in [33 — From-Scratch Training Feasibility](33_FROM_SCRATCH_TRAINING_FEASIBILITY.md) is understood and the minimum viable target-device envelope is defined.
+- The tokenizer has passed the G1 contract gate in [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md).
+- Component-level evidence and G0–G4 decision gates in [35 — Android Architecture Evidence and Component Comparison Matrix](35_ANDROID_ARCHITECTURE_EVIDENCE_AND_COMPONENT_MATRIX.md) are reviewed.
+- The minimal reference implementation has mathematically validated training from local initialization.
 - Memory and compute fit at least a defined target device tier.
-- Sustained training/inference results are reproducible.
+- Sustained training/inference results are reproducible on named physical Android devices.
 - Complete model and optimizer states can be checkpointed and restored.
-- The tokenizer has passed the evidence and decision gates in [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md), and the corpus contract is compatible.
+- The corpus contract is compatible and training rights are accepted.
 - Known trade-offs and unsupported operations are documented.
 - A reviewed architecture decision record is added to document 01.
 

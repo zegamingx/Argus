@@ -1,0 +1,327 @@
+# Android Architecture Evidence and Component Comparison Matrix
+
+**Status:** Research synthesis and decision framework; no architecture selected  
+**Last reviewed:** 2026-11-04  
+**Phase:** 4 — Parallel architecture comparative research  
+**Dependencies:** Tokenizer contract in [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md); feasibility evidence in [33 — From-Scratch Training Feasibility](33_FROM_SCRATCH_TRAINING_FEASIBILITY.md)  
+**Authority:** Component-level research, prior-art mapping and experiment gates. This document is not an implementation authorization or architecture freeze.
+
+## 1. Purpose
+
+Architecture research should proceed in parallel with tokenizer comparison, but it must not treat whole-model results as proof that every component inside that model is optimal.
+
+The mobile literature contains practical evidence for native training runtimes, memory-aware execution, activation checkpointing, gradient accumulation, parameter sharding, mobile-GPU tensor layouts, thermal/energy scheduling and local adapter updates. Most of those studies evaluate fine-tuning of an already trained model. They do not isolate the relative merits of positional encoding, normalization, residual topology, FFN family, attention variant or backbone family for a locally initialized Argus model.
+
+This document separates:
+1. **Android prior art:** what physical-device papers and implementations actually measured.
+2. **Genesis constraints:** the product and lifecycle conditions that every candidate must satisfy.
+3. **Component comparison:** tokenizer-neutral and tokenizer-sensitive choices, evidence gaps and preliminary dispositions.
+4. **Existing-framework reuse:** what should be reused, adapted, custom-built or rejected.
+5. **Decision gates:** what may proceed before tokenizer freeze and what must wait.
+
+The objective is not to reimplement a published mobile training framework. It is to reuse mature methods where they fit, add the minimum Argus-specific adapters/contracts, and validate only the unresolved questions.
+
+## 2. Accepted Genesis constraints
+
+These constraints are inputs to architecture research, not outcomes that a candidate may silently change.
+
+| ID | Constraint | Architecture/runtime consequence |
+|---|---|---|
+| G-01 | **Local Knowledge Genesis:** model weights are initialized locally; no external pretrained weights define the foundation model | An architecture candidate must support a valid random-initialization path and full training graph. A fine-tuning-only demonstration is supporting systems evidence, not Genesis proof. |
+| G-02 | **Independent instance evolution:** every installation owns its model, checkpoints, memory and learning state | No central model, federated aggregation, automatic cross-user weight exchange or hidden synchronization. |
+| G-03 | **Local training computation:** the model's training forward/backward/update path remains on the owning device | Server-assisted backward, cloud side-network computation, cross-device activations or gradients are outside the accepted baseline. |
+| G-04 | **First-launch readiness:** app readiness follows successful local construction, initialization and durable initial-generation commit; pretraining does not block startup | Architecture construction and initialization must be bounded; corpus training is post-readiness background work. |
+| G-05 | **From-scratch general learning:** the architecture must define complete forward, loss, backward and optimizer semantics for locally initialized parameters | Inference-only accelerator support is not sufficient. |
+| G-06 | **Device-adaptive configuration:** no universal parameter count, width, depth, batch, sequence length or training duration is assumed | Candidate configurations must be evaluated against a named device/resource envelope. |
+| G-07 | **CPU correctness reference:** the supported model subset must have a numerically validated execution path; GPU/NPU execution is separately verified | Accelerator routing requires real backward/operator coverage, precision checks and fallback evidence. |
+| G-08 | **Android-first lifecycle:** background learning is pausable, resumable and responsive to memory, thermal, battery, storage and OS scheduling | Architecture/runtime choices must support bounded work, cancellation, safe checkpoint boundaries and observable fallback. |
+| G-09 | **General and personal learning are separate** | LoRA/adapter studies may inform later personal adaptation but cannot silently replace the from-scratch general-learning path. |
+| G-10 | **Versioned generations:** active model state is immutable; training writes isolated candidate generations that are validated before promotion | Architecture, tokenizer and tensor-layout changes need explicit fingerprints, migration and rollback rules. |
+| G-11 | **Current implementation is a prototype** | The inspected Argus repository does not currently contain the production native C++/JNI training runtime or verified complete backpropagation/checkpoint path. Research documents do not imply those capabilities exist. |
+
+The current repository snapshot declares Android minSdk 33 / targetSdk 36. These values describe the inspected prototype, not a final device-support matrix. Minimum RAM, named SoC tiers and verified accelerator support remain open. See [README](../README.md), [17 — Current Repository Baseline](17_CURRENT_REPOSITORY_BASELINE.md), [19 — P0 Remediation Design](19_P0_REMEDIATION_DESIGN.md) and [20 — Argus Genesis Engine](20_ARGUS_GENESIS_ENGINE.md).
+
+## 3. Android training prior-art evidence table
+
+The papers below are evidence for specific techniques and test configurations. The labels in this table are intentionally narrower than “Android supports training.”
+
+| Evidence | Device/workload actually studied | Measured contribution | Evidence category | Argus relevance and boundary |
+|---|---|---|---|---|
+| **MobileFineTuner** — [paper](https://arxiv.org/abs/2512.08211), [Android SDK docs](https://github.com/Edge-Intelligence-Lab/MobileFineTuner/blob/main/docs/ANDROID_SDK.md) | Paper device table includes Huawei P50 Pro / Android 11 / Kirin 9000 / 8 GB; iQOO 15 / Android 16 / Snapdragon 8 Elite Gen 5 / 16 GB+16 GB; also Huawei Nova 9 Pro / HarmonyOS and MacBook Air. Full-FT evaluation uses GPT-2 124M on iQOO 15 at sequence 128, batch 8. PEFT evaluations cover five models/six datasets on iQOO 15. | Native C++ framework; model/parameter sharding, gradient accumulation, activation checkpointing, memory-efficient attention and energy-aware scheduling. The paper shows that the 8 GB Huawei P50 Pro requires combinations of these optimizations for selected larger tasks. | **Fine-tuning + runtime optimization** | Closest reference for mobile-native LLM training systems. Reuse its measured lessons and inspect code/contracts, but do not treat the published evaluations as random-init Genesis proof. The current Android SDK documentation separately exposes an arm64-v8a AAR/JNI API with a LoRA `trainStep` entry point and a one-step synthetic GPT-2 smoke test; the documented Android Java API does not provide a complete dataset loop or checkpoint manager. Paper capability and current Android SDK surface must not be conflated. |
+| **FBLayout** — [paper](https://arxiv.org/abs/2607.21624), [MobiSys 2026 public review](https://sigmobile.org/mobisys/2026/accepted_papers/) | Seven Transformer fine-tuning models across physical phones with ARM Mali and Qualcomm Adreno mobile GPUs. | R-Tile tensor layout, index transformation to avoid physical movement, activation-guided global layout selection; reports 2.2×–5.7× over evaluated MNN/TFLite/TVM baselines. | **Fine-tuning + mobile-GPU runtime optimization** | Strong evidence that tensor organization and forward/backward memory access are critical on mobile GPUs. It does not show that a particular attention variant, positional encoding or Transformer backbone is best. The official review notes dependence on current GPU characteristics and relatively stable graphs. |
+| **PocketLLM** — [ACL Anthology paper](https://aclanthology.org/2024.privatenlp-1.10/) | OPPO Reno 6 smartphone; local fine-tuning of pretrained RoBERTa-large and OPT-1.3B. | Derivative-free / zeroth-order optimization reduces the gradient and optimizer-state memory burden; reports approximately 4 GB and 6.5 GB memory for its tested models. | **Fine-tuning + optimizer method** | Useful alternative to study where memory dominates. It has different convergence/compute behavior from standard backpropagation and must not be assumed to be the best method for general training from random initialization. |
+| **Confidant** — [ACM MobiCom 2025](https://doi.org/10.1145/3680207.3723487) | Collaborative pipeline-parallel fine-tuning. BERT-Base and GPT-2 Medium phone experiments; the Phi-2 2.7B 40.1-hour demonstration uses one phone plus two laptops. | Dynamic model partitioning, intra-device scheduling and fault tolerance across heterogeneous collaborating devices. | **Collaborative fine-tuning** | Useful for understanding partitioning and heterogeneous scheduling. Cross-device activation/gradient exchange and shared collaboration conflict with G-02/G-03; no such exchange is part of the Argus baseline. |
+| **Gboard production training** — [Google Research](https://research.google/blog/advances-in-private-training-for-production-on-device-language-models/) | Production mobile language-model updates on user devices; deployed model collection across multiple languages/regions. | Federated learning and differential privacy for model updates; base neural LMs are pretrained on multilingual C4 before client training. | **Production federated adaptation** | Strong evidence for mobile data policy, privacy, resource budgeting and update scheduling. Does not demonstrate random-init independent training; server aggregation and shared model lifecycle conflict with current Argus design. |
+| **Online-SDFT** — [project](https://lin826.github.io/SLM-Online-SDFT/), [Android repository](https://github.com/lin826/SLM-Online-SDFT) | Physical Android proof of concept; frozen pretrained LFM2.5-230M with local rank-4 LoRA update, replay and adapter checkpoints. | Demonstrates a local continual-adaptation loop and persistence across restarts in a narrow project setup. | **Local adapter fine-tuning proof of concept** | Useful for future personal-learning lifecycle and replay patterns. It does not provide broad general pretraining evidence; the project reports that Android latency, memory, battery, thermal and background reliability remain unmeasured. |
+| **MobiLLM** — [paper](https://arxiv.org/abs/2502.20421) | Phone plus high-performance server; server performs trainable side-network backward computation. | Server-assisted side-tuning reduces phone memory/compute. | **Server-assisted fine-tuning** | Excluded by G-03. Raw data remaining on-device does not make the training computation local-only. |
+| **XPerT** — [ACM MobiSys 2025](https://doi.org/10.1145/3711875.3729132) | Smartphone personalization with personalized models and cloud model cache. | Model selection/cache can reduce data requirements for personalization. | **Server-assisted personalization** | Data-efficiency reference only. Cloud model-state exchange is not part of independent Argus evolution. |
+| **Prism** — [ACM MobiCom 2026](https://doi.org/10.1145/3795866.3844151) | Publication identity and topic verified from proceedings metadata; full paper/method details not audited in this review. | On-device zeroth-order LLM fine-tuning is indicated by the title/topic. | **Primary paper audit pending** | Do not use numerical results, device compatibility or optimizer claims until the complete paper and experiment setup are inspected. |
+
+### 3.1 Important distinction: paper versus deployable SDK
+
+The MobileFineTuner paper reports a broader set of research experiments than the currently documented Android SDK interface. The Android SDK's published surface includes:
+- Android AAR and JNI bridge to a native C++ training core.
+- `arm64-v8a` packaging.
+- Runtime-supplied model assets stored as readable files.
+- LoRA initialization and a `trainStep` API.
+- A synthetic GPT-2 LoRA instrumentation smoke step.
+
+Its Android documentation describes the Java API at step granularity and does not expose a full dataset scheduler/loop or checkpoint manager. Therefore:
+- Treat paper measurements as published research evidence.
+- Treat the SDK as a candidate native training-step component/reference implementation.
+- Do not assume it can be dropped into Argus as a complete production training subsystem.
+- Before any reuse, inspect exact source/license, operator coverage, random-init model construction, optimizer-state serialization, thread-safety, cancellation, error semantics and checkpoint APIs.
+
+### 3.2 Prior-art synthesis
+
+What is already evidenced:
+- Native C++ LLM training steps can be exposed to Android applications.
+- LLM fine-tuning has been demonstrated on physical Android smartphones.
+- Memory-efficient attention, activation checkpointing, gradient accumulation and parameter sharding can be composed to fit selected phone/model combinations.
+- Mobile GPU tensor layout can materially affect forward/backward performance on Adreno and Mali.
+- Local adapter updates and checkpoint persistence are possible in a narrow Android proof of concept.
+- Federated production systems demonstrate privacy/resource controls for mobile language-model updates.
+
+What remains unproven for Argus:
+- Broad general-purpose language pretraining from random initialization on one independent Android device.
+- Whether the best backbone at small Argus scale is Transformer, SSM/recurrent or Hybrid.
+- Which positional encoding, attention variant, FFN, normalization and residual topology is best for the Argus data/compute/device envelope.
+- Full-backward support and numerical parity for the selected accelerator paths.
+- An integrated Android dataset loop, complete optimizer/checkpoint lifecycle, lifecycle recovery and sustained thermal behavior for the Argus-specific model.
+
+## 4. Component-level comparison matrix
+
+The dispositions below are **preliminary research classifications**, not final architecture decisions. The five permitted labels have these meanings:
+
+- **ADOPT:** an established invariant or technique is accepted for the defined role, with its boundary stated.
+- **MODIFY:** reuse the principle or existing implementation, but adapt interfaces, semantics or device behavior to Genesis.
+- **CUSTOM:** Argus needs a product-specific contract or mechanism not supplied by the external research.
+- **DEFER:** keep the candidate open until a dependency or missing evidence is resolved.
+- **REJECT:** incompatible with the accepted product boundary or unsupported by the intended scope.
+
+| Component | Tokenizer relationship | Android evidence | Candidate space | Preliminary disposition | Expected benefit / cost or risk | Validation required |
+|---|---|---|---|---|---|---|
+| **Backbone family** | Indirectly sensitive through sequence length and vocabulary/head cost | Mobile LLM studies are dominated by pretrained Transformer fine-tuning; no reviewed Android study establishes small random-init SSM/Hybrid superiority | Decoder-only Transformer; SSM/recurrent; Hybrid | **DEFER** | Transformer has the strongest mobile fine-tuning prior art; SSM/Hybrid may change sequence-state and kernel costs but have less mobile training evidence | Compare minimal mathematically correct references under matched tokenizer, data, parameter and compute budgets; include sustained device tests |
+| **Attention mechanism** | Tokenizer-neutral per token, but sequence inflation changes total cost | MobileFineTuner uses memory-efficient attention; FBLayout targets forward/backward attention layout and memory movement | Dense causal attention reference; memory-efficient/tiled variants; MHA/GQA/MQA as structural options | **MODIFY** | Reuse attention contracts and study memory/layout techniques; avoid choosing head grouping or kernel layout from unrelated pretrained fine-tuning results | Numerical forward/backward parity; peak memory; layout conversion cost; throughput per byte/token at fixed shapes |
+| **Positional encoding** | Effective behavior depends on tokenizer-dependent sequence length/context | No reviewed Android prior art isolates RoPE vs ALiBi vs learned positions for from-scratch language training | RoPE; ALiBi; learned absolute; architecture-specific recurrent/state representation | **DEFER** | Choice affects context extrapolation, compute, caches and migration; mobile fine-tuning papers do not identify an Argus winner | Compare on a fixed tokenizer and synthetic/held-out sequence-length suite; validate initialization and numerical stability |
+| **FFN / expert routing** | Mostly tokenizer-neutral per token; sequence length affects total compute | No reviewed Android evidence isolates dense FFN versus MoE for LLM training | Dense GELU/SwiGLU-style FFN; gated FFN; MoE as a later candidate | **DEFER** | Dense FFN is easier to profile; MoE adds expert weights, routing, load imbalance and memory residency complexity | Compare parameter-matched and compute-matched variants; measure active/total params, routing stability, memory and device utilization |
+| **Normalization** | Tokenizer-neutral | No reviewed Android component ablation establishes a preferred norm for Argus | LayerNorm; RMSNorm; architecture-specific placement | **DEFER** | Numerical stability and kernel fusion matter; a paper's use of one norm is not a comparative result | Gradient/finite-difference checks; convergence/stability across seeds; latency and allocation cost |
+| **Residual topology** | Tokenizer-neutral | No reviewed Android evidence compares residual layouts for local random-init training | Standard residual reference; pre-norm/post-norm; parallel residual variants | **ADOPT** standard residual as a reference-control pattern only; **DEFER** final topology | Provides a conservative comparison control; it must not be confused with a final architecture selection | Reference parity and stability; isolate topology in controlled ablations |
+| **Depth / width / parameter allocation** | Indirect: embedding/head parameters scale with vocabulary, sequence cost depends on tokenizer | Mobile papers show device-specific memory limits but not from-scratch scaling laws for Argus | Width/depth sweeps; parameter allocation across blocks; per-device profiles | **DEFER** | Changes compute, memory, representation and training dynamics together | Separate parameter-matched, token-matched and compute-matched sweeps; report peak memory and sustained throughput |
+| **Token embeddings / output head** | **Directly sensitive** to vocabulary size, token IDs and special-token inventory | Existing mobile fine-tuning papers use fixed pretrained tokenizer/model pairs | Tied vs untied embeddings; output projection; embedding dimension and initialization | **DEFER — G1 BLOCKED** | Vocabulary changes parameter count, logit cost, optimizer state and checkpoint shape; changing token IDs invalidates model semantics | Wait for tokenizer shortlist; measure V×d state/head cost, logits throughput, tying semantics and migration |
+| **Context length / sequence packing** | **Directly sensitive** to tokens per byte and segmentation behavior | Mobile training studies use fixed token sequence lengths; they do not define Argus effective context | Context-length profiles; example packing; document boundary masks; curriculum by length | **DEFER — G1 BLOCKED** | Same token length can represent different byte/document coverage across tokenizers; packing changes attention compute and data semantics | Freeze tokenizer; compare byte coverage, boundary correctness, packing efficiency, memory and long-sequence quality |
+| **Initialization / training stability** | Mostly tokenizer-neutral; output/embedding scale depends on vocabulary/head | TinyStories is narrow-domain from-scratch evidence, not Android validation; mobile papers generally start from trained weights | Architecture-specific initializers and scale rules; deterministic test seeds | **CUSTOM** Argus Genesis initialization/identity contract; initializer values **DEFER** until architecture is selected | Random-init correctness is a core Genesis requirement; untested initialization can produce unstable loss or non-finite state | Shape/range tests; independent production seeds; reproducible test seeds; gradient and finite-difference checks; E1 controlled run |
+| **Optimizer/update semantics** | Indirect through sequence/token counts and model parameter inventory | MobileFineTuner measures Adam/gradient accumulation; PocketLLM studies derivative-free optimization for pretrained models | Adam/AdamW/SGD and accumulation profiles; derivative-free alternatives for constrained adaptation | **MODIFY** existing proven optimizer mechanisms behind explicit Argus semantics; final optimizer **DEFER** | Reuse optimizer implementation only after auditing state/update correctness; derivative-free methods trade memory for evaluations/compute and may not suit foundation learning | Reference parity, optimizer-state round trip, update idempotency, per-update energy and convergence under identical budgets |
+| **Activation/memory optimization** | Indirect through sequence length | MobileFineTuner evaluates memory-efficient attention, activation checkpointing, accumulation and sharding; MELON provides DNN memory techniques | Activation checkpoint/recompute; microbatching; gradient accumulation; parameter paging/sharding | **ADOPT** as optimization candidates, not unconditional defaults | Reduces peak memory at additional compute/I/O/complexity cost; accumulation must preserve declared update semantics | Per-device A/B under same update semantics; peak RSS/PSS; extra compute; I/O; thermal and energy impact |
+| **Tensor layout / mobile GPU kernels** | Indirect through dimensions and sequence sizes | FBLayout reports R-Tile layout and 2.2×–5.7× gains in its evaluated fine-tuning setup | Canonical tensor contract plus backend-specific physical layouts; fused/tiling variants | **MODIFY**; backend layout implementation may become **CUSTOM** only if needed | Reduces data movement/cache misses; risks vendor-specific graph assumptions and conversion overhead | Compare reference and optimized outputs/gradients; measure layout conversions, cache/memory and sustained device performance |
+| **CPU/GPU/NPU backend routing** | Indirect through tensor shapes and vocabulary/head | Mobile GPU evidence exists for Adreno/Mali fine-tuning; inference support cannot be assumed to include backward | CPU correctness path; validated GPU backward path; NPU only if exact backward operators exist | **ADOPT** capability-gated CPU baseline; **MODIFY** GPU adapters; **DEFER** NPU | Avoids false acceleration claims; device-specific adapter cost and fallback complexity | Operator/precision coverage, reference parity, actual backend instrumentation, thermal/memory failure fallback |
+| **Training scheduler / thermal governor** | Tokenizer-neutral at policy level; workload duration depends on token cost | MobileFineTuner energy-aware scheduling; iPhone sustained study; Thermo-FL thermal control on non-phone testbeds | Bounded scheduling, pause/resume, thermal-status governor, battery/charging policies | **MODIFY** for Android lifecycle and Argus owner policy | Improves safety and continuity; aggressive pause/resume can reduce progress or hide unstable sustained throughput | Sustained runs, thermal transitions, Android process reclaim, user cancellation, energy per update |
+| **Checkpoint / recovery** | **Sensitive** to tokenizer and dataset fingerprints | Mobile SDK and Android prototypes provide step/checkpoint examples at differing maturity; complete Argus generation transactions are not established by papers | Versioned model+optimizer+RNG+cursor transaction; candidate generations | **CUSTOM** Argus P0 transaction and generation identity | Needed for independent evolution, exact resume and rollback; integration complexity is non-negotiable | Fault injection at update/checkpoint/cursor boundaries; no duplication/skipping of committed updates |
+| **Personal adapter learning** | Tokenizer-bound to base model | Online-SDFT and MobileFineTuner demonstrate local LoRA fine-tuning of pretrained bases | LoRA/adapters and replay/feedback pipelines | **DEFER** to personal-learning path; not a Genesis foundation substitute | Plausible later personalization path; requires consent and general-capability regression gates | Separate personal candidate lifecycle, consent revocation, adapter persistence and general evaluation |
+| **Federated / collaborative / server-assisted training** | Not a tokenizer decision | Gboard, Confidant, MobiLLM and XPerT use federated, peer or cloud-assisted system topologies | Federation; cross-device pipeline parallelism; server-side backward/model cache | **REJECT** for the current Argus core | Conflicts with one-origin independent evolution and local training computation | No integration planned unless product boundary is explicitly reconsidered by ADR |
+
+### 4.1 How to interpret preliminary dispositions
+
+- **ADOPT** does not mean copy a paper's implementation or assume its measured gain transfers to Argus. It accepts a narrow reference/control or optimization technique for evaluation.
+- **MODIFY** is the expected disposition for much of the mobile runtime work: retain the principle, adapt its interfaces and semantics to Argus.
+- **CUSTOM** is reserved for product-critical contracts such as Genesis identity, local instance isolation and atomic candidate/checkpoint lifecycle.
+- **DEFER** is a deliberate decision not to freeze a choice before the required tokenizer, architecture or device evidence exists.
+- **REJECT** applies to incompatible topology assumptions, not to the scientific value of the publication.
+
+## 5. Tokenizer dependency map
+
+Architecture research may continue before G1, but comparisons that depend on token IDs, vocabulary size or token-to-byte coverage must not be frozen.
+
+| Decision / experiment | Tokenizer dependency | Can proceed before G1? | Required output |
+|---|---|---|---|
+| Backbone family high-level literature survey | Indirect | Yes | Evidence scope and candidate families; no final ranking |
+| Attention algorithm/kernel correctness on synthetic tensor shapes | No fixed vocabulary required | Yes | Reference operator contracts and correctness tests |
+| Mobile GPU layout/data movement study | Tensor shape matters; actual shapes later depend on tokenizer/model | Partially | Backend/layout candidate shortlist, not final performance claim |
+| FFN/norm/residual reference comparisons | No direct vocabulary dependency at fixed shapes | Yes, as small controlled proxies | Isolated numerical/compute behavior; no product architecture freeze |
+| Parameter/depth/width device budget | Vocabulary/head contribution not yet fixed | Partially | Non-vocabulary lower/upper cost bounds with explicit excluded embedding/head term |
+| Vocabulary size | Direct | No | Tokenizer comparison results |
+| Embedding dimension and embedding matrix size | Direct through vocabulary and model width | No final selection | Vocabulary-aware parameter/memory budget |
+| Tied vs untied embeddings/output head | Direct cost interaction with vocabulary; semantics need fixed token IDs | No final selection | Parameter/head compute comparison after tokenizer shortlist |
+| Special-token IDs and chat control inventory | Direct | No | Final serializer/tokenizer contract |
+| Effective context length and document coverage | Direct through tokens per byte and segmentation | No | Byte/document coverage per context window |
+| Final sequence packing and boundary masking | Direct through tokenized examples | No | Packing, EOS/document-boundary and loss-mask contract |
+| Final language-model ablation | Direct | No | Freeze tokenizer ID and exact tokenized fixture first |
+
+A tokenizer shortlist is sufficient to prepare the architecture matrix and estimate parameter/head costs, but G4 requires the exact selected tokenizer contract and fingerprint. A vocabulary revision after architecture freeze requires a new generation contract and migration review.
+
+## 6. Existing framework reuse strategy
+
+### 6.1 Minimal integration principle
+
+Argus should not rewrite an established training loop merely to own every line of implementation. It should first evaluate whether an existing native framework can supply a mathematically correct operator/model/training-step core behind a thin adapter.
+
+The reuse boundary should be:
+
+```text
+Argus Genesis / Session / Policy / Data
+                |
+                v
+       Argus Training Adapter
+                |
+        Stable Tensor / Model /
+       Optimizer / Checkpoint API
+                |
+        +-------+--------+
+        |                |
+        v                v
+ Existing Native Core   Argus Custom
+ (if audited/reusable)  Contracts
+                        - Genesis identity
+                        - local instance state
+                        - candidate generation
+                        - atomic recovery
+                        - user/data policy
+```
+
+The diagram is a design boundary, not an existing implementation.
+
+### 6.2 MobileFineTuner integration audit
+
+Before selecting it as the reference native core, evaluate these items separately:
+
+1. **License and redistribution:** exact repository license, all transitive dependencies and asset/model terms; source availability alone is not a redistribution permission.
+2. **Android API maturity:** current AAR/ABI/API surface, lifecycle and error behavior. The published Android SDK documentation identifies arm64-v8a packaging and a Java `trainStep` entry point for LoRA, with a synthetic one-step device smoke test.
+3. **Training-loop completeness:** determine which dataset iteration, batching, sampling, pause/cancel, scheduling and checkpoint capabilities exist in the native core versus the Android wrapper. Do not assume desktop features are exposed to Android.
+4. **From-scratch support:** verify whether the model can be instantiated with locally initialized parameters without loading a pretrained state. The paper's reported experiments are fine-tuning experiments.
+5. **Backward coverage:** inspect each selected architecture operator, gradient shape, numerical precision and reference parity.
+6. **Optimizer semantics:** inspect state allocation, gradient accumulation, clipping, update count, learning-rate scheduling and optimizer-state persistence.
+7. **Model/tokenizer contract:** inspect supported model configs, vocabulary/tokenizer loading, special-token and sequence-label semantics.
+8. **Checkpoint/recovery:** establish whether the core exposes a full model+optimizer+RNG+cursor state or only parameter/adaptor serialization. Argus P0 transaction remains authoritative.
+9. **Device behavior:** physical Android tests for memory, thermal, energy, cancellation, process death, storage pressure and actual CPU/GPU execution.
+10. **Maintenance and portability:** build reproducibility, NDK/ABI scope, architecture support and upstream maintenance cadence.
+
+**Preliminary classification:** **MODIFY / REFERENCE IMPLEMENTATION CANDIDATE**, not “ADOPT AS COMPLETE ARGUS TRAINING ENGINE.” If the API surface or license is insufficient, keep the paper as prior art and use another audited implementation.
+
+### 6.3 FBLayout integration boundary
+
+FBLayout is a strong candidate reference for the mobile-GPU physical layout layer. It must not be treated as a replacement for the model graph, optimizer, dataset loop or checkpoint system. A safe integration boundary would preserve:
+- A canonical logical tensor contract independent of physical backend layout.
+- Explicit and measurable conversion/layout transformation boundaries.
+- Exact numerical parity between reference and optimized forward/backward outputs.
+- Backend capability checks and fallback.
+- Device/runtime-specific tuning records.
+
+Do not copy a GPU-specific layout into CPU tensor semantics or force it onto an unvalidated NPU backend.
+
+### 6.4 Existing framework disposition
+
+| Component | Direction | Reason |
+|---|---|---|
+| Model graph / architecture | Research candidate | No architecture selected |
+| Native tensor/autograd/training core | Reuse or adapt after source/API/accuracy audit | Avoid reimplementing proven mathematical primitives |
+| Android wrapper | Thin Argus adapter | Keep UI, lifecycle, policy and session identity outside native math |
+| Dataset ingestion/rights filter | Argus-owned | Must preserve general/personal data governance and source provenance |
+| Genesis identity and initialization record | Argus-owned | Product-specific independent model origin |
+| Candidate generation + promotion | Argus-owned | P0 active-parent immutability and rollback |
+| Complete checkpoint transaction | Argus-owned orchestration; core serialization may be reused | Model/optimizer/cursor/idempotency must commit together |
+| Mobile GPU physical tensor layout | Reuse/adapt if compatible | Device-specific backend optimization, not global tensor semantics |
+| Thermal/background scheduler | Argus-owned orchestration; techniques may be reused | Android lifecycle, user policy and observable progress |
+| Federated/cloud/peer collaboration | Exclude | Conflicts with accepted local-instance boundary |
+
+## 7. Benchmark and comparison controls
+
+A valid component comparison changes one primary factor at a time and keeps the training semantics fixed.
+
+### 7.1 Common benchmark manifest
+
+Every benchmark record binds:
+- Exact code commit and dependency/runtime versions.
+- Device SKU, SoC, RAM/storage, Android build, ABI and drivers.
+- Actual backend and operator coverage; never infer accelerator use from device name.
+- Tokenizer ID/fingerprint after G1, or the declared synthetic shape fixture before G1.
+- Dataset/source revision, split, bytes, token count, language/domain composition and preprocessing.
+- Model component configuration, parameter count, initialization seed and precision.
+- Optimizer/update semantics, batch/microbatch, accumulation and clipping.
+- Sequence length/packing, target-token or target-byte count, and measured FLOPs/compute proxy where reliable.
+- Warm-up, cold-start and sustained measurement intervals, thermal state, battery/charging and ambient conditions where available.
+- Peak/steady memory, energy method, duration, pauses, errors and raw measurement location.
+
+### 7.2 Required comparison modes
+
+Use separate comparison modes; do not blend their conclusions:
+
+1. **Parameter-matched:** compare capability/cost at approximately equal total parameters. State whether embedding/output parameters are included.
+2. **Compute-matched:** compare under a fixed compute budget; token exposure may differ and must be reported.
+3. **Memory-matched:** compare under the same device/process memory ceiling and reserve.
+4. **Data-exposure-matched:** compare the same documents and target bytes/tokens under a fixed tokenizer.
+5. **Device-matched:** same physical device, OS, thermal start state, power/charging and runtime build.
+6. **Sustained-matched:** compare after the same plateau protocol, not one cold-start run.
+
+When tokenizer changes, a fixed token count does not represent equal raw-text exposure. Report bytes and tokens, and do not claim a tokenizer or architecture win from a mismatched data budget.
+
+### 7.3 Core metrics
+
+- Training loss and held-out loss; learning progress per unit compute and per admitted data byte.
+- Tokens/s, bytes/s, optimizer updates/s, wall time/update and time-to-validation target.
+- Peak and steady process/native/accelerator memory, allocation churn and storage I/O.
+- Energy/update and energy/byte or energy/token with method/uncertainty.
+- Thermal status over time, time-to-plateau, throughput degradation and pause frequency.
+- Numerical correctness: forward/loss/gradient parity, finite differences, finite state and deterministic replay where supported.
+- Operational correctness: pause/cancel latency, checkpoint duration, resume recovery, fallback and user-visible state.
+
+Do not reduce all metrics to a weighted one-number score before the required support/safety gates pass. Present a Pareto frontier and explain the trade-offs.
+
+## 8. Decision gates
+
+| Gate | Purpose | Required evidence | Permitted outcome |
+|---|---|---|---|
+| **G0 — Scope and constraints** | Freeze what is being compared and what cannot change | Genesis constraints in section 2; target device classes or explicitly open status; component inventory; metrics and manifest schema; source/license audit scope | Approve research scope and component matrix only |
+| **G1 — Tokenizer shortlist** | Establish a controlled representation contract for token-sensitive comparisons | Document 34 fixture; candidate family metrics; Unicode/special-token correctness; vocabulary/head cost; shortlist and chosen comparison fixture | Freeze tokenizer contract only after rights, runtime and evaluation gates; otherwise continue shortlist |
+| **G2 — Architecture shortlist** | Reduce candidate families/components to a manageable comparison set | Prior-art evidence; tokenizer-neutral component research; feasibility/resource lower bounds; numerical and runtime risk assessment | Select candidates for controlled ablation, not product architecture |
+| **G3 — Adopt / Modify / Custom / Defer / Reject matrix** | Make component-level dispositions explicit | Filled matrix with source evidence, confidence, expected benefit, cost/risk, validation and owner | Reviewable provisional or accepted component decisions; all deferred items remain visibly open |
+| **G4 — Architecture freeze** | Select the initial Genesis architecture | G1 complete; G3 reviewed; controlled comparison; random-init trainability; device/resource evidence; tokenizer/corpus/checkpoint/verification compatibility; ADR in document 01 | Freeze a versioned architecture contract and migration boundary |
+
+G2 can proceed for tokenizer-neutral questions before G1. G1 blocks final decisions for vocabulary, embeddings/output head, tied weights, token context length and final packing. G4 cannot pass until G1 and the required G3 items are complete.
+
+No gate authorizes implementation or builds by itself. The repository's documentation/build freeze and user's explicit verification authorization remain in force.
+
+## 9. Immediate work sequence
+
+1. **Complete G0:** approve component inventory, constraints, comparison methodology and evidence-confidence labels.
+2. **Parallel evidence extraction:** fill the Android evidence table and component matrix. Audit the complete MobileFineTuner paper/repository, FBLayout paper/review, relevant mobile kernel/runtime sources and any new Android papers. Mark inaccessible or incomplete papers as pending rather than inferring results from a title.
+3. **Run tokenizer comparison as a separate dependency workstream:** use document 34 to produce the fixture and tokenizer shortlist. Intrinsic tokenization diagnostics do not require an LLM training run.
+4. **Prepare tokenizer-neutral architecture references:** define logical operator contracts and candidate ablations for attention, FFN, normalization, residual path, initialization and runtime layout. Any prototype implementation requires a separately approved engineering phase.
+5. **G2 shortlist:** narrow only after literature and resource budgets are reconciled.
+6. **G3 dispositions:** each component receives exactly one primary disposition with rationale and required validation.
+7. **G4 freeze memo:** produce the versioned architecture ADR only after G1/G3 and necessary feasibility evidence pass.
+
+### 9.1 Current stop conditions
+
+Do not:
+- Copy an implementation before license and API audit.
+- Assume MobileFineTuner's paper capability is identical to its current Android SDK wrapper.
+- Attribute FBLayout's speedup to a backbone/attention architecture choice; it is a tensor-layout/runtime result.
+- select RoPE, RMSNorm, SwiGLU, GQA, MoE, tied embeddings or a context length from popularity alone.
+- run whole-model comparisons with different tokenizers and infer architecture superiority.
+- integrate server-assisted/federated/collaborative training into the current Argus baseline.
+- initiate builds, CI workflows, device benchmarks or implementation without explicit authorization.
+
+## 10. Required deliverables
+
+| Deliverable | Artifact | Status |
+|---|---|---|
+| Android prior-art evidence table | Section 3 + evidence register in document 33 | **BASELINE PRESENT; further source audits open** |
+| Genesis constraints | Section 2 | **DOCUMENTED** |
+| Architecture component comparison matrix | Section 4 | **SKELETON WITH PRELIMINARY DISPOSITIONS** |
+| Tokenizer comparison report and shortlist | Document 34 | **PROTOCOL PRESENT; RESULTS NOT RUN** |
+| Adopt/Modify/Custom/Defer/Reject decision log | Section 4 / later ADR | **PRELIMINARY; NOT FROZEN** |
+| Controlled experiment plan | Section 7 and document 33 | **PROTOCOL PRESENT; ARGUS RESULTS NOT RUN** |
+| Architecture freeze memo | Future ADR in document 01 | **BLOCKED BY G1/G3 AND FEASIBILITY EVIDENCE** |
+
+## 11. Cross-document authority
+
+- [33 — From-Scratch Training Feasibility](33_FROM_SCRATCH_TRAINING_FEASIBILITY.md): separates from-scratch, fine-tuning and runtime evidence; device constraints and E1–E7.
+- [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md): candidate tokenizer families, fixture, Unicode/special-token contract, vocabulary and artifact lifecycle.
+- [23 — Neural Architecture Research Plan](23_NEURAL_ARCHITECTURE_RESEARCH_PLAN.md): architecture family research and final selection gate.
+- [20 — Argus Genesis Engine](20_ARGUS_GENESIS_ENGINE.md): local initialization, first-launch readiness and generation identity.
+- [19 — P0 Remediation Design](19_P0_REMEDIATION_DESIGN.md): parent/candidate/checkpoint/promotion transaction and instance/data boundaries.
+- [14 — Performance, Power and Thermal Engineering](14_PERFORMANCE_POWER_THERMAL.md): benchmark methodology and sustained metrics.
+- [15 — Verification and Compatibility](15_VERIFICATION_COMPATIBILITY.md): operator, device, lifecycle and verification requirements.
+- [16 — Roadmap and Research Register](16_ROADMAP_RESEARCH_REGISTER.md): evidence register and phase ordering.
+
+**Current architecture decision:** OPEN. The prior art justifies reusing and adapting mature mobile training techniques; it does not justify freezing a backbone or internal architecture components. Tokenizer evaluation and component-level architecture research proceed in parallel, with G1 as the mandatory dependency gate for token-sensitive decisions.

@@ -75,6 +75,7 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 | [32 — Device-Adaptive Knowledge Acquisition and Corpus Budgeting](32_DEVICE_ADAPTIVE_KNOWLEDGE_ACQUISITION.md) | Device capability profile, corpus/storage tiers, dynamic admission and verification |
 | [33 — From-Scratch Training Feasibility](33_FROM_SCRATCH_TRAINING_FEASIBILITY.md) | Evidence classification, Android resource model, sustained thermal/energy constraints and E1–E7 feasibility protocol |
 | [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md) | Candidate families, multilingual fixtures, Unicode/special-token conformance, vocabulary/runtime costs and decision gates |
+| [35 — Android Architecture Evidence and Component Comparison Matrix](35_ANDROID_ARCHITECTURE_EVIDENCE_AND_COMPONENT_MATRIX.md) | Android prior art, Genesis constraints, component-level disposition, framework reuse and G0–G4 gates |
 
 ## Status vocabulary
 
@@ -89,6 +90,6 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 
 ## Change control and completion
 
-Material decisions belong in [01 — System Requirements and Decisions](01_SYSTEM_REQUIREMENTS_AND_DECISIONS.md). Unresolved questions belong in [16 — Roadmap and Research Register](16_ROADMAP_RESEARCH_REGISTER.md). Detailed Genesis, device adaptation, corpus, architecture, autonomous acquisition, knowledge-domain, source-connector, source-candidate, open-text, curated seed, domain-balanced text, Indonesian OER, device-adaptive acquisition, from-scratch feasibility and tokenizer research belongs in documents 20–34.
+Material decisions belong in [01 — System Requirements and Decisions](01_SYSTEM_REQUIREMENTS_AND_DECISIONS.md). Unresolved questions belong in [16 — Roadmap and Research Register](16_ROADMAP_RESEARCH_REGISTER.md). Detailed Genesis, device adaptation, corpus, architecture, autonomous acquisition, knowledge-domain, source-connector, source-candidate, open-text, curated seed, domain-balanced text, Indonesian OER, device-adaptive acquisition, from-scratch feasibility, tokenizer and component-level Android architecture research belongs in documents 20–35.
 
 The documentation phase ends only when requirements, architecture, model and tokenizer research, corpus governance, resource budgets, verification strategy and cross-document consistency have been reviewed. Passing that gate authorizes an implementation-plan review only. It does not automatically authorize coding, builds or workflow execution.
