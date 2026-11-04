@@ -200,7 +200,7 @@ A candidate may be selected as a design to implement while its Android physical 
 - **G2:** CLOSED only for the initial four-family comparison shortlist. This document expands the comparative synthesis and does not add or remove a family.
 - **G3:** CLOSED only for the one-primary-disposition planning baseline. Architecture-dependent and tokenizer-sensitive components remain DEFER where marked.
 - **Optimizer:** DEFER; AdamW remains the reference/control, Lion is admitted as a memory-sensitive candidate, and no optimizer is selected.
-- **G4:** OPEN/BLOCKED until G1-D closes, the controlled design comparison is complete, each candidate's full random-init/backward/optimizer/checkpoint contract is documented, and a reviewed architecture ADR is issued.
+- **G4:** OPEN/BLOCKED until G1-D closes, the controlled design comparison is complete, each candidate's full random-init/backward/optimizer/checkpoint contract is documented, and a reviewed architecture ADR is issued. For Mamba-2/RWKV-7 candidates, document 41's complete state-component, reset/carry, chunk/BPTT and recurrent-state recovery contracts are mandatory inputs.
 - **Physical Android verification:** E1–E7 remains a later implementation-verification gate. It is not required to finish this documentary synthesis.
 
 ## 8. Primary references
