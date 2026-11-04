@@ -2,7 +2,7 @@
 
 **Status:** Proposed target repository/package structure; no source-tree migration authorized  
 **Last reviewed:** 2026-11-04  
-**Repository observation:** `main` at commit `c3d9a47d5bb02f28349345a92b1434d8ea77665f`  
+**Source-tree observation:** `main` at commit `24b26b061574700d82fecd5c2a1485353333cef8` (same inspected source snapshot used by document 46)  
 **Scope:** Android repository layout, Kotlin package ownership, subsystem boundaries, Gradle module extraction, native/JNI boundary, resource and test placement, build configuration ownership and migration rules  
 **Dependencies:** Documents 01, 02, 15, 17–21, 23, 35, 36, 43 and 44  
 **Boundary:** Structural design only. This document does not create folders, move or rename source files, add Gradle modules, select the neural architecture/tokenizer/backend, change build configuration or authorize implementation, builds, tests, workflows or device experiments.
@@ -64,119 +64,154 @@ These are observations about the prototype, not instructions to copy its package
 
 ## 4. Target Kotlin package organization
 
-The following is the target logical package hierarchy under the existing namespace `com.argus.agi`. During the first authorized structural migration, these boundaries may initially remain inside `:app`. This is not a statement that every folder currently exists.
+This is a **logical package map** under the existing namespace com.argus.agi, initially within the existing :app module. It is not a physical top-level directory layout and does not prescribe Gradle module IDs. No package in this tree is required to exist before it owns real code. The mapping is derived from the subsystem contracts in document 36; the detailed crosswalk below is authoritative for the proposed placement.
 
-```text
+~~~text
 com.argus.agi
 ├── app/
-│   ├── bootstrap/          # Application entry, startup and composition root
-│   ├── lifecycle/          # App readiness and process lifecycle coordination
-│   └── di/                 # Dependency graph construction, if DI is used
-├── navigation/             # Routes and destination wiring
-├── application/
-│   ├── usecase/             # User/system operations expressed through contracts
-│   └── orchestration/       # Genesis, learning, inference and acquisition coordination
+│   ├── bootstrap/             # Application entry and composition root
+│   └── navigation/            # Activity host, routes and destination wiring
 ├── feature/
 │   ├── chat/presentation/
-│   ├── neuralcore/presentation/
+│   ├── learning/presentation/ # User-facing model/training controls and status
 │   ├── perception/presentation/
-│   ├── knowledge/presentation/
 │   └── settings/presentation/
+├── application/
+│   ├── genesis/               # Initial generation workflow and readiness
+│   ├── inference/             # Request/context workflow and cancellation
+│   ├── learning/              # Training admission, session and candidate lifecycle
+│   ├── acquisition/           # Discovery/fetch job orchestration and handoff
+│   ├── knowledge/             # Retrieval and memory workflows
+│   └── evaluation/            # Candidate evaluation and promotion coordination
 ├── core/
-│   ├── identity/           # Instance, generation, session and stable IDs
-│   ├── policy/             # Consent, authorization, retention and trust rules
-│   ├── device/             # Capability and runtime-condition contracts
-│   ├── genesis/            # First-generation lifecycle and readiness contracts
-│   ├── model/              # Model configuration and generation contracts
-│   ├── tokenizer/          # Tokenizer API, identity and manifest contracts
-│   ├── inference/          # Inference session and request contracts
-│   ├── training/           # Training session, update and recovery contracts
-│   ├── compute/            # Backend capability and execution contracts
-│   ├── knowledge/          # Knowledge-domain and memory contracts
-│   ├── acquisition/        # Discovery/fetch job and source-operation contracts
-│   └── evaluation/         # Evaluation definitions and promotion criteria
+│   ├── identity/              # Instance, generation, session and stable IDs
+│   ├── model/                 # Model config, generation and repository contracts
+│   ├── tokenizer/             # Tokenizer identity, manifest and API contracts
+│   ├── inference/             # Inference request/snapshot contracts
+│   ├── training/              # Training session, update and recovery contracts
+│   ├── compute/               # Execution capability and backend contracts
+│   ├── device/                # Stable capability and live-condition contracts
+│   ├── policy/                # Consent, purpose, authorization and retention rules
+│   ├── knowledge/             # Knowledge, memory and provenance domain contracts
+│   ├── acquisition/           # Source, operation-scope and job contracts
+│   ├── evaluation/            # Metrics, gates and promotion invariants
+│   └── events/                # Typed lifecycle/audit event envelopes and schemas
 ├── data/
-│   ├── local/              # Local metadata and transactional persistence
-│   ├── model/              # Generations, tensor files and checkpoint repositories
-│   ├── corpus/             # Corpus manifests and dataset readers
-│   ├── knowledge/          # Knowledge records, indexes and retrieval repositories
-│   └── acquisition/        # Source registries and concrete connectors
+│   ├── model/                 # Generation, tensor and checkpoint repositories
+│   ├── corpus/                # Dataset manifests, splits and readers
+│   ├── knowledge/             # Durable records and retrieval indexes
+│   ├── acquisition/           # Concrete source connectors, fetch and parsing
+│   ├── policy/                # Durable consent, exclusion and policy records
+│   └── audit/                 # Sanitized durable audit/diagnostic records
 ├── platform/
 │   └── android/
-│       ├── lifecycle/      # Android lifecycle and background scheduling
-│       ├── capture/        # Accessibility, camera and authorized capture
-│       ├── device/         # Android hardware/OS capability observation
-│       ├── network/        # Android networking and connectivity
-│       ├── storage/        # Android filesystem, SAF and platform keys
-│       └── notification/   # Foreground-service and notification adapters
+│       ├── lifecycle/         # WorkManager, foreground service and OS callbacks
+│       ├── permissions/       # Android permission state and platform request flows
+│       ├── capture/           # Accessibility, camera and authorized capture
+│       ├── device/            # Android hardware and runtime-condition observations
+│       ├── storage/           # SAF/filesystem/key APIs and platform storage access
+│       ├── connectivity/      # Android connectivity and network-state observation
+│       ├── notification/      # Android notification adapters
+│       └── compute/           # Android/Vulkan/vendor runtime and capability adapters
 ├── engine/
-│   ├── reference/          # Correctness-first Kotlin reference operations
-│   ├── tokenizer/          # Concrete tokenizer engines selected after G1-D
-│   └── backend/            # Compute dispatch and backend adapters
+│   ├── reference/             # Correctness-first numerical reference path
+│   ├── model/                 # Selected family graph/initialization implementation; after G4
+│   └── tokenizer/             # Selected concrete tokenizer implementation; after G1-D
 └── ui/
-    └── design/             # Shared Compose design system and visual primitives
-```
+    └── design/                # Shared Compose design system and visual primitives
+~~~
+
+The tree deliberately does **not** include a generic application/usecase plus application/orchestration double hierarchy, app/lifecycle, a generic data/local catch-all, or a mandatory feature/knowledge screen. Workflow-specific use cases and coordinators live together under their owning application/<workflow> package. A user-facing feature package is added only when a real screen or interaction is approved. The engine/model and engine/tokenizer packages remain absent until their respective selection gates close.
 
 ### 4.1 Package ownership
 
 | Package root | Owns | Must not own |
 |---|---|---|
-| `app` | Process entry, startup, dependency construction and app lifecycle | Neural math, rights decisions or storage implementation |
-| `navigation` | Typed destinations and navigation wiring | Business rules or persistence |
-| `application` | Use cases, workflow coordination, cancellation and lifecycle across subsystems | Compose UI, Android implementations, tensor math or direct database/file access |
-| `feature/*/presentation` | Screen state, events, ViewModels and UI mapping | Direct SQL/file access, JNI, tensor mutation or connector policy |
-| `core/identity` | Stable IDs and identity invariants | Android Context, database entities or UI models |
-| `core/policy` | Purpose-scoped permission and policy decisions | Direct fetching, capture implementation or UI state |
-| `core/device` | Capability/condition models and admission contracts | Guessing accelerator support from branding |
-| `core/genesis` / `core/model` | Initialization and immutable-generation contracts | Neural family implementation or direct file I/O |
-| `core/tokenizer` | Tokenizer contract, identity and deterministic behavior requirements | An unselected tokenizer implementation or implicit vocabulary mutation |
-| `core/training` / `core/inference` | Session/request semantics and lifecycle contracts | Android scheduling, presentation and raw storage writes |
-| `core/compute` | Backend interfaces and execution coverage contracts | Vendor SDK calls or false acceleration claims |
-| `core/knowledge` / `core/acquisition` | Knowledge/source rules and job contracts | Source permission self-approval or hidden network access |
-| `core/evaluation` | Metrics, candidate acceptance and promotion rules | Direct mutation of an active generation |
-| `data` | Persistence, queries, mapping and concrete external-data implementations | Changing domain policy or granting consent |
-| `platform/android` | Android framework integration and lifecycle adapters | Product decisions or neural mathematics |
-| `engine` | Tokenizer and numerical execution behind stable contracts | UI, consent, source rights or navigation |
-| `ui/design` | Shared Compose components, typography, shapes, colors and theme | Feature business logic or direct data access |
+| app/bootstrap | Android Application composition root, dependency construction and startup wiring | Business policy, model math, repository internals or long-running job logic |
+| app/navigation | Activity host, route definitions and destination composition | Business rules, data access or service implementation |
+| feature/*/presentation | Feature UI, immutable UI state, ViewModels and user intent mapping | Concrete repositories, engine classes, connector policy or JNI |
+| application/<workflow> | Workflow-specific use cases, coordination, admission, cancellation, readiness and result mapping | Android framework implementation, tensor mathematics or direct file/database manipulation |
+| core/identity | Instance/generation/session IDs and identity invariants | Android Context, database entities or UI models |
+| core/model, core/tokenizer, core/inference, core/training | Architecture-neutral model/tokenizer/session contracts and invariants | Selected family implementation, persistence code or Android lifecycle |
+| core/device, core/compute | Capability evidence, runtime-condition records and execution contracts | Chipset-name guesses, vendor calls or false acceleration claims |
+| core/policy | Purpose-scoped authorization, consent, retention and fail-closed decisions | Network fetching, capture APIs or UI-owned consent decisions |
+| core/knowledge, core/acquisition | Knowledge/provenance and source-operation/job contracts | Concrete HTTP clients, source self-authorization or training eligibility inferred from retrieval |
+| core/evaluation, core/events | Evaluation invariants, promotion criteria and typed event schemas | Direct active-generation mutation or a global mutable event bus |
+| data/<domain> | Concrete persistence, serialization, query/index and source-connector implementations for that domain | Changing domain policy, granting consent or exposing database/network DTOs to UI |
+| platform/android/* | Android framework, permission, service, filesystem, connectivity, device and runtime-provider integration | Product policy, model mathematics or persistent domain decisions |
+| engine/reference | Correctness-oriented numerical operations and reference behavior | Android APIs, storage, rights policy or presentation |
+| engine/model / engine/tokenizer | Selected architecture/tokenizer implementations behind stable contracts | UI, Android services, consent or source rights |
+| ui/design | Shared Compose tokens, components, typography, shapes and theme | Feature workflows or direct data access |
 
-Subpackages such as `api`, `internal`, `repository` or `serialization` may be added when they represent real ownership. Do not create them preemptively.
+### 4.2 Crosswalk from document 36 logical subsystems
+
+Document 36 remains authoritative for logical responsibilities and lifecycle guarantees. This table assigns proposed Kotlin ownership without changing those contracts.
+
+| Document 36 logical subsystem | Contract/domain owner | Workflow or concrete implementation owner |
+|---|---|---|
+| Experience/UI | None | feature/*/presentation, ui/design, app/navigation |
+| Application orchestrator | core contracts used by each workflow | application/genesis, inference, learning, acquisition, knowledge and evaluation; app/bootstrap wires dependencies |
+| Trust and policy | core/policy | Policy checks in application workflows; data/policy persists grants/revocations |
+| Device capability service | core/device | platform/android/device gathers observations; application workflows perform resource admission |
+| Genesis coordinator | core/model, core/device, core/tokenizer | application/genesis; initialization math in a selected engine; data/model commits generation state |
+| Model-generation repository | Repository contract in core/model | data/model; platform storage/key APIs in platform/android/storage |
+| Tokenizer service | core/tokenizer | engine/tokenizer after G1-D; immutable artifact reference/persistence through data/model |
+| Inference service | core/inference, core/compute | application/inference; numerical execution in engine; runtime providers in platform/android/compute |
+| Learning coordinator | core/training, core/device, core/policy | application/learning; numerical updates in engine; OS scheduling in platform/android/lifecycle |
+| Training engine/backend | core/model, core/training, core/compute | engine/reference and later selected engine/model; Android runtime adapters in platform/android/compute |
+| Corpus and knowledge store | core/knowledge, core/acquisition, core/training | data/corpus, data/knowledge and data/model as appropriate |
+| Acquisition/connectors | core/acquisition, core/policy | application/acquisition orchestrates; data/acquisition fetches/parses; platform connectivity is observed under platform/android/connectivity |
+| Evaluation/promotion | core/evaluation, core/model | application/evaluation; generation commit/promotion persistence in data/model |
+| Event/diagnostic contracts | core/events | Emission stays with owning workflow; data/audit persists sanitized records; no generic event-bus service is required |
+
+The core packages contain contracts and domain invariants, not every workflow implementation. The application packages coordinate those contracts. data, platform/android and engine implement distinct ports and must not depend on one another directly unless a later reviewed module contract proves a narrow adapter dependency is unavoidable.
+
+application owns process-independent workflow lifecycle (for example, training-session pause/resume and Genesis readiness). platform/android/lifecycle owns Android process/service callbacks, WorkManager/foreground-service integration and OS scheduling constraints. These are related but not interchangeable responsibilities.
+
+platform/android/compute owns Android- and vendor-specific runtime/provider integration. core/compute owns provider-neutral capability/execution contracts. engine owns numerical model operations. HTTP acquisition connectors remain in data/acquisition; platform/android/connectivity reports Android connectivity rather than owning all network clients.
+
+Do not add empty packages to match this tree. Add a package only when a real declaration has a clear owner, callers and tests. Subpackages such as internal, serialization or repository are introduced only when they represent an actual boundary.
 
 ## 5. Dependency direction and forbidden dependencies
 
-The intended direction is:
+The intended compile-time direction is:
 
-```text
+~~~text
 feature presentation ───────┐
-navigation ─────────────────┤
+app navigation ─────────────┤
                             v
-                     application
-                   use cases / flows
+                     application/*
+                     workflow use cases
                             |
                             v
-                   core contracts/domain
-             ^              ^                ^
-             |              |                |
-       platform adapters  data adapters   engine adapters
-             |              |                |
-       Android APIs       Room/files      Kotlin/native kernels
-```
+                      core contracts
+             ^              ^               ^
+             |              |               |
+        data adapters  platform adapters  engine
+             \              |               /
+              \             |              /
+               └──── app/bootstrap wires ─┘
+~~~
 
-The diagram is conceptual. Concrete wiring is owned by the application composition root.
+The diagram shows package dependencies, not an execution call graph. app/bootstrap is the composition root and may reference concrete implementations to bind them to contracts. The application layer must not import those concrete implementations.
 
 Mandatory rules:
 
-1. `core/**` MUST remain free of Android framework, Compose, Activity, Service, Context, Room, Retrofit/OkHttp, vendor SDK and JNI implementation dependencies.
-2. `feature/**` MUST depend on application-facing use cases/state contracts, not concrete data or engine implementation classes.
-3. `data/**` MUST implement contracts and MUST NOT redefine consent, rights, retention or training eligibility.
-4. `platform/android/**` MAY depend on Android APIs and core contracts. Core MUST NOT depend back on platform packages.
-5. `engine/**` MUST implement declared tokenizer/compute/model contracts. Engine code MUST NOT know about Composables, Activity, ViewModel or navigation.
-6. The native bridge MUST be called through a typed Kotlin engine adapter. UI and domain code MUST NOT call JNI entry points.
-7. The training engine MUST NOT select or authorize personal data. It receives only an approved immutable dataset manifest.
-8. Acquisition connectors MUST NOT authorize their own source, retention or training permissions.
-9. Repositories expose domain-facing results; database rows and network DTOs do not leak into feature presentation.
-10. Dependency cycles are prohibited at package and Gradle-module level.
-11. Cross-layer calls use explicit interfaces and typed outcomes, not reflection or global mutable registries.
-12. Backend selection and fallback report the implementation that actually executed.
+1. core/** MUST remain free of Android framework, Compose, Activity, Service, Context, Room, Retrofit/OkHttp, vendor SDK and JNI implementation dependencies.
+2. feature/** MUST depend on application-facing workflow APIs/state contracts and ui/design, not concrete data, platform or engine implementation classes.
+3. application/** MUST depend on core/** contracts and workflow ports. It MUST NOT depend on data/**, platform/android/**, Compose, Android framework or numerical engine implementations.
+4. data/** MUST implement domain/application-facing persistence or connector contracts. It MUST NOT redefine consent, rights, retention or training eligibility.
+5. platform/android/** MAY depend on Android APIs and narrow application entry-point contracts needed by Android callbacks/services, plus core/**. Application workflows MUST NOT depend back on Android implementations.
+6. engine/** MUST implement declared model, tokenizer and compute contracts. Engine code MUST NOT know about Composables, Activity, ViewModel, navigation, Android Context or domain policy.
+7. The native bridge, when separately approved, MUST be called through a typed Kotlin engine adapter. UI and domain code MUST NOT call JNI entry points.
+8. The training engine MUST NOT select or authorize personal data. It receives only an approved immutable dataset manifest.
+9. Acquisition connectors MUST NOT authorize their own source, retention or training permissions.
+10. Repositories expose domain-facing results; database rows and network DTOs do not leak into feature presentation or core contracts.
+11. Dependency cycles are prohibited at package and Gradle-module level. data, platform/android and engine do not depend on one another directly by default.
+12. Cross-layer calls use explicit interfaces and typed outcomes, not reflection, static global service locators or global mutable registries.
+13. Lifecycle status is owned by the workflow that owns the job/session; Android adapters observe/control it through narrow interfaces. Do not create a second state database in notifications or generic event streams.
+14. core/events defines typed event contracts only. Durable audit persistence belongs to data/audit; in-process state should use the owning workflow state/result API rather than a mandatory global event bus.
+15. Backend selection and fallback report the implementation that actually executed.
 
 ## 6. Gradle module strategy
 
@@ -215,18 +250,19 @@ Do not create one Gradle module per class, screen, repository or proposed neural
 
 ### 6.3 Candidate extraction seams
 
-These are candidate boundaries, not approved Gradle module declarations:
+These are candidate boundaries, not approved Gradle module declarations or a required extraction order:
 
 | Candidate boundary | Why it may be extracted | Gate before extraction |
 |---|---|---|
-| Android application shell | Entry, navigation, feature composition and Android packaging | Stable feature/use-case contracts |
-| Core contracts/policy | Pure Kotlin APIs and policy-independent data types | Stable cross-subsystem contracts and dependency audit |
-| Local data adapters | Room, file repositories, manifests and migrations | Storage, encryption, deletion and schema policy closure |
-| Android platform adapters | OS services, capture, notifications, scheduling and hardware observation | Exact permission/lifecycle/API contracts |
-| Reference engine | Numerical correctness path independent of UI | Selected model/operator contracts and verification method |
-| Native engine | JNI/NDK/CMake build and backend-specific binaries | Architecture, operator subset, ABI, memory ownership and build/toolchain contract |
+| :core | Enforce Android-free domain/contracts and shared identity/policy types | Contract ownership is stable; no Android or adapter dependency |
+| :application | Isolate process-independent workflows and orchestration | Use-case APIs, cancellation and workflow ownership are stable |
+| :data (or bounded data modules) | Isolate model/corpus/knowledge/policy/audit repositories and connectors | Storage, schema, encryption, deletion and provenance contracts are closed |
+| :platform:android | Isolate Android lifecycle, capture, device, permission, storage and runtime-provider adapters | Exact permission/lifecycle/API and provider boundaries are stable |
+| :engine:reference | Independently test correctness-first numerical behavior | Model/operator contracts and verification method are accepted |
+| Feature modules | Enforce independent UI ownership/build boundaries when more than convention is needed | Feature APIs and navigation integration are stable; do not extract one module per screen |
+| Native engine | Isolate JNI/NDK/CMake and ABI-specific binaries | G4 plus operator, ABI, memory-ownership and toolchain contracts are accepted |
 
-The exact Gradle module names and count remain open. Select them in the implementation plan using the actual dependency graph.
+The exact Gradle module names, granularity and order remain open. A module is extracted only when it enforces a demonstrated dependency, testing, build or ABI boundary.
 
 ### 6.4 Gradle ownership rules
 
@@ -334,57 +370,62 @@ Architecture, native operator inventory and backend coverage remain governed by 
 
 ## 10. Mapping from the current prototype
 
-This is a future ownership map, not an instruction to move files now.
+This is a proposed ownership map, not an instruction to move files now. A current class may need to be split across owners; assigning a row does not mean mechanically renaming its package.
 
-| Current file/package | Target owner | Structural treatment |
+| Current file/package | Target owner(s) | Structural treatment |
 |---|---|---|
-| `ArgusApp.kt` | `app/bootstrap` | Application composition root; global service-locator ownership is removed only in an approved refactor |
-| `MainActivity.kt` | `app` plus `navigation` | Activity remains at app entry; route definitions move out of the Activity |
-| `model/ArgusNeuralEngine.kt` | `engine/reference` or quarantined legacy area | Experimental numerical code; not the selected production engine |
-| `model/Tokenizer.kt` | `core/tokenizer` contract plus selected `engine/tokenizer` implementation | Format/algorithm remains open until G1-D closes |
-| `model/TrainingManager.kt` | `core/training` contract plus engine/platform adapters | Decompose by responsibility; do not just rename the file |
-| `model/WorldModel.kt` | `core/knowledge` plus `data/knowledge` | In-memory prototype is not durable memory architecture |
-| `sensor/HardwareProfile.kt` | `platform/android/device` | Capability evidence provider; heuristic branding is not verified support |
-| `sensor/DeviceGuard.kt` | `platform/android/device` plus `core/device` | Separate Android observations from admission policy |
-| `sensor/ExcludedAppsManager.kt` | `platform/android/capture` and/or policy-backed repository | Final owner depends on permission and persistence contract |
-| `sensor/WebSearchEngine.kt` | `core/acquisition` plus `data/acquisition` | Network client does not own source permission or training eligibility |
-| `service/ArgusAccessibilityService.kt` | `platform/android/capture` | Android platform adapter |
-| `service/ArgusForegroundService.kt` | `platform/android/lifecycle` / `notification` | Android execution adapter; job ownership remains in application orchestration |
-| `ui/ArgusViewModel.kt` | Individual `feature/*/presentation` owners | Split by feature; do not create another monolithic ViewModel |
-| `ui/screens/*` | Corresponding `feature/*/presentation` | Screens and UI state remain feature-owned |
-| `ui/theme/*` | `ui/design` | Shared design system |
+| ArgusApp.kt | app/bootstrap | Composition root; remove global service-locator access only in an approved refactor |
+| MainActivity.kt | app/bootstrap + app/navigation | Keep Activity/platform launchers at the app edge; route and destination wiring belongs under navigation |
+| model/ArgusNeuralEngine.kt | engine/reference initially; model persistence in data/model; Android file/key access through platform/android/storage | Separate numerical operations, checkpoint policy and Android I/O; experimental, not selected production engine |
+| model/Tokenizer.kt | core/tokenizer contracts + engine/tokenizer only after G1-D | Separate immutable identity/API from concrete algorithm; preserve compatibility and token-ID semantics |
+| model/TrainingManager.kt | application/learning, core/training, engine/reference/selected engine/model, platform/android/lifecycle | Decompose session coordination, resource admission, numerical updates and OS scheduling; do not merely rename the class |
+| model/WorldModel.kt | core/knowledge, data/knowledge and application/knowledge | Separate domain records, retrieval/memory workflow and durable persistence; remove Android Context from domain records |
+| sensor/HardwareProfile.kt | platform/android/device + core/device | Separate raw Android evidence from versioned capability contract; SoC heuristics are not verified execution |
+| sensor/DeviceGuard.kt | platform/android/device, core/device and workflow admission | Separate Android battery/thermal observations from policy and resource admission |
+| sensor/ExcludedAppsManager.kt | platform/android/capture + data/policy + core/policy | Separate installed-app discovery, durable user exclusions and authorization decisions |
+| sensor/WebSearchEngine.kt | data/acquisition + core/acquisition | Concrete HTTP fetch/parser; source permission, retention and training eligibility remain outside connector code |
+| service/ArgusAccessibilityService.kt | platform/android/capture | Android entry adapter; submit bounded capture observations through application-facing interfaces |
+| service/ArgusForegroundService.kt | platform/android/lifecycle + platform/android/notification | Android execution/notification adapter; session state remains application-owned |
+| ui/ArgusViewModel.kt | Feature-specific feature/*/presentation state holders | Split by user-facing workflow; no replacement monolithic ViewModel |
+| ui/screens/ChatScreen.kt | feature/chat/presentation | Keep picker/clipboard UI edges; delegate decoding and conversation workflow |
+| ui/screens/NeuralCoreScreen.kt | feature/learning/presentation | User-facing learning/training status; avoid exposing engine DTOs |
+| ui/screens/PerceptionScreen.kt | feature/perception/presentation + platform/android/capture/permissions | Keep UI/preview host at presentation edge; capture lifecycle/service implementation behind contracts |
+| ui/screens/SkillsAndSettingsScreen.kt | feature/settings/presentation + application/platform contracts | UI dispatches typed settings/exclusion intents; platform settings actions remain outside domain |
+| ui/theme/* | ui/design | Shared design system |
 
-Before any move, inspect usages, DI construction, manifest references, serialization names, tests, reflection/ProGuard rules and resource references. This mapping does not authorize a bulk package rename.
+Before any move, inspect usages, app composition, manifest references, Android component FQCNs, serialization names, tests, reflection/ProGuard rules and resource references. This mapping does not authorize a bulk package rename.
 
 ## 11. Top-level repository ownership
 
+The current repository remains a single Android application module. Section 4 describes packages under the namespace inside that module; a package tree must not be mistaken for root-level Gradle modules.
+
 | Path | Purpose and rule |
 |---|---|
-| `app/` | Existing Android application module and production/test source sets |
-| `docs/` | Requirements, architecture, evidence, decisions, lifecycle and governance |
-| `gradle/` | Version catalog and wrapper; no project source or secrets |
-| `tools/` | Future reproducible maintenance/research tooling only with named owner, inputs, outputs and environment |
-| `benchmarks/` | Future benchmark harnesses/results only with defined methodology and provenance |
-| `public/` | Existing repository static assets; identify the current consumer of `public/assets/argus_icon.png` before moving or duplicating |
-| root `engine/`, `core/`, `data/`, `platform/` | Future Gradle module roots only after extraction approval; do not create empty directories |
-| `build/`, `.gradle/`, generated outputs | Local/generated state, never source-of-truth inputs or committed runtime artifacts |
+| app/ | Existing Android application module and production/test source sets; current Kotlin packages remain under com.argus.agi until module extraction is approved |
+| docs/ | Requirements, architecture, evidence, decisions, lifecycle and governance |
+| gradle/ | Version catalog and wrapper; no project source or secrets |
+| tools/ | Future reproducible maintenance/research tooling only with named owner, inputs, outputs and environment |
+| benchmarks/ | Future benchmark harnesses/results only with defined methodology and provenance |
+| public/ | Existing repository static assets; identify the current consumer of public/assets/argus_icon.png before moving or duplicating |
+| root core/, application/, data/, platform/, engine/ or feature/ | Potential Gradle module roots only after extraction approval; do not create them merely to mirror the package diagram |
+| build/, .gradle/, generated outputs | Local/generated state, never source-of-truth inputs or committed runtime artifacts |
 
-Do not add `datasets/`, `models/`, `checkpoints/`, `secrets/` or personal-data directories as casual source-tree storage. Distributable fixtures/datasets require documented provenance, rights, size, checksum, update and packaging policy. User checkpoints, memory and training data are runtime user data, not Git assets.
+Do not add datasets/, models/, checkpoints/, secrets/ or personal-data directories as casual source-tree storage. Distributable fixtures/datasets require documented provenance, rights, size, checksum, update and packaging policy. User checkpoints, memory and training data are runtime user data, not Git assets.
 
 ## 12. Test and verification organization
 
 | Test category | Preferred location | Required focus |
 |---|---|---|
-| Core/domain/policy | `src/test/.../core/` | Invariants, typed errors, consent defaults and fail-closed behavior |
-| Tokenizer | `src/test/.../tokenizer/` | Fixtures, Unicode, special-token boundaries, determinism and fingerprint |
-| Numerical engine | `src/test/.../engine/` | Reference parity, finite values, gradients, optimizer updates and deterministic initialization |
-| Training lifecycle | `src/test/.../training/` | Pause/resume, cursor consistency, checkpoint/recovery and cancellation |
-| Data/persistence | `src/test/.../data/` | Transactions, checksums, migrations, partial writes and deletion |
-| Android platform | `src/androidTest/.../platform/` | Permissions, process lifecycle, foreground scheduling and platform integration |
-| UI | `src/androidTest/.../feature/` or supported local Compose tests | User-visible states, controls, privacy review and error presentation |
+| Core/domain/policy/events | src/test/.../core/ | Identity invariants, typed outcomes, consent defaults, event schema compatibility and fail-closed behavior |
+| Application workflows | src/test/.../application/ | Genesis readiness, learning admission, pause/resume, cancellation, acquisition handoff and promotion ordering |
+| Tokenizer | src/test/.../engine/tokenizer/ or contract-focused core/tokenizer tests | Fixtures, Unicode, special-token boundaries, determinism and fingerprint |
+| Numerical engine | src/test/.../engine/ | Reference parity, finite values, gradients, optimizer updates and deterministic initialization |
+| Data/persistence/audit | src/test/.../data/ | Transactions, checksums, migrations, partial writes, rights records and deletion lineage |
+| Android platform | src/androidTest/.../platform/ | Permissions, process lifecycle, foreground scheduling, capture safeguards and runtime/provider integration |
+| Feature UI | Supported local Compose tests and/or src/androidTest/.../feature/ | User-visible states, controls, privacy review and error presentation |
 | Native/JNI | Native module tests plus Android instrumentation | ABI, memory ownership, concurrency, crash safety and Kotlin/native parity |
 
-A test result is tied to the exact code revision, device/software environment and test data. File placement or a passing test that does not cover the claimed behavior does not establish support.
+Test package paths SHOULD mirror production package paths. Cross-layer tests may live in the narrowest owning module's test source set or in a dedicated integration suite only when multiple modules are extracted. A test result is tied to the exact code revision, device/software environment and test data. File placement or a passing test that does not cover the claimed behavior does not establish support.
 
 ## 13. Rules for changing project structure
 
@@ -416,11 +457,11 @@ No such migration is part of the current documentation-only phase.
 ## 14. Unresolved structural decisions
 
 - exact Gradle module count, IDs and extraction order;
-- DI library versus a small explicit composition root;
+- DI framework selection; an explicit application composition root is mandatory regardless of framework;
 - whether core contracts share one module or several independently tested modules;
 - local persistence split, Room/DataStore/file formats and encryption boundary;
 - native engine module, C++ ABI, NDK/CMake/STL versions and supported ABIs;
-- backend module split for CPU, Vulkan and vendor providers;
+- exact split between platform/android/compute provider integration and engine-side numerical execution;
 - location and packaging model for future bundled corpus/tokenizer assets;
 - whether `public/` has an active non-Android tooling/branding consumer;
 - build convention plugin strategy and static-analysis toolchain;
@@ -431,7 +472,7 @@ These decisions depend on architecture, tokenizer, storage/security, backend and
 ## 15. Current disposition and authorization
 
 - **Current physical source layout:** one Android Gradle module, `:app`, with the legacy package structure in Section 2.
-- **Target logical package hierarchy:** proposed in Section 4.
+- **Target logical package hierarchy:** revised in Section 4 and cross-mapped to every logical subsystem in document 36.
 - **Dependency direction:** defined in Section 5.
 - **Gradle module extraction:** intentionally deferred until stable contracts and concrete dependency boundaries justify it.
 - **Native C++/JNI structure:** documented as a future isolated boundary; no native implementation exists in the inspected tree.
