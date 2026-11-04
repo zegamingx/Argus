@@ -329,7 +329,7 @@ Training must not be re-enabled merely by fixing the array bounds or checkpoint 
 4. A typed candidate lifecycle that enforces classification, redaction, explicit approval and revocation.
 5. A worker that consumes only approved, version-matched records and fails closed on corruption or non-finite updates.
 
-The proposed implementation contract is documented in [P0 Remediation Design](19_P0_REMEDIATION_DESIGN.md). It is a design proposal, not an implementation or a closed audit finding.
+The P0 correctness/remediation gates are specified in [19 — P0 Remediation Design](19_P0_REMEDIATION_DESIGN.md); the wider architecture-neutral module/API, lifecycle, state, event/error, concurrency and transaction contracts are consolidated in [36 — Pre-Implementation Module and Lifecycle Contracts](36_PRE_IMPLEMENTATION_MODULE_AND_LIFECYCLE_CONTRACTS.md). Both are proposed design artifacts, not implementation evidence or closed audit findings.
 
 No application source was modified in this pass. All six P0 items remain OPEN. No build, test, lint, packaging task, GitHub Actions workflow or artifact upload was run.
 
