@@ -15,7 +15,7 @@ Separate product behavior from model implementation, hardware vendors and operat
 4. **Cognition services:** context assembly, planning, retrieval, evaluation, policy checks and deterministic utilities.
 5. **Model services:** registry, tokenizer, inference sessions, embeddings, VLM/audio services and adapter lifecycle.
 6. **Compute abstraction:** capability discovery, backend registry, compilation, allocation, dispatch, profiling and fallback.
-7. **Platform adapters:** Android APIs, CPU kernels, Vulkan and vendor NPU SDKs; future platform bindings remain isolated.
+7. **Platform adapters:** Android APIs, OS services, Vulkan/runtime-provider integration and vendor NPU SDKs; numerical kernels remain engine-owned and platform bindings stay isolated.
 8. **Data layer:** encrypted metadata, conversation/memory stores, model files, checkpoints and audit records.
 9. **Trust/governance plane:** consent, permission state, network policy, approval, retention and kill switch.
 
