@@ -32,6 +32,9 @@ ASSESSING_DEVICE
 SELECTING_CONFIGURATION
     |
     v
+PREPARING_TOKENIZER
+    |
+    v
 CONSTRUCTING_MODEL
     |
     v
@@ -66,11 +69,15 @@ Collect only data needed to choose a feasible configuration:
 
 A vendor name or advertised accelerator is only a discovery hint. An accelerator is not usable until its runtime, operations and execution have been verified.
 
+Keep stable hardware/runtime capability evidence separate from transient conditions such as current thermal pressure, battery state and temporary memory pressure. The former informs the initial configuration portfolio; the latter constrains the current workload admission decision.
+
 ### 4.2 Configuration selection
 
 Choose a configuration from architecture candidates that have passed the research/feasibility gate in [23 — Neural Architecture Research Plan](23_NEURAL_ARCHITECTURE_RESEARCH_PLAN.md), the from-scratch feasibility protocol in [33 — From-Scratch Training Feasibility](33_FROM_SCRATCH_TRAINING_FEASIBILITY.md), the tokenizer contract gate in [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md), and the component evidence/disposition gate in [35 — Android Architecture Evidence and Component Comparison Matrix](35_ANDROID_ARCHITECTURE_EVIDENCE_AND_COMPONENT_MATRIX.md), together with device memory and compute budgets, supported data types/operators, training memory needs, thermal sustainability and storage requirements.
 
-There is no universal parameter count or fixed model tier. Record the selected configuration and the capability evidence used to select it.
+There is no universal parameter count, fixed model tier or single tokenizer vocabulary required for every installation. The selected configuration is a compatible bundle: architecture family and dimensions, tokenizer profile and exact artifact fingerprint, precision, backend path, and initial training/resource profile. Device capability determines which reviewed bundle is feasible; the product language/domain scope and source-rights policy determine which tokenizer data and language behavior are eligible.
+
+Resolve and validate the tokenizer profile before allocating vocabulary-dependent embedding or output-head tensors. The profile may reference a precomputed artifact or a capability-bounded local tokenizer-training plan. A local tokenizer trainer must use a separately approved, bounded seed corpus and its own CPU, memory, storage and time budget. Do not assume an NPU accelerates tokenizer training without an independently verified implementation.
 
 ### 4.3 Model construction
 
@@ -84,7 +91,7 @@ Production initialization is independent per instance. A deterministic seed may 
 
 ### 4.5 Initial generation commit
 
-Write the model state and manifest to a temporary generation directory. Validate tensor inventory, checksums, architecture/tokenizer fingerprints and storage completion. Commit the generation atomically. Incomplete temporary state must remain distinguishable from an active generation. The initial generation becomes immutable once published. Later learning must create an isolated child candidate generation and must not modify this committed generation in place; see [19 — P0 Remediation Design](19_P0_REMEDIATION_DESIGN.md) for the Genesis-to-training transaction and promotion contract.
+Write the model state and manifest to a temporary generation directory. Validate tensor inventory, checksums, architecture/tokenizer profile and artifact fingerprints, device-profile/configuration identity, and storage completion. Commit the generation atomically. Incomplete temporary state must remain distinguishable from an active generation. The initial generation becomes immutable once published. Later learning must create an isolated child candidate generation and must not modify this committed generation in place; see [19 — P0 Remediation Design](19_P0_REMEDIATION_DESIGN.md) for the Genesis-to-training transaction and promotion contract.
 
 ### 4.6 Readiness publication
 
@@ -92,7 +99,7 @@ Only after commit succeeds may AGE publish the initial generation and allow the 
 
 ## 5. Keep training off the startup critical path
 
-The loading screen must not run full pretraining, corpus-wide preprocessing, multiple epochs, personal-data ingestion or long-running benchmarks.
+The loading screen must not run full neural pretraining, corpus-wide preprocessing, multiple epochs, personal-data ingestion or long-running benchmarks. Tokenizer preparation is a separate, bounded prerequisite to allocating model tensors; it must not silently become an unbounded first-launch training job. If a selected local tokenizer-training plan cannot complete within its declared Genesis resource envelope, use only a pre-approved compatible tokenizer profile selected by policy before model construction, or stop with a recoverable and actionable error. Never swap token IDs after model tensors have been initialized.
 
 The intended first-use experience:
 1. Show meaningful Genesis stages.
