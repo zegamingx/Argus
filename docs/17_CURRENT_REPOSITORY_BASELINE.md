@@ -32,7 +32,7 @@ README badges match the checked-in AGP, Gradle and Kotlin versions. Release sign
 
 Inspected packages are `model/` (ArgusNeuralEngine, Tokenizer, TrainingManager, WorldModel), `sensor/` (HardwareProfile, DeviceGuard, ExcludedAppsManager, WebSearchEngine), `service/` (Accessibility and foreground services) and `ui/` (ViewModel and Compose screens).
 
-The README's described `core/agent`, `core/memory`, `core/training`, native C++ and hardware-router tree is not present in the inspected source tree.
+The README's described `core/agent`, `core/memory`, `core/training`, native C++ and hardware-router tree is not present in the inspected source tree. A file-by-file ownership and dependency-direction audit of the inspected source layout is maintained in [46 — Android Source-Tree Ownership and Dependency Audit](46_ANDROID_SOURCE_TREE_OWNERSHIP_AND_DEPENDENCY_AUDIT.md).
 
 ## 3. Hardware discovery baseline
 
