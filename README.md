@@ -116,6 +116,7 @@ The documents under [docs/](docs/README.md) are the planning source of truth. Th
 | [35 — Android Architecture Evidence and Component Comparison Matrix](docs/35_ANDROID_ARCHITECTURE_EVIDENCE_AND_COMPONENT_MATRIX.md) | Android prior art, Genesis constraints, tokenizer-neutral/sensitive components, framework reuse and G0–G4 gates |
 | [36 — Pre-Implementation Module and Lifecycle Contracts](docs/36_PRE_IMPLEMENTATION_MODULE_AND_LIFECYCLE_CONTRACTS.md) | Logical API boundaries, data contracts, state machines, typed errors/events, concurrency, atomic storage and verification obligations |
 | [37 — Optimizer Research and Lion Assessment](docs/37_OPTIMIZER_RESEARCH_AND_LION_ASSESSMENT.md) | AdamW/Lion/Adafactor comparison, Lion state-memory accounting, device-adaptive batch semantics and exact optimizer recovery |
+| [38 — G2 Architecture Comparative Synthesis](docs/38_G2_ARCHITECTURE_COMPARATIVE_SYNTHESIS.md) | Cross-family trade-offs for Transformer, Mamba-2 SSD, RWKV-7 and hybrid; matched comparison rules and G4 deliverables |
 
 ## Current implementation status
 
