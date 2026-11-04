@@ -19,7 +19,7 @@ The initial four-family shortlist remains appropriate for the first Argus model-
 
 The next decision must not be framed as “which architecture is fastest?” It is a multi-objective decision across from-scratch trainability, model quality, training/inference memory, sustained compute, kernel maturity, data semantics, exact recovery, maintainability and the number of device profiles the project can support.
 
-**No G4 selection is made here.** The purpose is to expose the trade-offs and required comparisons before freezing a design.
+**No G4 selection is made here.** The purpose is to expose the trade-offs and required comparisons before freezing a design. The consolidated G4 decision method, profile schema and ADR acceptance checklist are maintained in [43 — G4 Architecture Decision and Device-Profile Contract](43_G4_ARCHITECTURE_DECISION_AND_PROFILE_CONTRACT.md).
 
 ## 2. Evidence categories and transfer limits
 
