@@ -4,7 +4,7 @@
 
 This directory is the engineering source of truth for Argus planning. It distinguishes accepted design direction, current repository facts, unresolved research and future implementation. A design document does not prove a capability exists in the application.
 
-The repository-wide authority and change-control rules are defined in [44 — Documentation Governance and Change Control](44_DOCUMENTATION_GOVERNANCE_AND_CHANGE_CONTROL.md). The proposed Android package hierarchy, subsystem-to-package crosswalk, dependency direction, Gradle module strategy and project file-placement rules are defined in [45 — Android Project Structure and File-Placement Rules](45_ANDROID_PROJECT_STRUCTURE_AND_FILE_PLACEMENT_RULES.md). The numbered files remain physically flat and stable; the workstream grouping below is for navigation and ownership, not a directory migration.
+The repository-wide authority and change-control rules are defined in [44 — Documentation Governance and Change Control](44_DOCUMENTATION_GOVERNANCE_AND_CHANGE_CONTROL.md). The proposed Android package hierarchy, subsystem-to-package crosswalk, dependency direction, Gradle module strategy and project file-placement rules are defined in [45 — Android Project Structure and File-Placement Rules](45_ANDROID_PROJECT_STRUCTURE_AND_FILE_PLACEMENT_RULES.md). Current source ownership and dependency findings are recorded in [46 — Android Source-Tree Ownership and Dependency Audit](46_ANDROID_SOURCE_TREE_OWNERSHIP_AND_DEPENDENCY_AUDIT.md), while the proposed contract-owner, consumer, provider/adaptor and state-authority mapping is in [47 — Package Interface and Dependency Contract Matrix](47_PACKAGE_INTERFACE_AND_DEPENDENCY_CONTRACT_MATRIX.md). The numbered files remain physically flat and stable; the workstream grouping below is for navigation and ownership, not a directory migration.
 
 ## Project vision
 
@@ -52,7 +52,7 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 | Feasibility and pre-implementation foundations | 33–37 | From-scratch feasibility, tokenizer, Android evidence, module/lifecycle contracts and optimizer research |
 | Architecture comparison and G4 preparation | 38–43 | Cross-family synthesis, component/init/state/tensor contracts and G4 framework |
 | Documentation governance | 44 | Document authority, evidence/status semantics and change control |
-| Android project structure and source audit | 45–46 | Target Kotlin ownership, current file inventory, dependency direction, Gradle boundaries and migration findings |
+| Android package structure, source audit and interface contracts | 45–47 | Target ownership, current source dependencies, contract consumers/providers, Gradle boundaries and open interface gaps |
 
 The grouping is descriptive only. Each document retains its own declared scope and the authority rules in document 44.
 
@@ -106,6 +106,7 @@ The grouping is descriptive only. Each document retains its own declared scope a
 | [44 — Documentation Governance and Change Control](44_DOCUMENTATION_GOVERNANCE_AND_CHANGE_CONTROL.md) | Document authority, repository structure, evidence/status rules, ADR process and documentation-only change control |
 | [45 — Android Project Structure and File-Placement Rules](45_ANDROID_PROJECT_STRUCTURE_AND_FILE_PLACEMENT_RULES.md) | Proposed Kotlin package hierarchy, subsystem-to-package crosswalk, dependency direction, Gradle module extraction criteria, Android/native source boundaries, tests and resource placement |
 | [46 — Android Source-Tree Ownership and Dependency Audit](46_ANDROID_SOURCE_TREE_OWNERSHIP_AND_DEPENDENCY_AUDIT.md) | File-by-file prototype ownership, dependency-direction findings, build configuration observations and migration priority |
+| [47 — Package Interface and Dependency Contract Matrix](47_PACKAGE_INTERFACE_AND_DEPENDENCY_CONTRACT_MATRIX.md) | Contract owners, permitted consumers, adapter/provider owners, authoritative state, dependency rules and unresolved interface gaps |
 
 ## Status vocabulary
 
