@@ -1,6 +1,6 @@
 # Tokenizer Evaluation and Decision Framework
 
-**Status:** Evidence synthesis with provisional design shortlist; final product tokenizer ADR remains OPEN  
+**Status:** Evidence synthesis with provisional device-conditioned tokenizer portfolio; final tokenizer profile policy and ADR remain OPEN  
 **Last reviewed:** 2026-11-04  
 **Research stage:** Stage 4.1–4.2 — Tokenizer evaluation and comparative research  
 **Authority:** Candidate definitions, evaluation controls and decision gates. No tokenizer, vocabulary size, normalization profile, packaging policy or runtime is selected by this document.
@@ -9,7 +9,9 @@
 
 Argus must choose a tokenizer before its model generation is initialized because the tokenizer's vocabulary and token-ID mapping define the input embedding and output projection dimensions. The tokenizer also influences sequence length, context use, training compute, inference cost, multilingual coverage and model-state compatibility.
 
-This document establishes a controlled method to compare tokenizer candidates. It does not select a winner.
+This document establishes a controlled method to compare tokenizer candidates. It does not select a universal winner or require one vocabulary shared by every installation.
+
+Argus is device-adaptive. The product language/domain policy and rights-cleared source inventory define the eligible tokenizer scope; each installation's measured capability profile determines which reviewed tokenizer configuration and preparation mode is feasible. The resulting tokenizer may be a shared precomputed artifact selected from a profile portfolio or a locally trained, versioned artifact. Either way, its exact fingerprint is fixed before model tensors are initialized and remains immutable for that model generation.
 
 The current evidence supports four cautions:
 
@@ -362,53 +364,58 @@ A library's availability or benchmark speed is not proof of compatibility with t
 
 Three lifecycle strategies remain open:
 
-### Option A — Precomputed, versioned tokenizer artifact
+### Option A — Precomputed, versioned tokenizer profile portfolio
 
-Train the vocabulary outside the app from a rights-cleared, versioned corpus and distribute the tokenizer model/configuration as a standalone asset.
-
-Potential advantages:
-- Fixed vocabulary and token IDs before Genesis allocates embedding/output tensors.
-- Reproducible model identity across installations that use the same tokenizer revision.
-- No tokenizer-training delay or tokenizer-training memory spike during first launch.
-- Lower implementation complexity for the first Genesis path.
-
-Risks/open questions:
-- The training corpus and vocabulary may reflect a distribution that does not match every installation's later knowledge mix.
-- Requires provenance, licensing, attribution and reproducible training records for the tokenizer asset.
-- Updates to the vocabulary require a new tokenizer/model generation contract and migration strategy.
-
-### Option B — Per-installation local tokenizer training
-
-Each installation trains its tokenizer from a locally available and rights-cleared seed corpus before constructing the initial neural model.
+Train tokenizer artifacts outside the app from rights-cleared, versioned corpora and distribute a small portfolio of compatible artifacts/configurations. Genesis selects one profile only after evaluating the device capability envelope and the product language/domain policy.
 
 Potential advantages:
-- Tokenizer vocabulary can reflect the local seed distribution and product policy.
-- Does not require a shared vocabulary asset if the whole algorithm and initial text are available locally.
+- Several reviewed vocabulary budgets and pipeline variants can serve different model/resource envelopes without forcing one global vocabulary.
+- A selected artifact is ready before Genesis allocates vocabulary-dependent tensors.
+- Installations selecting the same profile can share the same immutable tokenizer artifact and fingerprint while retaining independent neural weights.
+- The first-launch path avoids local tokenizer-training cost.
 
 Risks/open questions:
-- Adds CPU, memory, storage and startup complexity before Genesis can finalize embedding dimensions.
-- Different installations may produce different vocabularies and token-ID mappings, increasing model/tooling divergence.
-- A vocabulary change invalidates direct embedding/output-head compatibility.
-- The tokenizer-training corpus must be available offline and legally eligible on every device.
-- Deterministic reproducibility and fallback behavior must be specified.
+- The profile portfolio must be maintained, versioned and supported; it must not become an uncontrolled matrix of hardware-specific builds.
+- Every artifact needs its own provenance, license, attribution and reproducible training record.
+- A profile may not match a particular installation's later knowledge distribution.
+- Changing profile or token mapping requires a new model-generation contract and migration strategy.
+
+### Option B — Capability-bounded local tokenizer training
+
+An installation may train its own tokenizer from an approved, locally available seed corpus when its measured capability profile can satisfy the preparation budget. Local training is an optional profile, not a requirement that every phone produce a unique vocabulary.
+
+Potential advantages:
+- Vocabulary and merge behavior can be selected for the declared language/domain scope and the chosen device/model resource envelope.
+- Vocabulary budget can be evaluated together with embedding/output-head, optimizer-state and sequence costs.
+- No single centrally distributed vocabulary is required for installations using this mode.
+
+Risks/open questions:
+- Tokenizer training consumes CPU time, memory, storage and energy; it must be separately budgeted and measured. Do not assume GPU/NPU acceleration.
+- It must finish before vocabulary-dependent model tensors are initialized.
+- The training seed corpus must be local/offline or fetched through a separately authorized flow and legally eligible for tokenizer training and artifact creation.
+- Different installations may produce different token IDs. That is acceptable for independent local generations but prevents direct interchange of their tokenized datasets/checkpoints/model weights.
+- A deterministic fallback profile must be selected before model construction if local preparation exceeds its declared budget.
+- Personal conversations and private captures are excluded unless a distinct, explicit consent and governance contract authorizes their use.
 
 ### Option C — Algorithmic byte-level tokenizer
 
-Use a fixed byte mapping, optionally with a fixed byte-level merge artifact if the implementation requires it. The pure raw-byte baseline itself has no learned vocabulary.
+Use a fixed byte mapping without a learned merge table as a universal-coverage control or as a deployment candidate only where the selected model/resource envelope supports its sequence cost.
 
 Potential advantages:
 - Full byte coverage and predictable base alphabet.
-- No tokenizer vocabulary training is required for raw bytes.
+- No learned tokenizer vocabulary training is required.
 - Stable algorithmic behavior when fully specified.
 
 Risks/open questions:
-- Raw bytes can increase sequence length and compute; the ByT5 paper documents this trade-off for its own model.
-- A merge vocabulary is still a learned data-derived artifact and requires provenance.
-- Runtime, context and training-cost results must be measured on Argus's target devices.
+- Raw bytes can increase sequence length, context consumption and training compute; the ByT5 paper's results are workload-specific and are not Argus estimates.
+- It may be infeasible for a device/model envelope that cannot afford the longer sequences.
+- Runtime, context and training-cost results must be compared on the same eligible fixture.
 
-**Provisional lifecycle recommendation:** prefer **Option A — a precomputed, versioned tokenizer artifact** for the first implementation, subject to the rights/runtime review below. One immutable vocabulary can be shared as a deterministic representation contract without sharing any installation's neural weights, memory, optimizer state or model identity; every local Genesis generation still has its own instance/generation IDs and independently initialized parameters. This avoids adding vocabulary training to the first-launch critical path and avoids per-installation token-ID divergence. Use Option B only if a documented product requirement genuinely needs per-installation vocabularies and the resulting per-device tokenizer build, compatibility, migration and corpus-rights burden is accepted. Option C raw bytes remains an evaluation control, not the default deployment choice, because its sequence expansion may consume context and training compute.
+**Device-conditioned lifecycle policy — proposed, not yet an accepted ADR:** Argus should define a bounded tokenizer profile portfolio and a deterministic selection policy, not declare one vocabulary universally optimal. Product-language requirements and source rights first define the allowed data and required coverage. The capability profile then selects among the eligible profiles by accounting for tokenizer preparation cost, sequence compression, vocabulary/head/optimizer memory, context coverage and runtime support. Depending on the profile, Genesis may load a precomputed artifact or run bounded local tokenizer training. A high-end phone is not automatically assigned a larger vocabulary, and a low-end phone is not automatically assigned raw bytes; both choices require evidence and a compatible model configuration.
 
-This is a design recommendation, not an accepted ADR. The exact algorithm, vocabulary size, artifact source/license and Android runtime must still pass G1-D/G4.
+Tokenizer preparation is a prerequisite to model construction, not neural-model learning. It must not turn first launch into an unbounded training screen. If local tokenizer training cannot complete within its declared Genesis envelope, use only a pre-approved compatible precomputed/algorithmic profile selected before model tensor allocation, or fail with a recoverable reason. Do not silently change token IDs after generation creation.
+
+This is a proposed selection policy, not an accepted tokenizer ADR. Exact language scope, candidate profiles, vocabulary budgets, rights, trainer/runtime and Android conformance remain G1-D/G4/G1-V decisions.
 
 ## 10. Versioning, identity, checkpoints and migration
 
@@ -445,9 +452,10 @@ G1-D may be completed from published research, official documentation, audited s
 2. A rights-cleared tokenizer-training corpus and, for PA-BPE, a separately rights-cleared aligned development corpus are identified; any evaluation-only source is excluded from vocabulary/merge selection.
 3. The evidence matrix compares raw-byte, standard byte-level BPE, PA-BPE (including hybrid/no-dev variants where relevant), SentencePiece BPE and SentencePiece Unigram within their actual evaluation scope.
 4. The provisional candidate shortlist and rationale account for per-language/domain quality evidence, compression, vocabulary/model-state costs and data availability.
-5. The tokenizer artifact lifecycle, exact pre-tokenization/normalization contract, special-token policy, versioning and generation-migration boundary are defined.
-6. A plausible Android inference runtime has been identified from current public APIs/source/licensing, with unsupported capabilities and provider limits explicitly recorded.
-7. The ADR states which conclusions are research-backed, analytically established, implementation-dependent and still empirically unverified.
+5. A device-conditioned tokenizer profile policy is documented: profile selection inputs, candidate vocabulary budgets, precomputed versus local-training modes, bounded preparation/fallback behavior, and the rule that the chosen fingerprint is fixed before model tensor allocation.
+6. The exact pre-tokenization/normalization contract, special-token policy, versioning and generation-migration boundary are defined for each retained profile.
+7. A plausible Android inference runtime has been identified from current public APIs/source/licensing, with unsupported capabilities and provider limits explicitly recorded.
+8. The ADR states which conclusions are research-backed, analytically established, implementation-dependent and still empirically unverified, including the fact that physical per-device support remains a post-implementation claim.
 
 G1-D does not claim exact Argus corpus fertility results, downstream quality, Android runtime conformance or device performance.
 
@@ -479,7 +487,7 @@ Use a Pareto comparison rather than an opaque one-number weighted score. Hard co
 Open decisions:
 1. Required product languages and relative language/domain sampling weights.
 2. Exact rights-cleared tokenizer-training corpus and its revision.
-3. Whether tokenizer artifacts are precomputed/bundled or trained per installation.
+3. The bounded device-conditioned policy for selecting among precomputed tokenizer profiles and optional per-installation local training.
 4. Whether raw bytes remain only a control or are viable as a deployment path.
 5. Which subword families and vocabulary budget points remain in the final sweep.
 6. Normalization and whitespace policy, including compatibility behavior.
