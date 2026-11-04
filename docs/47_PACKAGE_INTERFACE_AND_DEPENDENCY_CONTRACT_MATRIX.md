@@ -41,6 +41,7 @@ This document is a **mapping and gap register**, not a replacement for the logic
 3. **IMPLEMENTATION BINDING OPEN** means the concrete provider, library, storage format, backend or DI mechanism has not been selected.
 4. **CONTRACT GAP** means a necessary cross-layer handoff is not yet sufficiently owned to permit a safe implementation.
 5. **POST-IMPLEMENTATION VERIFICATION** means correctness must be proven against the stated contract and exact source revision/device environment.
+6. **DESIGN CONTRACT CLOSED** means ownership, route/state semantics and the allowed handoff are sufficiently selected for implementation planning. It does not mean code exists, runtime behavior is verified or tests have passed.
 
 Names shown in this document are contract labels unless explicitly marked as an existing prototype declaration. No row is evidence that a corresponding production interface or class already exists.
 
@@ -231,7 +232,39 @@ The remaining implementation bindings are tracked in document 48 as PC-IMPL-01 t
 
 ### 7.2 Notification navigation handoff
 
-The foreground service needs to open the app, but it must not own or import the Activity implementation. The navigation contract should identify a stable app destination/route that the Android notification adapter can encode as a PendingIntent/deep link and that `app/navigation` resolves. The route URI/ID, authentication/permission behavior and task-stack policy remain implementation-binding decisions. Training control itself remains owned by `application/learning`.
+The design-level route and task-stack semantics are now closed:
+
+- Canonical internal route: `argus://app/learning/session/{sessionId}`, owned and resolved by `app/navigation`.
+- `platform/android/notification` creates an explicit immutable PendingIntent with a unique identity per session; it does not import or own `MainActivity`.
+- A notification tap reuses the existing Argus task where possible. A cold launch creates the normal app root before opening the session destination, without creating duplicate Activity instances.
+- The destination validates the session identifier and re-queries `application/learning`; notification extras are never authoritative state or authorization.
+- Opening the route does not automatically start or resume training. Session mutations remain explicit user commands.
+
+The route is internal and is not registered as an external browsable data-ingress route. Android-specific PendingIntent/navigation-library wiring remains implementation work, but it must preserve this contract.
+
+### 7.3 UI state and observation handoff — PC-OPEN-02
+
+The design-level observation contract is closed in document 36 section 3.2:
+
+- Each owning `application/<workflow>` exposes a read-only `StateFlow<WorkflowSnapshot>` for long-lived status; the mutable state holder remains private.
+- Each feature ViewModel maps that snapshot to a feature-specific immutable `FeatureUiState` and exposes it read-only to lifecycle-aware Compose collectors.
+- Snapshots carry owning identity and a monotonic revision/sequence. Progress uses explicit units and committed workflow/repository counters; display updates may be coalesced without changing committed progress.
+- Feature presentation never receives database/network DTOs, engine tensors, raw personal content or platform objects. Commands return through typed application APIs.
+- The workflow state is re-observed after screen/process recreation; UI and notification adapters do not create competing state stores.
+
+Exact feature data classes and field selection are implementation declarations constrained by this contract, not unresolved architecture or ownership decisions.
+
+### 7.4 Composition and dependency injection — PC-OPEN-06
+
+The default composition decision is explicit manual constructor injection through `app/bootstrap` for the current single-`:app` topology:
+
+- `app/bootstrap` is the only composition root and binds concrete data/platform/engine adapters to core/application ports.
+- Framework-created Android entry components receive narrow factories/dependencies through the Application-owned composition boundary; ordinary Kotlin classes use constructor injection.
+- Process, workflow/session, ViewModel and Android-component lifetimes remain distinct. Expensive model/runtime instances are created lazily after profile/resource admission.
+- Static companion-object service locators, reflection-based discovery and global mutable registries are prohibited.
+- Hilt/Koin/Dagger or another DI framework is not selected or required. Reconsider one only if measured graph complexity or an actual module boundary justifies it.
+
+The concrete object graph still requires code, but DI framework selection and layer ownership are no longer blockers.
 
 ## 8. Existing prototype mapping
 
@@ -277,21 +310,23 @@ The following checks are required when implementation is separately authorized. 
 
 A static pass proves only the dependency rule in the inspected revision. Runtime correctness, transaction durability, Android lifecycle behavior, privacy behavior, performance and device/backend capability require their own specified verification evidence.
 
-## 10. Open contract decisions and blockers
+## 10. Contract decision register and remaining blockers
 
 | ID | Open item | Why it remains open | Required owner/evidence | Blocks |
 |---|---|---|---|---|
 | PC-OPEN-01 | Personal capture and experience intake contract | Design contract documented in document 48; `application/knowledge` is the proposed accountable intake owner and `application/learning` owns training admission. Exact API/retention/surface bindings remain open | Resolve PC-IMPL-01–PC-IMPL-07 in document 48 against documents 13, 22, 36 and 45 | Enabling a new capture surface or safely replacing/retiring the current AccessibilityService path |
-| PC-OPEN-02 | Exact UI-facing immutable state models and observation streams | Logical state ownership exists, but exact presentation DTO and subscription API are not specified | Feature/application contract review; do not expose model/data DTOs | Splitting `ArgusViewModel` into feature state holders |
-| PC-OPEN-03 | Notification deep-link/route contract | Service must not depend on Activity implementation; route identity/task-stack semantics are not chosen | app/navigation + platform notification design | Removing service-to-MainActivity coupling |
+| PC-OPEN-02 | UI-facing immutable state and observation streams | **DESIGN CONTRACT CLOSED** in document 36 section 3.2: workflow-owned read-only StateFlow snapshots, feature-specific immutable UI projections, revision identity and committed-progress semantics | Implementation maps each feature to its own state type; no domain/data/engine DTO exposure | No remaining design blocker; feature ViewModel decomposition is implementation work |
+| PC-OPEN-03 | Notification deep-link/route contract | **DESIGN CONTRACT CLOSED** in document 36 section 3.3: stable internal session route, immutable per-session PendingIntent, task-stack and no-implicit-resume semantics | `app/navigation` owns route; `platform/android/notification` adapts it | No remaining design blocker; Android wiring and later lifecycle verification remain implementation work |
 | PC-OPEN-04 | Repository transaction interfaces and storage schema | Exact store, schema, encryption/key ownership, migration, deletion and atomic publication mechanism remain open | Documents 13, 15, 19, 36 plus storage decision/ADR | Data adapter implementation and safe extraction |
-| PC-OPEN-05 | Compute provider injection and backend capability contract binding | Provider-neutral contract exists; actual runtime/provider/operator coverage and fallback rules are not implemented/verified | Documents 04–08, 14, 35, 42 and 43; later Android evidence | Selected accelerated backend implementation |
-| PC-OPEN-06 | DI/composition mechanism | Explicit composition root is mandatory; framework/factory approach remains undecided | app/bootstrap design review; dependency scope/lifecycle evidence | Composition implementation, not package ownership |
+| PC-OPEN-05 | Compute provider injection and backend capability binding | Provider-neutral port and ownership exist; actual runtime/provider/operator coverage and fallback evidence remain unverified. This does **not** block the correctness-first CPU reference path; it blocks selecting or claiming an accelerated provider | Documents 04–08, 14, 35, 42 and 43; later G4 and named-device evidence | A named accelerated backend and its support claims only |
+| PC-OPEN-06 | DI/composition mechanism | **DESIGN CONTRACT CLOSED**: explicit `app/bootstrap` composition root with manual constructor injection and scoped factories is the default; no framework is required | Document 36 section 3.4; document 45 sections 4, 5 and 14 | No remaining design blocker; building the concrete graph is implementation work |
 | PC-OPEN-07 | Tokenizer implementation and API binding | Tokenizer G1-D remains open; tokenizer artifact/profile selection is not finalized | Document 34 and G1-D evidence/decision | Concrete `engine/tokenizer` implementation |
 | PC-OPEN-08 | Selected model family and backend binding | G4 remains blocked and no architecture family is selected | Document 43 acceptance and required comparative evidence | Selected `engine/model` implementation |
 | PC-OPEN-09 | Session/report persistence split | Logical owners are known, but exact data-domain partition and durable schema are open | Storage/transaction contract review under document 36 | Final repository module boundary |
 
-These open items do not prevent the package ownership and allowed dependency direction from being documented. They do prevent inventing production interfaces, creating speculative packages/modules or claiming an implementation-ready API surface.
+PC-OPEN-02, PC-OPEN-03 and PC-OPEN-06 remain in this register for traceability but are closed at the design-contract level. Their implementation and verification obligations remain. PC-OPEN-01 and PC-OPEN-04/07/08/09 remain scoped blockers for the personal-capture path, durable storage, concrete tokenizer and selected model family respectively. PC-OPEN-05 is deferred only for accelerated-provider selection; it is not a reason to block a correctness-first CPU reference path.
+
+The remaining open items must not be used to block unrelated subsystems. They do prevent inventing production interfaces, creating speculative packages/modules or claiming that the affected implementation surface is ready.
 
 ## 11. Relationship to existing documents
 
@@ -328,16 +363,20 @@ The package-interface mapping is complete enough for a bounded contract review w
 **Current disposition:**
 - Package-to-interface/consumer/provider mapping: documented as a proposal.
 - Root/UI/service cycle removal: planned, not implemented or verified.
-- Personal capture intake: design contract documented in document 48; exact surface/API/retention/storage bindings remain open.
-- Exact Kotlin signatures and DI binding: open.
+- Personal capture intake: design contract documented in document 48; PC-IMPL-01–PC-IMPL-07 are Phase 5 bindings and do not block tokenizer/architecture design or unrelated foundation implementation.
+- UI state, notification navigation and composition strategy: design contracts closed; feature-specific Kotlin declarations and Android wiring remain implementation work.
+- Exact feature-specific Kotlin signatures: implementation bindings; no additional package-level contract gap is identified here.
+- Compute provider selection: deferred for accelerated execution; CPU reference remains the correctness baseline.
+- Durable storage schema and session/report partition: open under PC-OPEN-04/09.
 - Gradle module extraction: deferred.
 - Source movement, package creation, build changes and implementation: not authorized.
 - Build, tests, GitHub Actions, artifact publication and device execution: not performed.
 
-**Next documentation task:** resolve only the document 48 bindings required by the first capture surface, beginning with the surface allowlist and retention/consent scope. Do not broaden this into capture implementation or severance refactoring. Do not start the package migration until the intake handoff and policy path are unambiguous.
+**Next documentation task:** close G1-D in document 34, then prepare the G4 family/profile synthesis under documents 35 and 38–43. Do not create another numbered document; record decisions in document 34 and the existing ADR section of document 01, then synchronize only direct dependents. PC-IMPL-01–PC-IMPL-07 belong to the later Phase 5 personal-learning workstream and must not be pulled forward as a prerequisite for architecture selection or foundation implementation.
 
 ## 13. Change history
 
 - 2026-11-04 — Initial package/interface crosswalk prepared against `main` HEAD `afb8b30214f44620f1ff17e6735560fb2a706b0a`, using documents 36, 45 and 46. No source, build configuration, test or workflow was changed.
 - 2026-11-04 — Cross-checked source-registry ownership and personal-capture requirements against documents 13, 22, 24 and 26. The source registry is assigned to `data/acquisition`, while user consent/revocation remains in `data/policy`; the capture-ingress gap is narrowed to API ownership/routing, not missing privacy principles.
 - 2026-11-05 — PC-OPEN-01 is now documented by document 48. Updated IF-11, IF-14 and IF-20 to assign intake/review to `application/knowledge`, candidate/session admission to `application/learning`, and the capture adapter to the application intake boundary. Concrete bindings remain open.
+- 2026-11-05 — Closed PC-OPEN-02, PC-OPEN-03 and PC-OPEN-06 at the design-contract level by binding immutable workflow snapshots, the internal learning-session notification route and manual constructor injection to documents 36 and 45. Reclassified PC-OPEN-05 as an accelerated-provider-only blocker; no code or build files were changed.
