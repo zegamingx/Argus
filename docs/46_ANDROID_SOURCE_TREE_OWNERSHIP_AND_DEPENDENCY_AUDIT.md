@@ -1,24 +1,25 @@
 # Argus Android Source-Tree Ownership and Dependency Audit
 
-**Status:** Static structural audit complete for inspected source tree; remediation not authorized  
-**Audit date:** 2026-11-04  
+**Status:** Pre-migration static audit retained; initial package relocation completed; dependency remediation remains open  
+**Audit date:** 2026-11-04; structural follow-up: 2026-11-05  
 **Repository:** `zegamingx/Argus` · **Branch:** `main`  
-**Audit baseline:** `bd75ac1533e079bfca4d12e1af9ec3170d7187d9` (`docs: clarify structure proposal authority`)  
+**Pre-migration audit baseline:** `bd75ac1533e079bfca4d12e1af9ec3170d7187d9` (`docs: clarify structure proposal authority`)  
+**Post-migration source checkpoint:** `b0441af8df127897f3ef579c22116d85337feea6`  
 **Scope:** Production Kotlin files, Android manifest, source sets, resources, Gradle topology/configuration and file-to-target ownership  
-**Authority:** Observed source facts and structural findings for this snapshot. Target package rules remain in document 45; logical subsystem contracts remain in document 36.  
-**Boundary:** Static repository inspection only. No source file was moved, created or modified; no Gradle configuration was changed; no build, test, workflow or device experiment was run.
+**Authority:** Sections 2–9 retain the observed pre-migration dependency inventory and ownership findings. Section 12 records the current post-migration path mapping and recheck; target package rules remain in document 45 and logical subsystem contracts in document 36.  
+**Boundary:** Static repository inspection only. The owner-authorized package migration changed source paths/package declarations and Android manifest class names at the post-migration checkpoint. No runtime behavior, Gradle topology, dependency, schema or numerical algorithm was intentionally changed. No build, test, workflow or device experiment was run.
 
 ## 1. Executive result
 
-The inspected Android project is a single-module prototype. Its package names identify broad areas, but the current structure does not enforce the boundaries described by the architecture and lifecycle contracts.
+The pre-migration Android project was a single-module prototype. The current project remains single-module after the first bounded package move. The package paths now better reflect intended ownership, but the current source still does not enforce all boundaries described by architecture and lifecycle contracts.
 
 The main structural findings are:
 
 - `ArgusViewModel` directly reaches chat, neural execution, training, memory, hardware, file import, network search, app exclusion and AccessibilityService actions.
-- The observed package graph contains a source-level cycle: `com.argus.agi` → `com.argus.agi.ui` → `com.argus.agi.service` → `com.argus.agi`. It is hidden inside the single `:app` Gradle module and must be broken before those boundaries can be extracted.
+- The pre-migration package cycle was `com.argus.agi` → `com.argus.agi.ui` → `com.argus.agi.service` → `com.argus.agi`. After relocation, the equivalent coupling remains across `app/entry` → `ui/ArgusViewModel` → `platform/android/*` → `app/entry`; package renaming did not remove it.
 - `TrainingManager` combines queue state, worker lifecycle, device admission, model execution and memory updates.
 - `ArgusNeuralEngine` combines numerical execution, tokenizer mutation, benchmark reporting and Android checkpoint file I/O.
-- `model/TrainingManager` imports `sensor.DeviceGuard`, reversing intended dependency direction.
+- The pre-migration `model/TrainingManager` → `sensor.DeviceGuard` dependency was updated to the corresponding `platform/android/device` package path. This is a location correction only; application-layer resource admission remains to be extracted.
 - Android services access global objects through `ArgusApp`; AccessibilityService also exposes a static live-instance action path.
 - Compose screens directly use CameraX, Android settings/permission APIs and platform service classes.
 - The single test file does not represent most documented subsystem boundaries.
@@ -85,6 +86,8 @@ Argus/
 A one-module prototype is not automatically wrong. The limitation is that package dependencies compile inside one application module and are enforced only by convention.
 
 ## 4. File-by-file ownership audit
+
+The tables in this section record pre-migration file responsibilities and target ownership. Their current physical-path follow-up is in Section 12; do not treat the old paths below as current locations.
 
 Target paths below refer to document 45. They are design destinations, not existing folders or move instructions.
 
@@ -380,11 +383,32 @@ Open: DI framework selection (with an explicit composition root required); final
 | Package/interface contract mapping | Proposed in document 47; exact Kotlin signatures and implementation bindings remain open |
 | Immediate Gradle module extraction | Not recommended |
 | Future extraction seams | Candidate sequence documented |
-| Source movement/build changes | Not performed or authorized |
+| Source movement | Initial package/path relocation performed at the post-migration checkpoint; remaining decomposition open |
 | Build/test/Actions/device execution | Not performed |
-| Implementation authorization | Not granted |
+| Implementation authorization | Bounded structural migration authorized; behavior/API/schema refactors remain separately gated |
 
-This closes only the static file-ownership/dependency-inventory task for the inspected snapshot. It does not close G1-D, G4, P0 remediation, implementation readiness or device verification.
+This closes the pre-migration inventory and records a bounded structural follow-up. It does not close the remaining dependency remediation, G1-D, G4, P0 remediation, implementation readiness or device verification.
+
+## 12. Post-migration path checkpoint
+
+The project-owner-authorized migration at commit [`b0441af8`](https://github.com/zegamingx/Argus/commit/b0441af8df127897f3ef579c22116d85337feea6) changed physical Kotlin paths/package declarations and the corresponding Android manifest class names. The current paths are:
+
+| Responsibility | Current path |
+|---|---|
+| Android Application and Activity | `app/src/main/java/com/argus/agi/app/entry/` |
+| App navigation shell | `app/src/main/java/com/argus/agi/app/navigation/MainScreen.kt` |
+| Feature screens | `app/src/main/java/com/argus/agi/feature/{chat,learning,perception,settings}/presentation/` |
+| Shared Compose theme | `app/src/main/java/com/argus/agi/ui/design/` |
+| Accessibility/capture and installed-app adapter | `app/src/main/java/com/argus/agi/platform/android/capture/` |
+| Device observations | `app/src/main/java/com/argus/agi/platform/android/device/` |
+| Foreground service | `app/src/main/java/com/argus/agi/platform/android/lifecycle/` |
+| Web-search connector | `app/src/main/java/com/argus/agi/data/acquisition/WebSearchEngine.kt` |
+| Legacy model prototype | `app/src/main/java/com/argus/agi/model/` (four mixed classes remain) |
+| Transitional cross-feature ViewModel | `app/src/main/java/com/argus/agi/ui/ArgusViewModel.kt` |
+
+The package migration also updated imports in ArgusApp, ArgusViewModel, TrainingManager and the perception screen, plus manifest FQCNs for Application, Activity and services. It did not establish the application workflow APIs, remove global service access, eliminate the entry/UI/platform dependency cycle, separate exclusion persistence from PackageManager discovery, or split numerical execution from Android file I/O. The current code paths must therefore be read alongside the outstanding ownership findings, not treated as completed layer isolation.
+
+No build, test, GitHub Actions run or device verification was performed for this checkpoint. Compilation and manifest resolution remain unverified.
 
 ## 11. Change history
 
@@ -392,3 +416,4 @@ This closes only the static file-ownership/dependency-inventory task for the ins
 - 2026-11-04 — Target-owner references reconciled with the revised document 45 package hierarchy and the document 36 subsystem crosswalk. The observed source inventory and findings were not changed.
 - 2026-11-04 — Re-audited `main` at `bd75ac1533e079bfca4d12e1af9ec3170d7187d9`; added an explicit cross-package dependency matrix and confirmed the `com.argus.agi` → `ui` → `service` → `com.argus.agi` cycle. The comparison with the earlier source snapshot found no intervening Kotlin, manifest, Gradle or Android-resource changes. No source/build files were changed.
 - 2026-11-04 — Added the package/interface cross-reference to document 47. This update changes audit navigation/disposition only; the inspected source baseline and dependency findings are unchanged.
+- 2026-11-05 — Recorded the owner-authorized initial package relocation at `b0441af8`. Added the current path map and confirmed that service-locator access and the entry/UI/platform dependency cycle remain. No build, test, workflow or device result is claimed.

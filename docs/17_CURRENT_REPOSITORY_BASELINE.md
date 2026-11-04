@@ -1,11 +1,12 @@
 # Current Repository Baseline
 
 **Repository:** `zegamingx/Argus` · **Documentation branch:** `main`  
-**Source inspection baseline:** `4d8104d4400dcd858e648d7b08ac0718385733d3`  
+**Behavioral/source-logic baseline:** `4d8104d4400dcd858e648d7b08ac0718385733d3`  
+**Latest structural migration checkpoint:** `b0441af8df127897f3ef579c22116d85337feea6`  
 **Latest source-continuity cross-check:** `09c72df12371670fc0417d47f5a0e6644537aa60`  
-**Inspection date:** 2026-11-04
+**Inspection date:** 2026-11-05
 
-A Git comparison from the source inspection baseline to the documented main revision found 56 commits ahead, 0 behind and 34 changed paths. **No application-source, build-configuration or Gradle-wrapper paths changed** in that interval; the changed paths are documentation and repository guidance. The implementation facts below therefore still describe the source snapshot at `4d8104d`. Documentation-only commits may advance `main` after this cross-check without changing the inspected source baseline; any source/build change requires a fresh source audit.
+The Kotlin implementation and build configuration were behaviorally unchanged by the initial package migration, but source paths, package declarations and manifest component names did change. The source-logic observations below remain based on `4d8104d`; current physical paths are recorded at structural checkpoint `b0441af8`. No build or test was run for the migration, so compilation and manifest/component resolution remain unverified.
 
 This record separates what was found in the inspected source snapshot from proposed architecture.
 
@@ -30,9 +31,9 @@ README badges match the checked-in AGP, Gradle and Kotlin versions. Release sign
 
 ## 2. Source layout
 
-Inspected packages are `model/` (ArgusNeuralEngine, Tokenizer, TrainingManager, WorldModel), `sensor/` (HardwareProfile, DeviceGuard, ExcludedAppsManager, WebSearchEngine), `service/` (Accessibility and foreground services) and `ui/` (ViewModel and Compose screens).
+Current physical packages at structural checkpoint `b0441af8` are: `app/entry` (ArgusApp and MainActivity), `app/navigation` (MainScreen), `feature/*/presentation` (four feature screens), `ui/design` (shared theme), `platform/android/capture` (AccessibilityService and installed-app adapter), `platform/android/device` (DeviceGuard and HardwareProfile), `platform/android/lifecycle` (foreground service), and `data/acquisition` (WebSearchEngine).
 
-The README's described `core/agent`, `core/memory`, `core/training`, native C++ and hardware-router tree is not present in the inspected source tree. A file-by-file ownership and dependency-direction audit of the inspected source layout is maintained in [46 — Android Source-Tree Ownership and Dependency Audit](46_ANDROID_SOURCE_TREE_OWNERSHIP_AND_DEPENDENCY_AUDIT.md).
+The four mixed prototype classes remain in `model/` (ArgusNeuralEngine, Tokenizer, TrainingManager, WorldModel), and the cross-feature Android ViewModel remains in `ui/ArgusViewModel.kt`. These are explicit migration debt, not target architecture owners. The README's described `core/agent`, `core/memory`, `core/training`, native C++ and hardware-router implementation is not present in the source tree. The file-by-file pre-migration ownership audit and current migration checkpoint are maintained in [46 — Android Source-Tree Ownership and Dependency Audit](46_ANDROID_SOURCE_TREE_OWNERSHIP_AND_DEPENDENCY_AUDIT.md).
 
 ## 3. Hardware discovery baseline
 
