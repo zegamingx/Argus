@@ -72,6 +72,8 @@ This synthesis therefore uses papers to compare mechanisms and trade-offs, not t
 
 The NVIDIA/collaborator empirical study compares 8B Transformer, Mamba and Mamba-2 models, plus an 8B Mamba-2-Hybrid, on common datasets up to 3.5T tokens. The 1.1T/3.5T corpora are 70% English, 15% non-English and 15% code and use a 256K SentencePiece vocabulary; "non-English" does not establish Indonesian or Southeast Asian parity. Pure Mamba/Mamba-2 results are task- and token-horizon-dependent: at 1.1T tokens the 8B Mamba-2 model is 17 points behind the Transformer on 5-shot MMLU, narrowing to 1.37 points at 3.5T, but pure SSMs still struggle on synthetic copying/Phonebook tasks. At 3.5T the paper only trains the pure Mamba-2 model, not pure Mamba, due to efficiency issues. These are controlled, large-scale GPU results, not Android measurements or mobile feasibility evidence.
 
+The 8B comparison is **approximately parameter-matched, not tensor- or topology-identical**: the paper's table lists an 8.53B Transformer with 32 layers, width 4,096, 32 attention heads and RoPE; an 8.15B Mamba with 56 layers, width 4,096 and state dimension 128; and an 8.24B Mamba-2 with 56 layers, width 4,096, state dimension 128 and eight groups. Mamba/Mamba-2 use no explicit positional embedding in that comparison. These are the paper's selected configurations, not a controlled isolation of one architectural variable.
+
 **Argus risks and design questions.**
 
 - Selective scan, convolution/state projections and backward kernels need a complete CPU reference and a verified Android execution strategy.
