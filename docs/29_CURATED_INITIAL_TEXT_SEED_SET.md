@@ -152,6 +152,22 @@ The Program Studi Sistem Informasi ITATS OER collection lists individual records
 - **Status:** RETRIEVAL_PILOT_CANDIDATE; TRAINING_REVIEW_PENDING. Tokenizer fitting and derived-artifact distribution remain unauthorized pending exact-file, attribution and operation-specific review.
 - **Evidence:** [ITATS OER catalog](https://itats.ac.id/sisteminformasi/oer/); [ITATS item page](https://itats.ac.id/sisteminformasi/oer/pemrograman-berorientasi-objek/); [PDF file](https://itats.ac.id/sisteminformasi/wp-content/uploads/sites/6/2026/08/Modul_Ajar_Pemrograman_Berorientasi_Objek.pdf).
 
+## 5. Repository-provided Indonesian text bundle — SEED-ID-004
+
+This is a separate repository asset, not an ITATS OER item and not the same artifact as the restricted SEED-ID-002 preview PDF.
+
+- **Repository path:** `public/assets/DigiTransID.zip`
+- **Repository file revision:** added by commit `878769b5155e9bc4239c81dba803f88627253118` (`Add files via upload`, 2026-11-04); uploader/commit author does not by itself establish text authorship or rights ownership.
+- **Git blob:** `abdc59d91a3c5e41b18c747f8fc7df2b0ead44c2`
+- **Archive size:** 94,226 bytes; **expanded text size:** 258,654 bytes.
+- **Archive contents:** 16 UTF-8 `.txt` entries: `transformasi_digital.txt`, `transformasi_digital (2).txt`, parts 3, 4, 4B and 5–15. The files contain Indonesian prose and fictional/hypothetical case narratives spanning digital transformation, organization/process change, AI governance, compute/chips, data centers/energy, Indonesian research capability, AI talent and multilingual evaluation.
+- **Text inspection:** no explicit author, publisher, publication date, license notice or complete bibliography was found in the extracted text. Part 6 contains unresolved internal citation markers such as `[web:6]` and `[page:6]`; these are not usable bibliographic references. Factual claims and cited research must be reconstructed and verified before the text is used as a knowledge-quality fixture.
+- **Repository license context:** the repository root contains an Apache License 2.0 file, but the archive has no file-level authorship/attribution statement. Do not assume repository inclusion proves that the uploader owns all underlying text or had authority to license a derivative work. Obtain an explicit provenance/rights declaration for this bundle.
+- **Relationship to SEED-ID-002:** the PDF's reproduction restriction does not automatically transfer to this separately uploaded ZIP. Conversely, the ZIP's different format and location do not prove it is independent/original. If any part was extracted, adapted or paraphrased from the restricted PDF, the rights conflict remains relevant and must be resolved.
+- **Status:** `REPOSITORY_CANDIDATE`; `PROVENANCE_REVIEW_PENDING`; not activated for retrieval, tokenizer fitting, derived-artifact distribution or neural training.
+
+The bundle may be reconsidered as an Indonesian monolingual tokenizer-frequency candidate only after the project owner confirms authorship/rightsholder authority or supplies the complete source/license chain, replaces unresolved citation markers with traceable sources, pins the exact file bytes/checksums and approves the intended tokenizer/artifact operations. It is not an aligned parity-development set and must not be presented as one.
+
 ## 5. Initial retrieval-pilot recommendation
 
 Use a compact cross-domain sample to validate acquisition, parsing, attribution, storage and retrieval:
@@ -161,13 +177,14 @@ Use a compact cross-domain sample to validate acquisition, parsing, attribution,
 3. SEED-ID-001 — Indonesian IoT module preview PDF; limited retrieval-pilot candidate, with dummy package add-ons excluded.
 4. SEED-ID-003 — Indonesian object-oriented programming module; substantive preview available, with exact download/checksum and full rights/asset review pending.
 
-SEED-ID-002 — Transformasi Digital is excluded and held for a written rights clarification because its PDF reproduction restriction conflicts with the CC BY 4.0 item-page declaration.
+SEED-ID-002 — Transformasi Digital PDF is excluded and held for a written rights clarification because its reproduction restriction conflicts with the CC BY 4.0 item-page declaration.
+SEED-ID-004 — DigiTransID.zip is a separate repository-supplied candidate. It remains `PROVENANCE_REVIEW_PENDING` and is not activated unless its authorship/source chain, citation repairs and operation-specific rights are confirmed.
 
 SEED-OTL-003 may be added after its "except otherwise noted" sections and third-party assets are mapped. SEED-OTL-004 remains on share-alike legal hold. SEED-OTL-005 remains on metadata hold until its part/edition mismatch is resolved.
 
 This is a retrieval and document-ingestion pilot, not a foundation-training corpus. It should test whether Argus can parse full text, preserve source citations, classify language/domain, and search useful passages. Training remains disabled for these items pending the separate legal-use, corpus quality, numerical training and evaluation gates.
 
-## 6. Item-level metadata to preserve
+## 7. Item-level metadata to preserve
 
 For each selected work, record:
 
@@ -186,7 +203,7 @@ For each selected work, record:
 
 For ITATS items, the landing page is part of the rights record. If the file changes while the page metadata does not, Argus must treat the new checksum as a new content version and re-run the rights/content checks.
 
-## 7. Quality review before any training
+## 8. Quality review before any training
 
 The selected titles are teaching materials, not a balanced general-language corpus. They are concentrated in academic and technical subject matter. They cannot alone provide broad everyday language, conversational competence, cultural coverage or multilingual coverage.
 
@@ -200,7 +217,7 @@ Before training:
 - Measure actual token count with the selected Argus tokenizer rather than estimating from PDF page count.
 - Keep training-corpus versions immutable and checksummed.
 
-## 8. Open gaps after this seed set
+## 9. Open gaps after this seed set
 
 These sample titles improve technical, social-science and Indonesian educational coverage. The broader Indonesian OER candidate set is recorded in [31 — Indonesian-Language OER Source Expansion](31_INDONESIAN_LANGUAGE_OER_SOURCE_EXPANSION.md). Substantial gaps remain:
 
@@ -216,7 +233,7 @@ These sample titles improve technical, social-science and Indonesian educational
 
 Discovery must continue to prioritize broad foundational coverage rather than repeatedly collecting more programming and information-systems books. Additional mathematics, science, geography, philosophy and history candidates are recorded in [30 — Domain-Balanced Text Source Expansion](30_DOMAIN_BALANCED_TEXT_SOURCE_EXPANSION.md).
 
-## 9. Evidence checked
+## 10. Evidence checked
 
 The following specific item pages and files were examined on 2026-11-03:
 
