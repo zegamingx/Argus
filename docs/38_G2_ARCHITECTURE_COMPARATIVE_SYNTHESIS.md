@@ -183,7 +183,7 @@ The final design synthesis must compare candidates under controlled, reconstruct
 
 For each architecture candidate, G4 must publish:
 
-1. A versioned module/graph definition and exact tensor inventory.
+1. A versioned module/graph definition and exact tensor inventory, using [42 — Architecture-Family Tensor and Operator Inventory](42_ARCHITECTURE_TENSOR_AND_OPERATOR_INVENTORY.md) as the symbolic accounting contract and filling every dimension from the selected profile.
 2. Initialization, normalization, positional/state and residual semantics.
 3. Training objective, backward contract, optimizer/parameter groups and precision policy.
 4. Tokenizer/profile binding, context/packing policy and special-token boundary.
