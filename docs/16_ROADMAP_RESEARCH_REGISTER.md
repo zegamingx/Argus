@@ -71,6 +71,7 @@ Investigate parameter growth, module addition/replacement, architecture migratio
 | R-024 | Domain-balanced text source expansion | RESEARCH SHORTLIST / NOT ACTIVATED | Validate science, mathematics, geography, philosophy and history textbooks; measure token/domain balance and item-level rights before ingestion |
 | R-025 | Indonesian-language OER source expansion | RESEARCH SHORTLIST / NOT ACTIVATED | Verify individual ITATS OER records, discover program-specific SPADA IMD outputs, diversify beyond technical subjects and audit item-level rights |
 | R-026 | Android architecture component evidence and training framework reuse | OPEN / RESEARCH STAGE 4 | Complete the evidence/component matrix in document 35; audit MobileFineTuner paper versus Android SDK surface, FBLayout mobile-GPU layout, optimizer/memory techniques, device limits and local-only compatibility; do not infer component superiority from system-level speedups |
+| R-027 | Optimizer algorithm and state-memory trade-offs (AdamW/Lion/Adafactor) | **OPEN / LION ADMITTED FOR COMPARISON; NO OPTIMIZER SELECTED** | Use document 37 to compare AdamW as reference against Lion's one-momentum state, including effective-batch/accumulation behavior, optimizer-specific LR/weight-decay tuning, mixed-precision state dtype, total peak memory, downstream quality, energy and exact checkpoint recovery; keep the G3 disposition DEFER until matched evidence exists |
 
 ## 4. External evidence index
 
@@ -132,7 +133,7 @@ The following publications and technical references inform the existing research
 
 **Evidence rule:** distinguish (a) model inference, (b) fine-tuning/adaptation, (c) narrow-domain from-scratch learning, and (d) broad-language pretraining from random initialization. Evidence in one category must not be cited as proof of another.
 
-The detailed from-scratch training claim ledger, resource model and E1–E7 acceptance/stop protocol are maintained in [33 — From-Scratch Training Feasibility](33_FROM_SCRATCH_TRAINING_FEASIBILITY.md). The tokenizer candidate comparison, multilingual fixture, Unicode conformance, artifact lifecycle and decision gates are maintained in [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md). I/O-Cool remains unverified and excluded until a primary source is identified.
+The detailed from-scratch training claim ledger, resource model and E1–E7 acceptance/stop protocol are maintained in [33 — From-Scratch Training Feasibility](33_FROM_SCRATCH_TRAINING_FEASIBILITY.md). The tokenizer candidate comparison, multilingual fixture, Unicode conformance, artifact lifecycle and decision gates are maintained in [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md). I/O-Cool remains unverified and excluded until a primary source is identified. The optimizer algorithm comparison, including Lion's state-memory model and exact-resume contract, is maintained in [37 — Optimizer Research and Lion Assessment](37_OPTIMIZER_RESEARCH_AND_LION_ASSESSMENT.md).
 
 ## 5. Technology radar
 
