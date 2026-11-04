@@ -91,13 +91,13 @@ Position representation must be compared only within a fixed tokenizer/profile a
 
 RoPE applies a position-dependent rotation to query and key vectors. The attention score thereby carries relative-position information through the difference between positions. The original RoFormer paper describes decaying inter-token dependency with greater relative distance and flexibility across sequence lengths.
 
-**Implications:** no learned absolute-position lookup table is required, but the rotation frequencies, position indexing, precision and any context-extension/scaling method become part of the model configuration. RoPE does not guarantee stable extrapolation to arbitrary lengths.
+**Implications:** no learned absolute-position lookup table is required, but the rotation frequencies, position indexing, precision and any context-extension/scaling method become part of the model configuration. RoPE does not guarantee stable extrapolation to arbitrary lengths. Press et al. (ICLR 2022) directly compared rotary with ALiBi and sinusoidal positions in their WikiText-103 setup: rotary improved extrapolation over sinusoidal, but only to roughly 100–200 tokens beyond the trained sequence length in their tested 512/1,024-token settings, and their implementation ran more slowly. This is a study-specific result, not a statement about every optimized RoPE kernel or later scaling method.
 
 ### 4.2 ALiBi
 
 ALiBi adds a distance-proportional bias to query-key attention scores rather than adding a positional embedding to token representations. Press et al. report a 1.3B model trained at length 1,024 that extrapolated to length 2,048 with the same perplexity as a sinusoidal-position model trained at 2,048, while using 11% less memory and training 11% faster in that study.
 
-This is a specific experimental result, not a universal advantage over RoPE. ALiBi adds attention-score bias work and its slope/head configuration must be pinned.
+This is a specific experimental result, not a universal advantage over RoPE. ALiBi uses fixed, head-specific slopes; its attention-score bias is added before softmax and can be fused into a causal mask/kernel. However, the paper notes that materializing a separate bias mask per head can enlarge the mask tensor and consumed up to 100 MB extra memory in some of its experiments. The shorter training sequence can save substantially more memory in its demonstrated case, but an Argus implementation must measure both terms and must not claim zero overhead merely because the bias has no learned parameters. The slope/head-count rule, mask representation and kernel fusion are part of the configuration.
 
 ### 4.3 Learned absolute position embeddings
 
@@ -115,7 +115,7 @@ Compare RoPE and ALiBi only after the Transformer control is numerically correct
 - positions at packed-document boundaries and sequence resets;
 - correct position continuation vs reset for each data mode;
 - numerical stability in selected precision;
-- memory, score-kernel cost and prefill/decode behavior;
+- materialized score/bias-mask memory versus fused/tiled bias application, score-kernel cost and prefill/decode behavior;
 - retrieval/copying tasks as well as ordinary validation perplexity.
 
 No positional method or context-extension recipe is selected.
