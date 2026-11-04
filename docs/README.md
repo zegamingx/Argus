@@ -52,7 +52,7 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 | Feasibility and pre-implementation foundations | 33–37 | From-scratch feasibility, tokenizer, Android evidence, module/lifecycle contracts and optimizer research |
 | Architecture comparison and G4 preparation | 38–43 | Cross-family synthesis, component/init/state/tensor contracts and G4 framework |
 | Documentation governance | 44 | Document authority, evidence/status semantics and change control |
-| Android project structure | 45 | Kotlin package ownership, Gradle module strategy, native/JNI boundary and file-placement rules |
+| Android project structure and source audit | 45–46 | Target Kotlin ownership, current file inventory, dependency direction, Gradle boundaries and migration findings |
 
 The grouping is descriptive only. Each document retains its own declared scope and the authority rules in document 44.
 
@@ -105,6 +105,7 @@ The grouping is descriptive only. Each document retains its own declared scope a
 | [43 — G4 Architecture Decision and Device-Profile Contract](43_G4_ARCHITECTURE_DECISION_AND_PROFILE_CONTRACT.md) | Hard-gate/compare method, immutable model-profile schema, multi-profile portfolio decision and G4 ADR acceptance checklist |
 | [44 — Documentation Governance and Change Control](44_DOCUMENTATION_GOVERNANCE_AND_CHANGE_CONTROL.md) | Document authority, repository structure, evidence/status rules, ADR process and documentation-only change control |
 | [45 — Android Project Structure and File-Placement Rules](45_ANDROID_PROJECT_STRUCTURE_AND_FILE_PLACEMENT_RULES.md) | Target Kotlin package hierarchy, dependency direction, Gradle module extraction criteria, Android/native source boundaries, tests and resource placement |
+| [46 — Android Source-Tree Ownership and Dependency Audit](46_ANDROID_SOURCE_TREE_OWNERSHIP_AND_DEPENDENCY_AUDIT.md) | File-by-file prototype ownership, dependency-direction findings, build configuration observations and migration priority |
 
 ## Status vocabulary
 
