@@ -127,7 +127,7 @@ Future growth may add parameters, modules or structural variants. Every candidat
 
 ## 8. Current decision
 
-**No initial architecture family is selected.** Research candidates are open. Model dimensions and parameter count are per-device outputs after architecture and capability analysis, not global constants.
+**No initial architecture family is selected.** The G2 comparison scope is bounded to four families: decoder-only Transformer as the mandatory reference/control, selective SSM (Mamba/Mamba-2 SSD), recurrent delta-rule (RWKV-7 family), and attention–SSM/recurrent hybrid as a secondary candidate. This is a shortlist for design comparison, not a ranking or implementation selection. Model dimensions and parameter count remain per-device outputs after architecture and capability analysis, not global constants.
 
 
 ## 9. External evidence and scope boundaries
@@ -141,6 +141,8 @@ These references inform the existing candidate comparison. They do not select an
 This establishes that useful behavior can emerge in a narrow task distribution at small parameter counts. It does not establish broad general-language competence, broad factual knowledge, or training feasibility on Android hardware. Argus must not use TinyStories results as a direct model-size prescription.
 
 ### 9.2 Transformer, SSM and hybrid comparison
+
+[MobileLLM (Liu et al., ICML 2024)](https://proceedings.mlr.press/v235/liu24ce.html) is useful architecture evidence for sub-billion on-device deployment targets: its study examines deep-and-thin configurations, embedding sharing and grouped-query attention. It is model-design/deployment evidence, not proof that the models are trained from random initialization on a phone.
 
 [Waleffe et al., An Empirical Study of Mamba-based Language Models (NVIDIA and collaborators, 2024)](https://research.nvidia.com/publication/2024-06_empirical-study-mamba-based-language-models) compare 8B Transformer, Mamba, Mamba-2 and Mamba-2-Hybrid models trained on common data at up to 3.5 trillion tokens. The study reports task-dependent differences: pure SSM models lag on some copying, in-context-learning and long-context tasks, while the evaluated 8B hybrid outperforms the Transformer on the reported standard-task average and is predicted to improve inference generation speed.
 
