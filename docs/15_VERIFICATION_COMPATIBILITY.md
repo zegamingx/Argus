@@ -96,4 +96,4 @@ The target architecture requires additional verification before it can be descri
 | Instance isolation | No hidden model/data/gradient network path; no cross-user synchronization or shared training state |
 | Architecture evolution | Candidate generation, tensor migration, regression gates and rollback are tested before promotion |
 
-The application must not claim that a model has learned general language capability merely because Genesis initialization completed. Report constructed, initialized, trained and validated as separate lifecycle facts.
+The from-scratch feasibility gate and E1–E7 evidence matrix in [33 — From-Scratch Training Feasibility](33_FROM_SCRATCH_TRAINING_FEASIBILITY.md) must be completed before the feasibility baseline is used to select an architecture or tokenizer. The application must not claim that a model has learned general language capability merely because Genesis initialization completed. Report constructed, initialized, trained and validated as separate lifecycle facts.

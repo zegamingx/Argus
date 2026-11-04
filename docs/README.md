@@ -73,6 +73,7 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 | [30 — Domain-Balanced Text Source Expansion](30_DOMAIN_BALANCED_TEXT_SOURCE_EXPANSION.md) | Additional full-text candidates mapped to underserved knowledge domains |
 | [31 — Indonesian-Language OER Source Expansion](31_INDONESIAN_LANGUAGE_OER_SOURCE_EXPANSION.md) | Indonesian OER candidates, item-level rights path and SPADA 2022 program boundary |
 | [32 — Device-Adaptive Knowledge Acquisition and Corpus Budgeting](32_DEVICE_ADAPTIVE_KNOWLEDGE_ACQUISITION.md) | Device capability profile, corpus/storage tiers, dynamic admission and verification |
+| [33 — From-Scratch Training Feasibility](33_FROM_SCRATCH_TRAINING_FEASIBILITY.md) | Evidence classification, Android resource model, sustained thermal/energy constraints and E1–E7 feasibility protocol |
 
 ## Status vocabulary
 
@@ -87,6 +88,6 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 
 ## Change control and completion
 
-Material decisions belong in [01 — System Requirements and Decisions](01_SYSTEM_REQUIREMENTS_AND_DECISIONS.md). Unresolved questions belong in [16 — Roadmap and Research Register](16_ROADMAP_RESEARCH_REGISTER.md). Detailed Genesis, device adaptation, corpus, architecture, autonomous acquisition, knowledge-domain, source-connector, source-candidate, open-text, curated seed, domain-balanced text, Indonesian OER and device-adaptive acquisition research belongs in documents 20–32.
+Material decisions belong in [01 — System Requirements and Decisions](01_SYSTEM_REQUIREMENTS_AND_DECISIONS.md). Unresolved questions belong in [16 — Roadmap and Research Register](16_ROADMAP_RESEARCH_REGISTER.md). Detailed Genesis, device adaptation, corpus, architecture, autonomous acquisition, knowledge-domain, source-connector, source-candidate, open-text, curated seed, domain-balanced text, Indonesian OER, device-adaptive acquisition and from-scratch feasibility research belongs in documents 20–33.
 
 The documentation phase ends only when requirements, architecture, model and tokenizer research, corpus governance, resource budgets, verification strategy and cross-document consistency have been reviewed. Passing that gate authorizes an implementation-plan review only. It does not automatically authorize coding, builds or workflow execution.

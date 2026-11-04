@@ -68,7 +68,7 @@ A vendor name or advertised accelerator is only a discovery hint. An accelerator
 
 ### 4.2 Configuration selection
 
-Choose a configuration from architecture candidates that have passed the research/feasibility gate, device memory and compute budgets, supported data types/operators, training memory needs, thermal sustainability and storage requirements.
+Choose a configuration from architecture candidates that have passed the research/feasibility gate in [23 — Neural Architecture Research Plan](23_NEURAL_ARCHITECTURE_RESEARCH_PLAN.md) and the from-scratch feasibility protocol in [33 — From-Scratch Training Feasibility](33_FROM_SCRATCH_TRAINING_FEASIBILITY.md), device memory and compute budgets, supported data types/operators, training memory needs, thermal sustainability and storage requirements.
 
 There is no universal parameter count or fixed model tier. Record the selected configuration and the capability evidence used to select it.
 
