@@ -62,7 +62,7 @@ Residual networks repeatedly add the outputs of attention and FFN sublayers to a
 
 Depth-scaled approaches reduce the initial scale of selected residual-output projections as depth grows. The target is to prevent accumulated residual updates from dominating the stream or destabilizing early optimization. The precise factor depends on whether a block contains one or multiple residual branches, whether attention and FFN outputs are both scaled, and whether the model is pre-norm or post-norm.
 
-The Hugging Face Transformers Mamba-2 implementation exposes an optional residual rescaling path that reinitializes selected residual output weights using a GPT-2-style depth factor based on the number of layers. This is implementation evidence for a specific code path, not a universal initialization theorem or an Argus decision. The factor must be derived from the exact residual branches and architecture rather than copied by suffix/name heuristic.
+The current Hugging Face Transformers Mamba-2 implementation exposes an optional rescaling flag (disabled by default) that divides the Mamba2Mixer output-projection weight by the square root of the configured hidden-layer count. Its code comment attributes the motivation to a GPT-2/Megatron residual-depth scheme. This is a concrete implementation detail for that Mamba-2 block, not a universal initialization theorem, not a default runtime behavior, and not an Argus decision. The factor must be derived from the exact residual branches and architecture rather than copied by suffix/name heuristic.
 
 **Argus rule:** count update-bearing residual branches from the actual graph. Do not assume “one Transformer layer” equals one residual addition. Record exactly which weight tensors are scaled, the scale formula, layer/block count used in the formula, and the reason each tensor is included.
 
@@ -71,7 +71,7 @@ The Hugging Face Transformers Mamba-2 implementation exposes an optional residua
 Huang et al. (ICML 2020) analyze optimization instability in deep encoder–decoder Transformers and propose T-Fixup, a depth-dependent initialization intended to bound early model updates. Their reported recipe:
 
 - uses Xavier initialization for parameters other than input embeddings;
-- initializes input embeddings with a Gaussian whose standard deviation is based on d⁻¹ᐟ²;
+- initializes input embeddings with the paper's stated Gaussian distribution N(0, d⁻¹ᐟ²), where d is embedding dimension. The paper uses this notation without specifying a programming-library variance-versus-standard-deviation argument, so an implementation must resolve that convention from the reference code before reproducing it;
 - applies depth-dependent scale factors to selected encoder/decoder attention and MLP matrices and embeddings;
 - removes LayerNorm from the studied blocks and trains without learning-rate warmup.
 
@@ -235,4 +235,4 @@ Each family needs its own CPU correctness reference and finite-value/gradient ch
 3. Dinan, Yaida and Zhang, [Effective Theory of Transformers at Initialization](https://arxiv.org/abs/2304.02034). Forward/backward signal propagation and practical width/depth initialization/hyperparameter scaling.
 4. Yang et al., [Tensor Programs V: Tuning Large Neural Networks via Zero-Shot Hyperparameter Transfer](https://arxiv.org/abs/2203.03466). μP and μTransfer for width scaling and proxy-to-target hyperparameter transfer; parameter-group/optimizer limitations apply.
 5. [OpenAI GPT-2 model and training overview](https://openai.com/index/better-language-models/). Original autoregressive GPT-2 training context; not by itself a complete initializer specification.
-6. [Hugging Face Transformers Mamba-2 implementation](https://github.com/huggingface/transformers/blob/main/src/transformers/models/mamba2/modeling_mamba2.py). Implementation reference for architecture-specific initialization and optional residual projection rescaling; not an Argus dependency or universal initialization standard.
+6. [Hugging Face Transformers Mamba-2 implementation](https://github.com/huggingface/transformers/blob/main/src/transformers/models/mamba2/modeling_mamba2.py). Current implementation reference for architecture-specific S4D/conv/output-projection initialization and optional out-projection rescaling by sqrt(num_hidden_layers); the flag defaults to false. Not an Argus dependency or universal initialization standard.
