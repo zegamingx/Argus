@@ -32,11 +32,20 @@ Screen capture, camera and AccessibilityService are distinct high-risk features.
 - Autonomous acquisition uses general topic queries and approved public-source scopes. It must not silently attach private conversations, personal files, screenshots, memory records or profile details to search requests.
 - Source allowlists, terms, robots directives, rate limits, redirect validation, TLS validation, response-size limits and local provenance records apply to every acquisition job.
 - Model downloads contact configured sources.
-- Telemetry, analytics and silent private-content upload are prohibited.
+- Argus-owned telemetry and analytics that expose private content are prohibited. Third-party runtime telemetry must be inventoried, privacy-reviewed, disclosed and accepted as a dependency before the runtime is selected.
 - Acquired corpora, local model weights, optimizer state, checkpoints and gradients are not uploaded to a central Argus service or external AI customer.
+- A third-party ML runtime may process model inputs locally while still sending non-content diagnostics or device/app metadata. This is not equivalent to zero-network operation and must be assessed separately from prompt/weight transfer.
 - Any future sync or export requires separate opt-in, scope, encryption and deletion design.
 
 Network requests necessarily disclose ordinary request metadata to remote destinations. Document configured providers, destination domains, DNS/HTTP behavior, redirects, TLS validation, request metadata and local audit records. See [24 — Autonomous Knowledge Acquisition](24_AUTONOMOUS_KNOWLEDGE_ACQUISITION.md).
+
+### 4.1 Third-party runtime telemetry and Play services
+
+The current LiteRT in Google Play services documentation states that model input processing remains on-device and is not sent to Google, while the runtime may contact Google servers for service updates and compatibility data and may transmit diagnostics/usage metrics. The listed metrics include device identifiers, manufacturer/model/OS information, app/package information, accelerator configuration, event/error types and performance metrics.
+
+This is a separate data path from Argus web acquisition and does not establish that user content is uploaded. It nevertheless means the runtime is not a zero-telemetry dependency. Before adoption, record the exact API/package version, data fields, purpose, service terms, retention/controls where documented, user disclosure and whether the product's local-first/offline requirements permit it. Prefer an alternative only after its exact runtime and vendor dependencies receive the same audit; do not infer that standalone means telemetry-free without evidence.
+
+Source: [LiteRT in Google Play services — privacy and data collection](https://developers.google.com/edge/litert/android/play_services).
 
 ## 5. Prompt injection and tool safety
 
