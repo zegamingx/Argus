@@ -25,6 +25,7 @@ The profile should include evidence and confidence, not just device marketing me
 | Thermal | OS thermal status/headroom where available, sustained benchmark behavior, sensor availability |
 | Power | Battery level, charging state, power-saving mode and system policy |
 | Storage | Available app-private storage, dataset package size, model tensors, checkpoint and recovery reserve |
+| Tokenizer preparation | CPU capability, available memory and storage, seed-corpus size, trainer/runtime availability, vocabulary/head cost and bounded preparation budget; accelerator support is UNKNOWN unless measured |
 | Platform | Android API level, lifecycle restrictions, ABI, driver/runtime versions and permission state |
 
 Unknown telemetry must remain unknown. Missing temperature or memory data is not a measured safe state.
@@ -35,9 +36,30 @@ The configuration engine evaluates candidate models against a bounded resource b
 
 Account for parameters and tensor dtypes; embeddings/output head and architecture-specific state; activation/workspace memory for training; gradients and optimizer moments; context length and attention/recurrent cache; microbatch/concurrency and temporary copies; runtime/compiler allocation and OS headroom; model storage and checkpoint generations.
 
-Do not derive model size from total RAM alone. Do not use a single fixed parameter count for all users.
+Do not derive model size from total RAM alone. Do not use a single fixed parameter count, tokenizer vocabulary size or training profile for all users.
 
-An initial configuration is valid only when the selected architecture/operator set has a supported execution path and a memory estimate with safety margin. If no candidate fits, Genesis must report the limitation rather than pretend a model was created.
+An initial configuration is valid only when the selected architecture/operator set and tokenizer profile have supported execution paths and resource estimates with explicit safety margins. Account for tokenizer preparation separately from neural-model training, then account for the vocabulary-dependent embedding/output-head and optimizer-state costs in the selected model configuration. If no complete candidate bundle fits, Genesis must report the limitation rather than pretend a model was created.
+
+### 3.1 Device-conditioned configuration portfolio
+
+Argus maintains a reviewed portfolio of compatible configuration candidates rather than one globally fixed model/tokenizer configuration or a new ad hoc implementation for every phone. A candidate bundle binds at least:
+
+- Architecture family/version and model dimensions.
+- Tokenizer profile, exact artifact/configuration fingerprint and preparation mode.
+- Vocabulary/head allocation and context/packing assumptions.
+- Precision, supported operator set and eligible backend paths.
+- Initial training objective/update profile and resource envelope.
+- Minimum storage, checkpoint and recovery reserve.
+
+Selection is a constrained decision, not a marketing-tier lookup. First reject candidates that fail correctness, rights, operator, storage or hard memory constraints. Then compare the remaining candidates across expected capability, memory, sustained compute, energy, thermal behavior and preparation cost. Record why the chosen bundle fits and which alternatives were rejected or unavailable. Numeric tier thresholds must come from documented analysis and later device measurements, not chipset names or invented universal cutoffs.
+
+Device capability does not decide which languages Argus is allowed or intended to support. Product language/domain policy and item-level rights determine the eligible tokenizer seed/evaluation data. Device capability determines which compatible tokenizer algorithm, vocabulary budget, artifact-preparation mode and model configuration can be afforded for that scope.
+
+A profile may load a precomputed, versioned tokenizer artifact or train a tokenizer locally from a bounded, rights-cleared seed corpus. Local tokenizer training is an optional capability-gated preparation path, not a mandatory per-installation ritual and not neural-model pretraining. It has its own CPU, memory, storage and time budget. Do not assume GPU/NPU acceleration for tokenization training without measured support. Where local preparation does not fit, select a pre-approved compatible artifact/profile before model tensor allocation; never switch vocabulary or token IDs silently after Genesis.
+
+A tokenizer may differ between installations. That is compatible with independent local model identity: each model generation pins its own exact tokenizer fingerprint, and tokenized datasets, checkpoints and evaluation reports must match it. It does not make model weights interchangeable across installations. Sharing an identical precomputed tokenizer artifact is still valid where two devices select the same profile.
+
+A profile change caused by updated hardware/runtime capability may justify a new configuration candidate and generation migration. Transient conditions such as heat, battery state or temporary memory pressure only affect workload admission and safe runtime controls; they do not mutate the active model graph or tokenizer.
 
 ## 4. Runtime training-condition profile
 
@@ -64,7 +86,7 @@ Within validated limits, the controller may:
 - Pause training when memory, thermal, battery or OS constraints make it unsafe.
 - Resume when admission conditions recover.
 
-A change affecting the mathematical training definition, such as precision, optimizer, sequence packing or gradient reduction, must be versioned and validated. It must not be silently applied as an ordinary resource response.
+A change affecting the mathematical training definition, such as precision, optimizer, sequence packing or gradient reduction, must be versioned and validated. It must not be silently applied as an ordinary resource response. Changes to architecture dimensions, tokenizer identity, vocabulary, token IDs or model-state shape require a new generation/configuration contract, not a live training-session adjustment.
 
 ## 6. Training controller state model
 
@@ -117,7 +139,7 @@ See [32 — Device-Adaptive Knowledge Acquisition and Corpus Budgeting](32_DEVIC
 
 ## 10. Post-implementation device verification plan
 
-After implementation is separately authorized, use representative low-, mid- and high-capability Android devices to verify configuration selection, peak/sustained memory, training throughput, energy, thermal response, pause latency, checkpoint reliability and recovery after process death. Keep exact device, OS, driver, runtime, model and dataset revisions with every result.
+After implementation is separately authorized, use representative devices selected by measured capability envelopes rather than relying only on low/mid/high marketing labels. Verify profile selection, tokenizer preparation mode and cost, peak/sustained memory, training throughput, energy, thermal response, pause latency, checkpoint reliability and recovery after process death. Include cases where the same device selects a different workload profile under changed runtime conditions, without changing its active model/tokenizer identity. Keep exact device, OS, driver, runtime, model and dataset revisions with every result.
 
 This section is an empirical verification protocol, not a documentation-stage blocker. The capability dimensions, source reliability and candidate resource envelopes can be researched and analytically bounded now. Physical measurements are required later to claim that a particular configuration actually works or that a named device tier is supported. Until that verification, runtime thresholds and device support remain explicitly **unverified**, rather than preventing completion of the design contract.
 
