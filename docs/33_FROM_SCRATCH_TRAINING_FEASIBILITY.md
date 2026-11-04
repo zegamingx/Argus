@@ -9,9 +9,9 @@
 
 Argus follows Local Knowledge Genesis: each installation constructs and initializes its own model parameters locally. Genesis is not pretraining. A newly initialized model has no acquired language competence merely because its tensors and generation manifest have been committed.
 
-This document evaluates whether subsequent learning can develop useful capability within Android device constraints. It separates published evidence from Argus-specific feasibility, defines E1–E7 experiments, and states what must be measured before architecture and tokenizer decisions.
+This document evaluates the evidence for learning useful capability from locally initialized parameters under Android resource constraints. It separates published evidence, analytical resource bounds, implementation-dependent questions and later empirical verification. Its purpose in the documentation phase is to establish what can and cannot be concluded now, derive a defensible provisional feasibility envelope, and prepare E1–E7 as post-implementation verification. E1–E7 are not prerequisites for completing architecture/tokenizer research or preparing a design contract.
 
-**Current conclusion:** small-model learning on a deliberately narrow dataset is a valid controlled experiment; mobile DNN training and mobile LLM fine-tuning have empirical evidence; broad general-purpose language-model pretraining from random initialization on Argus target Android devices has not been demonstrated by the sources reviewed here. Argus must not claim feasibility until its own experiments pass on named physical devices.
+**Current conclusion:** small-model learning on a deliberately narrow dataset is supported by GPU research; mobile DNN training and mobile LLM fine-tuning have empirical evidence; broad general-purpose language-model pretraining from random initialization on one Argus Android installation has not been demonstrated by the sources reviewed here. Published evidence and analytical accounting are sufficient to design a qualified implementation candidate and identify its assumptions. They are not sufficient to claim empirical Argus feasibility or named-device support; those claims require E1–E7 after implementation. The absence of Argus device results does not keep this research document or the pre-implementation design review open when the relevant uncertainty has been explicitly bounded.
 
 No Android experiment has been run as part of this documentation review. This document does not authorize implementation, device probing, training, builds, CI execution or artifact publication.
 
@@ -242,7 +242,45 @@ Report peak and steady memory for weights, activations, gradients, optimizer sta
 
 Do not use “model size in FP16” as a proxy for total training RAM. Do not accept a universal threshold such as 70% of installed physical RAM. E3 must use a device-specific app/process budget with explicit OS and user-experience reserve. Android guidance: [Manage your app's memory](https://developer.android.com/topic/performance/memory/manage-app-memory) and [Set app memory budgets](https://developer.android.com/topic/performance/memory/app-memory-budgets).
 
-### 5.2 Thermal and energy telemetry
+
+### 5.2 Analytical trainable-state accounting
+
+For a model with (P) trainable parameters, a first-order tensor-state estimate is:
+
+`M_state ≈ P × (b_weight + b_gradient + b_m + b_v + b_master + b_other)`
+
+where the terms are the bytes per parameter for weights, gradients, Adam first/second moments, an optional FP32 master-weight copy, and any additional optimizer/EMA state. This is an inventory equation, not a complete peak-memory model. It excludes activations, logits, temporary kernels, allocator fragmentation, data staging and runtime allocations.
+
+Illustrative examples for Adam/AdamW (decimal MB; optimizer policy must be specified):
+
+| State policy | Bytes per parameter | 10M parameters | 50M parameters |
+|---|---:|---:|---:|
+| FP32 weights + FP32 gradients + FP32 m/v | 16 B | 160 MB | 800 MB |
+| BF16 weights + BF16 gradients + FP32 m/v; no master copy | 12 B | 120 MB | 600 MB |
+| BF16 weights + BF16 gradients + FP32 master weights + FP32 m/v | 16 B | 160 MB | 800 MB |
+| BF16 weights + FP32 gradients + FP32 master weights + FP32 m/v | 18 B | 180 MB | 900 MB |
+
+These values are **analytically established only for the stated tensor inventory**. An implementation may use different gradient precision, fused/paged optimizer storage, quantized states, lazy allocations or additional buffers. Do not treat 12–18 B/parameter as a universal constant or as a peak-RAM prediction. The final design must calculate each allocated tensor from the selected optimizer/runtime contract and include temporary peak overlap during initialization, update and checkpoint commit.
+
+The embedding and output projection must be included in (P). For vocabulary (V) and hidden size (d), one untied embedding or output matrix contributes (V × d) parameters; an untied pair contributes approximately (2Vd). This is why tokenizer vocabulary, hidden size, tying policy and optimizer memory must be budgeted together.
+
+### 5.3 Analytical compute and time screening
+
+For a dense decoder-only Transformer, a commonly used first-order training-compute approximation is:
+
+`F_train ≈ 6 × P × T`
+
+where (P) is the active parameter count and (T) is the number of training tokens processed. The factor is a rough forward-plus-backward approximation for dense parameter-dominated compute; it is not exact for attention-heavy short models, vocabulary-logit-dominated models, activation recomputation, sparse/MoE models, SSM/recurrent models or different kernel/precision policies.
+
+A preliminary runtime lower-bound screen is:
+
+`time_seconds ≈ F_train / sustained_FLOP_per_second`
+
+The denominator must be a measured or credibly sourced **sustained training throughput** for the actual operator path, not advertised TOPS or peak GPU FLOPS. Before implementation, use published throughput only as an external scenario range and show the source workload mismatch. After implementation, replace the scenario with Argus measurements. For Transformer candidates, attention cost also depends on sequence/context length; for recurrent/SSM candidates, state updates and parallel scan/chunking have different cost models and must be estimated from the exact candidate implementation.
+
+This estimate helps reject internally inconsistent parameter/token/session targets and compare scenarios. It cannot establish useful learning, convergence, thermal safety or device support.
+
+### 5.4 Thermal and energy telemetry
 
 On Android 10 / API 29 and later, `PowerManager.getCurrentThermalStatus()` and thermal-status listeners provide an OS thermal-status signal. This is not a universal direct SoC-temperature sensor. Record status transitions and correlate them with measured throughput; do not invent a temperature when the platform does not expose one.
 
@@ -250,7 +288,7 @@ If the signal is unavailable or unreliable, mark it unknown and use conservative
 
 Energy measurements must identify the instrument and accuracy. Prefer calibrated external power measurement for controlled experiments where possible. Battery percentage/current or vendor power counters may be coarse, unavailable or device-specific; treat them as proxies unless calibration is established.
 
-### 5.3 Sustained-performance definition
+### 5.5 Sustained-performance definition
 
 Record cold-start throughput separately. Continue the fixed workload until a repeatable thermal/performance plateau or a safety stop. Define the plateau before the experiment using moving windows and a tolerance for measurement noise. Report time-to-plateau, plateau throughput, variance, thermal history, memory high-water mark and energy. Record ambient, charging/power and competing workload conditions.
 
@@ -306,7 +344,7 @@ The primary requirement is zero loss or duplication of committed optimizer updat
 
 Numerical thresholds must be approved only after the target-device matrix, session policy and user battery/thermal expectations are defined. Do not import benchmark values from TinyStories, MELON, iPhone 17 Pro, Thermo-FL or another vendor.
 
-Before declaring feasibility, Argus requires: (1) E1 on a named physical Android device from local random initialization; (2) controlled E2 trade-offs; (3) E3 memory fit for the required session; (4) E4 sustained safe throughput; (5) E5 energy fit; (6) E6 transactional recovery; and (7) E7 evidence on the lowest declared physical target tier. E6 integrity failures, repeated E3 OOM/LMK, unsafe thermal state, non-finite updates, rights/provenance failures or energy-policy violations block progression. A stopped run is recorded as a result, not hidden as success.
+Before making an **empirical Argus feasibility or named-device support claim**, the implementation must pass: (1) E1 on a named physical Android device from local random initialization; (2) controlled E2 trade-offs; (3) E3 memory fit for the required session; (4) E4 sustained safe throughput; (5) E5 energy fit; (6) E6 transactional recovery; and (7) E7 evidence on the lowest declared physical target tier. This is a post-implementation claim gate, not a documentation or design-selection gate. E6 integrity failures, repeated E3 OOM/LMK, unsafe thermal state, non-finite updates, rights/provenance failures or energy-policy violations block progression. A stopped run is recorded as a result, not hidden as success.
 
 ## 9. Open questions carried into the architecture and tokenizer decision review
 
@@ -331,7 +369,7 @@ No answer is selected here.
 - [14 — Performance, Power and Thermal Engineering](14_PERFORMANCE_POWER_THERMAL.md): common measurement methodology.
 - [15 — Verification and Compatibility](15_VERIFICATION_COMPATIBILITY.md): system verification gate.
 - [22 — General Corpus and Personal Learning](22_GENERAL_CORPUS_AND_PERSONAL_LEARNING.md), plus documents 24–32: provenance, rights, acquisition and data separation.
-- [23 — Neural Architecture Research Plan](23_NEURAL_ARCHITECTURE_RESEARCH_PLAN.md): architecture/tokenizer decisions after feasibility evidence.
+- [23 — Neural Architecture Research Plan](23_NEURAL_ARCHITECTURE_RESEARCH_PLAN.md): architecture/tokenizer documentary design selection from published evidence and analytical bounds; E1–E7 remain post-implementation empirical feasibility gates.
 
 ## 11. Research references
 
