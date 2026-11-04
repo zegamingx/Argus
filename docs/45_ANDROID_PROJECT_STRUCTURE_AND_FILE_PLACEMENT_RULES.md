@@ -69,8 +69,9 @@ This is a **logical package map** under the existing namespace com.argus.agi, in
 ~~~text
 com.argus.agi
 ├── app/
-│   ├── bootstrap/             # Application entry and composition root
-│   └── navigation/            # Activity host, routes and destination wiring
+│   ├── entry/                 # Android Application/Activity entry points
+│   ├── bootstrap/             # Composition root and dependency graph construction
+│   └── navigation/            # Routes and destination wiring
 ├── feature/
 │   ├── chat/presentation/
 │   ├── learning/presentation/ # User-facing model/training controls and status
@@ -121,23 +122,24 @@ com.argus.agi
     └── design/                # Shared Compose design system and visual primitives
 ~~~
 
-The tree deliberately does **not** include a generic application/usecase plus application/orchestration double hierarchy, app/lifecycle, a generic data/local catch-all, or a mandatory feature/knowledge screen. Workflow-specific use cases and coordinators live together under their owning application/<workflow> package. A user-facing feature package is added only when a real screen or interaction is approved. The engine/model and engine/tokenizer packages remain absent until their respective selection gates close.
+The tree deliberately does **not** include a generic application/usecase plus application/orchestration double hierarchy, app/lifecycle, a generic data/local catch-all, or a mandatory feature/knowledge screen. Workflow-specific use cases and coordinators live together under their owning `application/<workflow>` package. A user-facing feature package is added only when a real screen or interaction is approved. The engine/model and engine/tokenizer packages remain absent until their respective selection gates close.
 
 ### 4.1 Package ownership
 
 | Package root | Owns | Must not own |
 |---|---|---|
-| app/bootstrap | Android Application composition root, dependency construction and startup wiring | Business policy, model math, repository internals or long-running job logic |
-| app/navigation | Activity host, route definitions and destination composition | Business rules, data access or service implementation |
+| app/entry | Android Application and Activity entry points, process/window host and platform launchers | Dependency graph internals or business workflows |
+| app/bootstrap | Application composition root, dependency graph construction and startup wiring | Android component lifecycle, business policy, model math or repository internals |
+| app/navigation | Route definitions, navigation state and destination composition | Activity ownership, business rules or data access |
 | feature/*/presentation | Feature UI, immutable UI state, ViewModels and user intent mapping | Concrete repositories, engine classes, connector policy or JNI |
-| application/<workflow> | Workflow-specific use cases, coordination, admission, cancellation, readiness and result mapping | Android framework implementation, tensor mathematics or direct file/database manipulation |
+| `application/<workflow>` | Workflow-specific use cases, coordination, admission, cancellation, readiness and result mapping | Android framework implementation, tensor mathematics or direct file/database manipulation |
 | core/identity | Instance/generation/session IDs and identity invariants | Android Context, database entities or UI models |
 | core/model, core/tokenizer, core/inference, core/training | Architecture-neutral model/tokenizer/session contracts and invariants | Selected family implementation, persistence code or Android lifecycle |
 | core/device, core/compute | Capability evidence, runtime-condition records and execution contracts | Chipset-name guesses, vendor calls or false acceleration claims |
 | core/policy | Purpose-scoped authorization, consent, retention and fail-closed decisions | Network fetching, capture APIs or UI-owned consent decisions |
 | core/knowledge, core/acquisition | Knowledge/provenance and source-operation/job contracts | Concrete HTTP clients, source self-authorization or training eligibility inferred from retrieval |
 | core/evaluation, core/events | Evaluation invariants, promotion criteria and typed event schemas | Direct active-generation mutation or a global mutable event bus |
-| data/<domain> | Concrete persistence, serialization, query/index and source-connector implementations for that domain | Changing domain policy, granting consent or exposing database/network DTOs to UI |
+| `data/<domain>` | Concrete persistence, serialization, query/index and source-connector implementations for that domain | Changing domain policy, granting consent or exposing database/network DTOs to UI |
 | platform/android/* | Android framework, permission, service, filesystem, connectivity, device and runtime-provider integration | Product policy, model mathematics or persistent domain decisions |
 | engine/reference | Correctness-oriented numerical operations and reference behavior | Android APIs, storage, rights policy or presentation |
 | engine/model / engine/tokenizer | Selected architecture/tokenizer implementations behind stable contracts | UI, Android services, consent or source rights |
@@ -149,7 +151,7 @@ Document 36 remains authoritative for logical responsibilities and lifecycle gua
 
 | Document 36 logical subsystem | Contract/domain owner | Workflow or concrete implementation owner |
 |---|---|---|
-| Experience/UI | None | feature/*/presentation, ui/design, app/navigation |
+| Experience/UI | None | feature/*/presentation, ui/design, app/entry and app/navigation |
 | Application orchestrator | core contracts used by each workflow | application/genesis, inference, learning, acquisition, knowledge and evaluation; app/bootstrap wires dependencies |
 | Trust and policy | core/policy | Policy checks in application workflows; data/policy persists grants/revocations |
 | Device capability service | core/device | platform/android/device gathers observations; application workflows perform resource admission |
@@ -193,7 +195,7 @@ app navigation ─────────────┤
                └──── app/bootstrap wires ─┘
 ~~~
 
-The diagram shows package dependencies, not an execution call graph. app/bootstrap is the composition root and may reference concrete implementations to bind them to contracts. The application layer must not import those concrete implementations.
+The diagram shows package dependencies, not an execution call graph. app/entry hosts Android components; app/bootstrap is the composition root and may reference concrete implementations to bind them to contracts. The application layer must not import those concrete implementations.
 
 Mandatory rules:
 
@@ -374,8 +376,8 @@ This is a proposed ownership map, not an instruction to move files now. A curren
 
 | Current file/package | Target owner(s) | Structural treatment |
 |---|---|---|
-| ArgusApp.kt | app/bootstrap | Composition root; remove global service-locator access only in an approved refactor |
-| MainActivity.kt | app/bootstrap + app/navigation | Keep Activity/platform launchers at the app edge; route and destination wiring belongs under navigation |
+| ArgusApp.kt | app/entry + app/bootstrap | Application entry point delegates construction to an explicit composition root; remove global service-locator access only in an approved refactor |
+| MainActivity.kt | app/entry + app/navigation | Keep the Activity as Android host; route definitions/destination wiring belong under navigation; permission launchers remain at the Android entry/presentation edge |
 | model/ArgusNeuralEngine.kt | engine/reference initially; model persistence in data/model; Android file/key access through platform/android/storage | Separate numerical operations, checkpoint policy and Android I/O; experimental, not selected production engine |
 | model/Tokenizer.kt | core/tokenizer contracts + engine/tokenizer only after G1-D | Separate immutable identity/API from concrete algorithm; preserve compatibility and token-ID semantics |
 | model/TrainingManager.kt | application/learning, core/training, engine/reference/selected engine/model, platform/android/lifecycle | Decompose session coordination, resource admission, numerical updates and OS scheduling; do not merely rename the class |
