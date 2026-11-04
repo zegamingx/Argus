@@ -189,7 +189,7 @@ For each architecture candidate, G4 must publish:
 4. Tokenizer/profile binding, context/packing policy and special-token boundary.
 5. Analytical per-profile parameter, optimizer, activation, recurrent/KV, workspace and checkpoint memory envelope.
 6. CPU reference and candidate backend/operator coverage table, including known unsupported operations.
-7. Model/optimizer/RNG/sampler/cursor checkpoint and exact-resume contract.
+7. Model/optimizer/RNG/sampler/cursor checkpoint and exact-resume contract, including complete recurrent carry, sequence/document reset and chunk/BPTT semantics where applicable; see [41 — Recurrent State and Chunked-Training Lifecycle Contracts](41_RECURRENT_STATE_AND_CHUNKED_TRAINING_CONTRACTS.md).
 8. Migration, generation isolation, rollback and model-quality evaluation plan.
 9. An explicit list of assumptions to verify in E1–E7 after implementation.
 
