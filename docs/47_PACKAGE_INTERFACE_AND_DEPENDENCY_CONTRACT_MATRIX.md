@@ -1,0 +1,342 @@
+# Argus Package Interface and Dependency Contract Matrix
+
+**Status:** Proposed package-to-contract mapping; no concrete Kotlin API implementation exists by virtue of this document  
+**Review date:** 2026-11-04  
+**Repository baseline:** \`main\` at \`afb8b30214f44620f1ff17e6735560fb2a706b0a\`  
+**Scope:** Ownership and allowed dependency mapping for cross-subsystem interfaces, application workflow APIs, outbound ports, platform/data/engine adapters, lifecycle state and verification obligations  
+**Upstream authority:** Document 01 for accepted product constraints; document 36 for logical subsystem/API/lifecycle contracts; document 45 for target Kotlin package ownership and forbidden dependency direction; document 46 for observed prototype dependencies and the confirmed source-level package cycle  
+**Boundary:** Documentation only. This document does not create Kotlin interfaces/classes, select a DI framework, create packages or Gradle modules, move files, change build configuration, run builds/tests/workflows, or authorize implementation.
+
+## 1. Purpose
+
+Documents 36, 45 and 46 answer three different questions:
+
+- **Document 36:** What each logical subsystem owns, guarantees and exposes.
+- **Document 45:** Where those responsibilities belong in the proposed Kotlin package hierarchy and which dependency directions are forbidden.
+- **Document 46:** Which dependencies exist in the current prototype and which source-level couplings must be removed.
+
+This document connects those authorities into one implementation-planning matrix. It assigns a contract owner, permitted consumers, implementation/adaptor owner and authoritative state boundary to each important cross-package handoff. Its purpose is to make the dependency graph actionable before any source movement or implementation begins.
+
+This document is a **mapping and gap register**, not a replacement for the logical contracts in document 36. Where a method shape is already specified in document 36, this document reuses it. Where no method shape exists, the row identifies a port responsibility only; it does not invent a Kotlin signature.
+
+## 2. Interpretation and contract status
+
+### 2.1 Terms
+
+| Term | Meaning |
+|---|---|
+| Contract owner | The package/layer that owns the stable meaning, rules and public shape of a contract |
+| Inbound workflow API | An application-facing operation invoked by a feature, startup host or platform callback |
+| Outbound port | An abstraction required by a workflow/domain owner and implemented by a data, platform or engine adapter |
+| Adapter / provider | A concrete implementation of a contract using persistence, Android APIs, network transport or numerical execution |
+| Consumer | A package permitted to call the contract; this does not imply direct knowledge of its implementation |
+| Composition root | \`app/bootstrap\`, which constructs concrete objects and wires them to contracts |
+| Authoritative state owner | The workflow or repository whose state is the source of truth; observers and UI state are projections |
+| Contract gap | A required handoff whose owner, semantics or failure behavior remain unresolved |
+
+### 2.2 Status rules
+
+1. **LOGICAL CONTRACT DEFINED** means document 36 defines the responsibility and required guarantees. It does not mean a Kotlin interface exists.
+2. **PACKAGE OWNER PROPOSED** means document 45 provides a target package, but exact Kotlin API names or types may remain open.
+3. **IMPLEMENTATION BINDING OPEN** means the concrete provider, library, storage format, backend or DI mechanism has not been selected.
+4. **CONTRACT GAP** means a necessary cross-layer handoff is not yet sufficiently owned to permit a safe implementation.
+5. **POST-IMPLEMENTATION VERIFICATION** means correctness must be proven against the stated contract and exact source revision/device environment.
+
+Names shown in this document are contract labels unless explicitly marked as an existing prototype declaration. No row is evidence that a corresponding production interface or class already exists.
+
+## 3. Rules for assigning and consuming interfaces
+
+### 3.1 Contract ownership
+
+1. Domain records, identity invariants and provider-neutral policies belong in the relevant \`core/*\` package.
+2. Process-independent use-case orchestration and inbound workflow APIs belong in the owning \`application/<workflow>\` package.
+3. Persistence, serialization, source fetching and indexing implementations belong in \`data/<domain>\`.
+4. Android framework, permission, service, capture, storage and provider-runtime integration belongs in \`platform/android/*\`.
+5. Numerical reference operations and selected model/tokenizer implementations belong in \`engine/*\`, subject to the architecture/tokenizer gates.
+6. Feature presentation owns immutable presentation state and maps user intent to application APIs. It does not own domain policy, repository access or engine execution.
+7. \`app/bootstrap\` wires implementations. It must not absorb workflow policy, state machines, storage semantics or numerical operations.
+8. Do not introduce a generic \`common/contracts\`, \`manager\`, \`utils\` or global service-locator package. Every contract has one named owner.
+
+### 3.2 Dependency rules
+
+- \`feature/*/presentation\` → owning \`application/*\` API and \`ui/design\`.
+- \`application/*\` → \`core/*\` contracts and narrowly defined workflow ports. It must not import Android, Compose, \`data/*\`, \`platform/android/*\` or numerical engine implementations.
+- \`core/*\` → platform-neutral Kotlin/domain dependencies only. It must not import Android, Compose, Room, Retrofit/OkHttp, vendor SDKs or JNI implementation code.
+- \`data/*\`, \`platform/android/*\` and \`engine/*\` implement contracts. They must not form a default direct dependency chain between one another.
+- \`platform/android/*\` may call narrow application-facing ingress/control APIs for Android callbacks. The application layer must not call back into the concrete Android adapter.
+- \`app/bootstrap\` may reference concrete implementations from each adapter family to construct the graph. This is the intentional composition exception, not a permission for other packages to import implementations.
+- No package or Gradle-module dependency cycle is permitted.
+- Cross-layer outcomes are typed and identity-bound. A global mutable registry, reflection-based service locator or broad static singleton is not a substitute for a contract.
+
+### 3.3 API and data rules
+
+1. Keep Android \`Context\`, \`Activity\`, \`Service\`, \`Intent\`, \`Uri\`, \`Bitmap\`, CameraX objects and Android lifecycle owners out of \`core/*\` and application-domain contracts.
+2. Keep Room entities, database handles, Retrofit/Moshi DTOs, OkHttp response objects and vendor runtime handles out of feature presentation and core contracts.
+3. Use stable IDs and versioned manifests across boundaries: instance, generation, session, candidate, source, consent, event and correlation identities must not be inferred from display labels.
+4. A repository returns domain-facing records/results. It does not expose storage rows or network DTOs.
+5. Expected operational failures use typed outcomes and the error categories in document 36. Unexpected exceptions are sanitized at the owning boundary; raw private content, prompts, credentials and full corpus text do not enter generic errors/events.
+6. Cancellation and resource budgets cross the workflow boundary explicitly. A UI event or notification refresh is never the source of truth for committed work.
+7. A consumer may observe a state/result stream, but the owning workflow remains responsible for the authoritative state and durable transition.
+
+## 4. Package-to-interface contract matrix
+
+The following matrix is the proposed mapping for the logical subsystem APIs in document 36. “Implementation owner” identifies the target package responsible for the concrete adapter or workflow, not a class that currently exists.
+
+| ID | Contract surface | Contract owner | Permitted consumers | Implementation/provider owner | Authoritative state or transaction |
+|---|---|---|---|---|---|
+| IF-01 | Instance, generation, session, candidate and correlation identity records | \`core/identity\` | All owning core/application workflows; data repositories validate identity | Value objects remain platform-neutral; persistence is owned by the relevant data domain | The owning repository/workflow validates identity on every read/write |
+| IF-02 | \`CapabilityProvider.inspect(requestedWorkload)\`; \`RuntimeConditionProvider.inspect()\` | Port/record contracts in \`core/device\` | \`application/genesis\`, \`application/learning\`, \`application/acquisition\` and other resource-admitted workflows | \`platform/android/device\` gathers Android evidence and live observations | Capability evidence is versioned; runtime conditions are short-lived observations |
+| IF-03 | \`ConfigurationSelector.select(...)\` and configuration decision | Domain constraints in \`core/device\` / model config in \`core/model\`; selection workflow in \`application/genesis\` | Genesis only, through the declared workflow | \`application/genesis\`; researched candidates and resource accounting are inputs | Decision is reproducible from versioned capability, runtime, candidate and budget inputs |
+| IF-04 | \`GenesisCoordinator.createInitialGeneration(instanceId, policy)\` | Inbound workflow API in \`application/genesis\`; records in \`core/model\`, \`core/device\`, \`core/tokenizer\` | \`app/entry\` startup/readiness host; controlled lifecycle entry points only | \`application/genesis\` orchestrates providers; initializer is supplied through a model/engine contract; \`data/model\` commits generation state | Genesis workflow owns readiness; \`data/model\` owns durable initial-generation publication |
+| IF-05 | \`ModelGenerationRepository\`: stage, validate, commit, open immutable snapshot, create/commit candidate, promote and rollback | Port and identity rules in \`core/model\` | \`application/genesis\`, \`application/inference\`, \`application/learning\`, \`application/evaluation\` | \`data/model\`; Android file/key operations are isolated in \`platform/android/storage\` | Repository transaction owns manifests, tensors, checksums, candidate isolation and active-generation pointer |
+| IF-06 | \`TokenizerProvider.prepare/load\`, \`TokenizerTrainer.train\`, \`TokenizerInstance.encode/decode/fingerprint\` | \`core/tokenizer\` | Genesis, inference, learning and corpus preprocessing through declared contracts | Selected implementation in \`engine/tokenizer\` only after G1-D; tokenizer artifact persistence/reference is handled by the approved data repository | Exact tokenizer manifest/fingerprint is immutable within a generation; changed token IDs require migration |
+| IF-07 | \`InferenceService.generate(snapshot, request, inferenceOptions, cancellation)\` | Inbound workflow API in \`application/inference\`; request/result/snapshot identity in \`core/inference\` and \`core/model\` | \`feature/chat/presentation\` and other approved application workflows through the application API | \`application/inference\` orchestrates; \`engine/reference\` is the correctness path, with a selected family backend only after G4; runtime integration is in \`platform/android/compute\` | Inference uses an immutable generation snapshot; it never writes model or optimizer state |
+| IF-08 | Learning session API: \`submit\`, \`pause\`, \`resume\`, \`stop\`, \`status\` | Inbound workflow API in \`application/learning\`; session/update/recovery records in \`core/training\` | \`feature/learning/presentation\`; \`platform/android/lifecycle\` through a narrow control/observation contract | \`application/learning\` owns admission and session lifecycle; \`data/model\` persists candidate/checkpoint state; \`engine/reference\` or a later selected engine executes numerical updates | Application workflow owns live state; durable checkpoint publication must align optimizer update, cursor, RNG and required recurrent state |
+| IF-09 | Training backend and numerical update contract | \`core/model\`, \`core/training\`, \`core/compute\` | \`application/learning\` through the declared engine contract only | \`engine/reference\` initially for correctness-oriented work; selected \`engine/model\` only after G4; native adapter only after separate ABI/memory/toolchain approval | Engine mutates candidate-only state and reports typed finite/invalid result plus committed update identity; it cannot authorize data or promote a generation |
+| IF-10 | \`PolicyEngine.evaluate(operation, resource, actor, context)\`; \`ConsentRepository.check(...)\` | Rules/port contracts in \`core/policy\` | Acquisition, capture/knowledge, corpus, learning and other privileged workflows; policy is not a UI-only check | Pure decision rules remain in \`core/policy\`; durable grants, revocations, exclusion and audit links are implemented in \`data/policy\` | Policy version and operation-specific decision are auditable; missing/unknown permission is DENY |
+| IF-11 | Candidate review, approval and revocation workflow | Scope/invariant contract in \`core/policy\`; review lifecycle coordinated by the owning application workflow | User review presentation and learning/acquisition workflows through explicit APIs | Candidate lifecycle coordination in \`application/learning\` for personal training; durable consent/approval records in \`data/policy\` | Approval/revocation records are durable and versioned; revocation invalidates pending candidate membership at a safe boundary |
+| IF-12 | \`AcquisitionCoordinator.discover(plan)\` and \`fetch(approvedJob)\` | Inbound workflow API in \`application/acquisition\`; source/job/operation contracts in \`core/acquisition\` | Approved discovery/scheduling workflows and user-visible acquisition controls | \`application/acquisition\` orchestrates; \`data/acquisition\` implements source connectors, HTTP fetch and parsing; connectivity observations come from \`platform/android/connectivity\` | Acquisition job state is idempotent, bounded and durable; connector response is untrusted until validation |
+| IF-13 | Source connector and source registry interfaces | Port/records in \`core/acquisition\`, authorization in \`core/policy\` | Acquisition coordinator only, after source and operation checks | Concrete connector/parser in \`data/acquisition\`; source registry records in \`data/policy\` or the reviewed source-registry store selected by the storage design | Connector cannot authorize itself, change retention policy or decide training eligibility |
+| IF-14 | Knowledge repository, provenance, index and retrieval evidence contracts | \`core/knowledge\` and \`core/acquisition\` | \`application/knowledge\`; inference/context workflows through a declared evidence/context port | \`data/knowledge\` implements persistence and indexes; \`application/knowledge\` coordinates retrieval/memory behavior | Record revision, provenance, rights, retention and index lineage remain bound to each result |
+| IF-15 | \`RetrievalService.query(query, filters)\` and memory workflow | Inbound workflow API in \`application/knowledge\`; records/results in \`core/knowledge\` | Feature/application consumers through explicit workflow or context ports | \`application/knowledge\` orchestrates; \`data/knowledge\` supplies retained records and indexes | Retrieval result is evidence, not training approval; retrieval does not mutate model weights |
+| IF-16 | Corpus construction and immutable dataset manifest/reader | Data identity and eligibility contracts in \`core/acquisition\`, \`core/training\` and \`core/policy\` | \`application/acquisition\` and \`application/learning\` at the approved handoff only | \`data/corpus\` builds pinned, deterministic splits/readers from approved records | Dataset manifest digest, split membership, preprocessing version and rights/consent lineage are immutable for a session |
+| IF-17 | Evaluation report, regression gate and promotion decision | Invariants in \`core/evaluation\` and generation identity in \`core/model\`; workflow API in \`application/evaluation\` | Learning workflow after candidate completion; authorized status presentation | \`application/evaluation\` coordinates; numerical evaluation uses a declared inference/reference backend; \`data/model\` stores reports and executes the repository promotion transaction | Evaluation binds to an immutable candidate digest; only repository promotion can switch the active pointer |
+| IF-18 | Typed lifecycle/event envelope and diagnostic schema | \`core/events\` | Owning workflows emit; UI/OS adapters observe bounded projections | Workflow-owned state/result APIs emit facts; \`data/audit\` persists sanitized audit records | Event is not a second state store; workflow/repository state remains authoritative |
+| IF-19 | Android lifecycle, foreground execution and notification adapters | Android contracts in \`platform/android/lifecycle\` and \`platform/android/notification\`; session semantics in \`core/training\` / \`application/learning\` | Android OS and app entry host; lifecycle adapter calls only narrow application controls | \`platform/android/lifecycle\` and \`platform/android/notification\` | OS service/worker state is not the training-session state; pause/resume/status is owned by \`application/learning\` |
+| IF-20 | Android permissions, accessibility/camera capture and installed-app discovery | Platform contracts in \`platform/android/permissions\` and \`platform/android/capture\`; policy rules in \`core/policy\` | Android OS callbacks; a not-yet-finalized application-facing capture ingress | \`platform/android/permissions\` and \`platform/android/capture\`; exclusions are persisted through \`data/policy\` | OS permission and app exclusion are inputs to policy, not proof of consent to retain or train |
+| IF-21 | Compute capability, backend selection evidence and execution result | Provider-neutral contract in \`core/compute\` | \`application/inference\`, \`application/learning\`, Genesis/backend admission | Runtime/provider discovery and Android/vendor calls in \`platform/android/compute\`; numerical backend in \`engine/*\` | Report actual provider, runtime, driver, precision, operator coverage, fallback and execution evidence |
+| IF-22 | Shared Compose visual primitives | UI-only ownership in \`ui/design\` | Feature presentation and app navigation | \`ui/design\` | Visual state is presentation-only and cannot own domain or workflow state |
+
+The method names reused above are conceptual names already present in document 36. Rows that describe a responsibility without a method name do not authorize a new public API shape by implication.
+
+## 5. Allowed dependency matrix
+
+This table defines compile-time package dependencies. It is not a call-order diagram.
+
+| Source package | May depend on | Must not depend on |
+|---|---|---|
+| \`app/entry\` | \`app/navigation\`, narrow app bootstrap API, Android framework | Concrete engine/data repositories or workflow internals |
+| \`app/navigation\` | Feature destinations and navigation contracts | Data, engine, repository or policy implementations |
+| \`app/bootstrap\` | All selected application APIs and concrete data/platform/engine adapters needed to construct the graph | Unbounded business workflow logic or duplicate state ownership |
+| \`feature/*/presentation\` | Owning application API/state contracts, \`ui/design\`, Compose UI libraries | \`data/*\`, \`platform/android/*\` implementation classes, \`engine/*\`, concrete repositories, global service locators |
+| \`application/*\` | \`core/*\`, other explicitly declared workflow ports where the dependency remains acyclic | Android framework, Compose, \`data/*\`, \`platform/android/*\`, concrete engine implementation |
+| \`core/*\` | Platform-neutral Kotlin/domain primitives and other lower-level core contracts where acyclic | Android, Compose, persistence/network libraries, vendor SDKs, JNI and feature/application implementations |
+| \`data/*\` | Core contracts and required persistence/network libraries | Feature presentation, Android UI components, numerical engine internals or sibling adapters by default |
+| \`platform/android/*\` | Android APIs, core contracts, narrow application ingress/control APIs | UI implementation details, domain policy ownership, engine internals or direct data repository internals |
+| \`engine/*\` | Core model/tokenizer/training/compute contracts and numerical dependencies | Android, Compose, Activity/Service/ViewModel, data repositories, network connectors and policy decisions |
+| \`ui/design\` | Compose UI/runtime primitives and design tokens | Feature workflows, application APIs, repositories or platform services |
+
+### 5.1 Composition and permitted adapter relationships
+
+The only package whose job is to know multiple concrete adapter families is \`app/bootstrap\`. It builds the object graph and passes dependencies through explicit constructors/factories or a separately selected DI framework.
+
+The composition root does not make the following relationships legal:
+
+- \`application/learning\` importing \`platform/android/device\` directly;
+- \`feature/chat\` importing \`engine/model\`;
+- \`platform/android/lifecycle\` reaching into \`data/model\` to read training state;
+- \`data/acquisition\` calling \`data/policy\` to approve its own request;
+- \`engine/model\` reading Android files or deciding personal-data eligibility;
+- \`ArgusApp\` static properties becoming the permanent dependency API.
+
+Adapters may use their own implementation details internally, but cross-adapter coordination remains with the application workflow or composition boundary.
+
+### 5.2 Required source-cycle removal
+
+The current package cycle recorded by document 46 is:
+
+~~~text
+com.argus.agi.MainActivity
+        -> com.argus.agi.ui
+        -> com.argus.agi.service
+        -> com.argus.agi (ArgusApp / MainActivity)
+~~~
+
+The target direction is:
+
+~~~text
+app/entry + app/navigation
+        -> feature/*/presentation
+        -> application/* APIs
+        -> core/* contracts
+
+data/* -----------┐
+platform/android -┼-> implement core/application ports
+engine/* --------┘
+
+app/bootstrap -> constructs and wires the selected implementations
+~~~
+
+The cycle is considered removed only when all of these source conditions hold:
+
+1. Feature presentation has no import/reference to concrete Android service implementations.
+2. Android services do not read static/global \`ArgusApp\` objects.
+3. Foreground notification navigation does not require a service-to-\`MainActivity\` implementation dependency.
+4. Application workflows do not import Android framework/service or concrete adapter packages.
+5. Engine code has no Android Context/file/policy/presentation dependency.
+6. Static dependency analysis finds no path returning from an adapter or feature to its own upstream consumer through concrete types.
+
+Do not claim cycle removal from folder names or package moves alone. Verify the post-change import/reference graph.
+
+## 6. Authoritative state and transaction ownership
+
+State ownership is separate from who displays or triggers an operation.
+
+| State or record | Authoritative owner | Observers / projections | Boundary rule |
+|---|---|---|---|
+| Genesis readiness and initialization outcome | \`application/genesis\` workflow | App entry and status UI | Ready only after initial generation is durably committed and recoverable |
+| Active model generation and immutable snapshots | \`data/model\` repository | Inference, learning, evaluation | Only repository transaction can publish or switch active generation |
+| Tokenizer identity and artifact fingerprint | \`core/tokenizer\` contract plus immutable generation manifest in \`data/model\` | Genesis, inference, corpus and training | No mutable vocabulary registration in a live generation |
+| Live training-session state and control | \`application/learning\` | Feature UI and Android lifecycle adapter | OS service/notification does not own pause/resume/checkpoint truth |
+| Checkpoint and candidate publication | \`data/model\` repository transaction coordinated by learning workflow | Learning and recovery | Optimizer update, RNG, dataset cursor and required recurrent state share one commit boundary |
+| Acquisition job lifecycle | \`application/acquisition\` with durable records in its selected data store | UI/scheduler | Retry is bounded and idempotent |
+| Source rights, consent, revocation and app exclusions | \`core/policy\` rules; \`data/policy\` durable records | All privileged workflows and platform adapters | Unknown is DENY; OS permission does not equal training consent |
+| Knowledge records and retrieval indexes | \`data/knowledge\` | Knowledge and inference workflows | Record revisions remain traceable to provenance/rights |
+| Corpus manifest and split/cursor | \`data/corpus\` for immutable dataset artifacts; \`application/learning\` for session use | Learning/evaluation | No live mutable acquisition queue as a training dataset |
+| Candidate evaluation and promotion decision | \`application/evaluation\` with report bound to candidate digest; commit in \`data/model\` | Learning and status UI | Evaluation and promotion are separate; promotion is atomic |
+| Lifecycle event schema | \`core/events\` | Owning workflows and observers | Event is a fact, not a source of truth |
+| Durable sanitized audit record | \`data/audit\` | Authorized diagnostics | No raw prompt, private capture or full corpus content in generic audit payload |
+| Transient runtime conditions | \`platform/android/device\` observations shaped by \`core/device\` | Resource admission workflows | Short-lived; must be re-read before workload admission |
+| Feature UI state | Feature-owned ViewModel/state holder | Compose screens | Projection only; must not become a second durable session/model database |
+
+The exact persistence split for training session metadata, source registry records and evaluation reports remains subject to the storage/schema decision. The logical owner above must not be treated as a final database-table or file-layout decision.
+
+## 7. Android adapter handoffs
+
+Android components are entry adapters, not workflow owners.
+
+| Adapter | Permitted responsibility | Application-facing handoff | Explicitly forbidden shortcut |
+|---|---|---|---|
+| Accessibility service | Receive Android accessibility callbacks; apply platform safeguards and bounded capture limits | Submit a typed, sanitized capture observation only through the approved capture-ingress contract | Calling \`TrainingManager.enqueueData\`, mutating WorldModel, or starting training directly |
+| Camera integration | Permission and lifecycle-aware preview/capture integration | Submit a bounded observation through the same approved capture/policy boundary where applicable | Passing CameraX objects, \`Bitmap\` or Android \`Context\` into core/application domain contracts |
+| Foreground service / worker | Satisfy OS execution, foreground notification, start/stop and rescheduling rules | Invoke a narrow learning-session control/observation API | Reading the training manager/repository/global application singleton as an alternate state store |
+| Permission adapter | Request/read OS permission and expose the platform result | Pass the permission observation to the owning policy/application workflow | Treating granted Android permission as user consent for retention or training |
+| Device adapter | Read Android build, ABI, hardware, battery, thermal and runtime observations | Return versioned capability/runtime-condition records through \`core/device\` contracts | Inferring verified GPU/NPU execution from chipset names |
+| Notification adapter | Render sanitized status and user actions; create an app route/deep-link PendingIntent through a host-owned navigation contract | Observe workflow-owned status and send user command to the appropriate application API | Importing \`MainActivity\` as the owner of training control or maintaining a second progress counter |
+
+### 7.1 Contract gap: personal capture ingress
+
+**Status: CONTRACT GAP — must be resolved before the current AccessibilityService-to-training path can be safely replaced.**
+
+Documents 36 and 45 require that capture, knowledge retention and personal training be separate, consent-controlled operations. Document 46 shows the prototype currently sends accessibility observations to \`WorldModel\` and \`TrainingManager\` directly. The target package map places Android capture under \`platform/android/capture\`, memory/retrieval under \`application/knowledge\`, and personal candidate/training lifecycle under \`application/learning\`, but it does not yet name one canonical application-facing intake contract or decide whether capture is initially transient context, durable personal memory, a personal-training candidate, or some combination requiring separate approvals.
+
+Required design resolution:
+
+1. Define a typed \`CaptureObservation\`/capture-envelope identity and bounded metadata. Do not pass Android framework objects across the boundary.
+2. Define whether each capture purpose is transient inference context, durable memory retention, or candidate input for personal training. These are separate operations and permissions.
+3. Select the application-facing ingress owner. Candidate routes are an application/knowledge intake with a separate application/learning review handoff, or a dedicated personal-experience workflow if a single owner is required. Do not create that package until its scope is accepted.
+4. Require policy evaluation, sensitivity classification, redaction and explicit user review/approval before a personal candidate becomes training-eligible.
+5. Ensure the capture adapter cannot enqueue raw observations directly into a training queue and cannot grant its own authorization.
+6. Define exclusion, secure-surface, revocation, retention and deletion-lineage outcomes with typed errors/status.
+
+Until that design resolution exists, the adapter may expose only the already-approved Android platform observation boundary. It must not be wired to a speculative training or retention implementation.
+
+### 7.2 Notification navigation handoff
+
+The foreground service needs to open the app, but it must not own or import the Activity implementation. The navigation contract should identify a stable app destination/route that the Android notification adapter can encode as a PendingIntent/deep link and that \`app/navigation\` resolves. The route URI/ID, authentication/permission behavior and task-stack policy remain implementation-binding decisions. Training control itself remains owned by \`application/learning\`.
+
+## 8. Existing prototype mapping
+
+This table maps the inspected files from document 46 to the contract work required. It is not a move list and does not authorize a rewrite.
+
+| Existing prototype file/package | Current coupling | Required future contract boundary |
+|---|---|---|
+| \`ArgusApp.kt\` | Global companion properties construct/expose engine, model, device and training objects | Keep Application entry in \`app/entry\`; construct and bind dependencies in \`app/bootstrap\` |
+| \`MainActivity.kt\` | Hosts navigation and directly references feature screens/ViewModel | \`app/entry\` hosts Activity; \`app/navigation\` wires feature destinations and application state |
+| \`ArgusViewModel.kt\` | Reaches global app state, engine, manager, sensor/search and services; owns multiple feature workflows | Split feature state holders; consume only owning application APIs and immutable presentation state |
+| \`ArgusNeuralEngine.kt\` | Combines numerical operations, tokenizer mutation/usage, Android Context and checkpoint file I/O | Core model/inference/training contracts; \`engine/reference\` numerical implementation; \`data/model\` persistence; \`platform/android/storage\` platform file/key access |
+| \`Tokenizer.kt\` | Concrete mutable tokenizer is colocated with experimental engine | \`core/tokenizer\` identity/API; selected implementation only in \`engine/tokenizer\` after G1-D |
+| \`TrainingManager.kt\` | Queue, coroutine worker, device guard, engine update and world-model update combined | \`application/learning\` coordinator; \`core/training\` session contracts; device provider/admission; engine backend; repository checkpoint transaction |
+| \`WorldModel.kt\` | Android Context, in-memory memory records and transient screen/camera context are combined | Separate \`core/knowledge\` records, \`application/knowledge\` workflows, \`data/knowledge\` persistence/index, and transient context ingress |
+| \`DeviceGuard.kt\` / \`HardwareProfile.kt\` | Android observations and workload/device interpretation are mixed | \`platform/android/device\` providers with stable/live records in \`core/device\`; admission stays in application workflows |
+| \`ExcludedAppsManager.kt\` | PackageManager discovery and exclusion state are combined | Platform installed-app discovery plus \`core/policy\` rules and \`data/policy\` durable exclusions |
+| \`WebSearchEngine.kt\` | HTTP transport/parser is labelled as a sensor | \`data/acquisition\` connector behind \`core/acquisition\` and application authorization |
+| \`ArgusAccessibilityService.kt\` | Constructs exclusion adapter; accesses globals; directly forwards to memory/training | \`platform/android/capture\` adapter behind the unresolved capture-ingress contract |
+| \`ArgusForegroundService.kt\` | Reads global training/device/hardware state and imports MainActivity | \`platform/android/lifecycle\` + notification adapter; application-owned learning controls and route contract |
+| Compose screens | Direct service/Android APIs and model DTOs cross presentation boundary | Feature presentation consumes application state/API; Android UI-edge permissions/preview remain narrowly scoped |
+
+## 9. Dependency and interface verification plan
+
+The following checks are required when implementation is separately authorized. They are not claimed to have run.
+
+| Verification | Required assertion | Test/static-analysis placement |
+|---|---|---|
+| Package graph acyclicity | No dependency cycle across target package roots | Architecture/dependency test over production imports |
+| Core isolation | No Android, Compose, Room, Retrofit/OkHttp, vendor SDK or JNI implementation import in \`core/**\` | Static forbidden-dependency rule |
+| Application isolation | No Android framework, Compose, \`data/**\`, \`platform/android/**\` or concrete engine implementation import in \`application/**\` | Static forbidden-dependency rule |
+| Feature isolation | No concrete repository, data DTO, engine or Android service implementation import in \`feature/**\` | Static forbidden-dependency rule plus feature unit tests |
+| Adapter implementation | Data/platform/engine implementations satisfy the exact owned port and typed outcomes | Contract tests for each adapter |
+| Composition root | Every required port is bound exactly once or has an explicit optional/missing-provider result; no hidden global locator | Graph-construction test |
+| State authority | UI, notification and events cannot independently mutate/claim committed model or training state | Workflow tests and state-transition tests |
+| Identity propagation | Instance/generation/session/tokenizer/dataset/candidate fingerprints survive every relevant handoff | Contract and repository tests |
+| Policy enforcement | Missing/unknown consent or rights denies protected capture, retention, retrieval, export or training operation as applicable | Policy matrix tests, including revocation races |
+| Genesis transaction | Application readiness is not published until an initial generation is valid, durable and recoverable | Genesis/repository crash-boundary tests |
+| Training recovery | Candidate, optimizer update, RNG, data cursor and required recurrent state agree at checkpoint/resume | Learning lifecycle and checkpoint tests; recurrent requirements from document 41 |
+| Inference isolation | Inference consumes a fixed immutable snapshot and releases request-owned resources on cancellation | Inference/backend tests |
+| Promotion isolation | Evaluated candidate digest is unchanged when the repository atomically promotes it | Evaluation/promotion transaction tests |
+| Android lifecycle | OS stop/reclaim/permission/service-denial paths preserve workflow-owned safe state without bypassing platform rules | Android instrumentation/device tests |
+| Capture intake | Raw capture cannot reach training before policy, classification, redaction and explicit approval | Capture/policy/learning integration tests |
+
+A static pass proves only the dependency rule in the inspected revision. Runtime correctness, transaction durability, Android lifecycle behavior, privacy behavior, performance and device/backend capability require their own specified verification evidence.
+
+## 10. Open contract decisions and blockers
+
+| ID | Open item | Why it remains open | Required owner/evidence | Blocks |
+|---|---|---|---|---|
+| PC-OPEN-01 | Canonical personal capture ingress and its workflow owner | Transient context, durable memory and personal-training candidate are distinct purposes; current target hierarchy does not assign one intake API | Product/workflow decision reconciled with documents 13, 22, 24 and 36; privacy/consent lifecycle review | Safe replacement of direct AccessibilityService-to-WorldModel/TrainingManager calls |
+| PC-OPEN-02 | Exact UI-facing immutable state models and observation streams | Logical state ownership exists, but exact presentation DTO and subscription API are not specified | Feature/application contract review; do not expose model/data DTOs | Splitting \`ArgusViewModel\` into feature state holders |
+| PC-OPEN-03 | Notification deep-link/route contract | Service must not depend on Activity implementation; route identity/task-stack semantics are not chosen | app/navigation + platform notification design | Removing service-to-MainActivity coupling |
+| PC-OPEN-04 | Repository transaction interfaces and storage schema | Exact store, schema, encryption/key ownership, migration, deletion and atomic publication mechanism remain open | Documents 13, 15, 19, 36 plus storage decision/ADR | Data adapter implementation and safe extraction |
+| PC-OPEN-05 | Compute provider injection and backend capability contract binding | Provider-neutral contract exists; actual runtime/provider/operator coverage and fallback rules are not implemented/verified | Documents 04–08, 14, 35, 42 and 43; later Android evidence | Selected accelerated backend implementation |
+| PC-OPEN-06 | DI/composition mechanism | Explicit composition root is mandatory; framework/factory approach remains undecided | app/bootstrap design review; dependency scope/lifecycle evidence | Composition implementation, not package ownership |
+| PC-OPEN-07 | Tokenizer implementation and API binding | Tokenizer G1-D remains open; tokenizer artifact/profile selection is not finalized | Document 34 and G1-D evidence/decision | Concrete \`engine/tokenizer\` implementation |
+| PC-OPEN-08 | Selected model family and backend binding | G4 remains blocked and no architecture family is selected | Document 43 acceptance and required comparative evidence | Selected \`engine/model\` implementation |
+| PC-OPEN-09 | Session/report persistence split | Logical owners are known, but exact data-domain partition and durable schema are open | Storage/transaction contract review under document 36 | Final repository module boundary |
+
+These open items do not prevent the package ownership and allowed dependency direction from being documented. They do prevent inventing production interfaces, creating speculative packages/modules or claiming an implementation-ready API surface.
+
+## 11. Relationship to existing documents
+
+| Document | Authority retained | This document adds |
+|---|---|---|
+| 01 — System Requirements and Decisions | Accepted product constraints and ADRs | No new product decision |
+| 13 — Security and Data Governance | Privacy, consent, rights and deletion rules | Mapping of enforcement and persistence boundaries |
+| 22 — General Corpus and Personal Learning | General/personal learning separation | Handoff boundary from approved candidate to learning |
+| 24 and 26 — Acquisition/Source Registry | Discovery, source permissions and connector behavior | Application coordinator versus concrete connector ownership |
+| 34 — Tokenizer Evaluation | Tokenizer research and G1-D | Package/consumer/provider mapping only |
+| 36 — Pre-Implementation Module and Lifecycle Contracts | Logical API, lifecycle, identity, transaction and error contracts | Package-level port ownership, consumers and adapter mapping |
+| 41 — Recurrent State and Chunked Training | Stateful training/recovery semantics | Checkpoint boundary is carried into the package matrix |
+| 43 — G4 Architecture Decision | Architecture decision gate and profile criteria | No architecture selection or engine implementation binding |
+| 44 — Documentation Governance | Source-of-truth, evidence and authorization rules | This document follows the existing document hierarchy |
+| 45 — Android Project Structure | Target package hierarchy and allowed dependency direction | Contract-by-contract package, consumer and provider crosswalk |
+| 46 — Android Source-Tree Audit | Observed files, dependency couplings and package cycle | Maps each legacy coupling to the contract boundary needed to remove it |
+
+If a method shape or lifecycle guarantee differs between this mapping and document 36, document 36 is authoritative for the logical contract. If a package assignment differs from document 45, document 45 is authoritative for target package ownership until formally revised. This document must then be reconciled; it must not silently override either source.
+
+## 12. Completion and next work
+
+The package-interface mapping is complete enough for a bounded contract review when:
+
+- every existing cross-subsystem handoff has one proposed owner and a permitted consumer set;
+- every adapter family has an explicit contract it implements;
+- state, persistence and transaction authority are not assigned to UI, notification or generic event infrastructure;
+- the known root/UI/service cycle has an explicit inversion path;
+- the personal capture ingress gap is visible and cannot be bypassed by direct training enqueue;
+- all unresolved API, storage, DI, tokenizer, architecture and runtime bindings remain explicit;
+- forbidden dependency checks and later verification obligations are listed;
+- no text implies that any proposed interface/package already exists in the prototype.
+
+**Current disposition:**
+- Package-to-interface/consumer/provider mapping: documented as a proposal.
+- Root/UI/service cycle removal: planned, not implemented or verified.
+- Personal capture ingress: unresolved contract gap.
+- Exact Kotlin signatures and DI binding: open.
+- Gradle module extraction: deferred.
+- Source movement, package creation, build changes and implementation: not authorized.
+- Build, tests, GitHub Actions, artifact publication and device execution: not performed.
+
+**Next documentation task:** resolve PC-OPEN-01, the personal capture ingress and separation of transient context, durable memory and personal-training candidates. This is the remaining contract gap most directly connected to the current prototype's unsafe dependency shortcut. Do not start the package migration until its ingress and policy path are unambiguous.
+
+## 13. Change history
+
+- 2026-11-04 — Initial package/interface crosswalk prepared against \`main\` HEAD \`afb8b30214f44620f1ff17e6735560fb2a706b0a\`, using documents 36, 45 and 46. No source, build configuration, test or workflow was changed.
