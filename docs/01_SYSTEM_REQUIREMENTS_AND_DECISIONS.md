@@ -169,6 +169,17 @@ Argus must deliberately seek Indonesian-language material beyond technical/progr
 
 The autonomous acquisition pipeline adapts to each instance's measured device capability and live operating conditions, separately from model configuration. Each instance shares the broad sixteen-domain coverage objectives and minimum rights/quality requirements, while download volume, concurrency, parsing, retention, indexing, tokenization batches and background scheduling remain within a device-specific resource profile. Low-capability devices progress through smaller resumable work units; they do not receive weaker provenance, security, rights or data-quality checks. Model and acquisition resource budgets must not be double-counted.
 
+### ADR-024 — Architecture research scope and evidence controls (G0)
+**Status:** Accepted research-planning baseline; no architecture, tokenizer, device-support or implementation decision is implied.
+
+The Phase 0 comparative research scope is bounded to the accepted Local Knowledge Genesis and independent-instance product constraints, device-conditioned model/tokenizer configuration, tokenizer and model-generation identity, Android-local training/runtime paths, architecture/component alternatives, resource/thermal/power behavior, lifecycle/recovery, and the data-rights boundary that determines which text may be used for tokenizer development or neural training. Candidate architecture families include decoder-only Transformer, state-space/recurrent and hybrid designs; candidate tokenizer families and preparation modes remain governed by document 34.
+
+Comparisons must identify whether evidence concerns random-initialization training, pretrained fine-tuning, inference, or runtime optimization. They must record model/data/device/runtime/budget mismatches and distinguish published measurements, audited implementation/API facts, analytical estimates, Argus implementation assumptions and future physical-device verification. Component-level comparisons must use the matched-control method in document 35 and must not infer a component winner from a system-level result.
+
+The initial component inventory covers backbone, attention semantics and kernels/layout, positional representation, FFN/routing, normalization, residual topology, depth/width and parameter allocation, embeddings/output head, context/packing, initialization, optimizer/update semantics, activation/memory optimization, tensor layouts, CPU/GPU/NPU backend paths, scheduling/thermal control, checkpoint/recovery, tokenizer profile/preparation, personal adaptation boundaries and excluded federated/server-assisted topologies.
+
+Device classes, minimum RAM, named SoCs, numerical admission thresholds and performance promises remain explicitly open until measurable workload/device evidence is defined. G0 closes only the research scope, inventory, comparison controls and evidence boundaries. It does not close G1-D/G2/G3/G4, approve corpus sources, authorize implementation/builds/workflows, or claim physical device support.
+
 ## 8. Revised open decisions
 
 These items remain open; they must not be filled with assumed values:
