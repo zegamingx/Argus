@@ -3,7 +3,7 @@
 **Status:** Research synthesis and decision framework; no architecture selected  
 **Last reviewed:** 2026-11-04  
 **Research stage:** Stage 4 — Parallel architecture comparative research  
-**Parallel inputs:** feasibility evidence boundary and E1–E7 protocol in [33 — From-Scratch Training Feasibility](33_FROM_SCRATCH_TRAINING_FEASIBILITY.md), plus tokenizer evaluation in [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md). G1 blocks token-sensitive decisions, not tokenizer-neutral research.  
+**Parallel inputs:** research-backed and analytical feasibility boundary plus later E1–E7 protocol in [33 — From-Scratch Training Feasibility](33_FROM_SCRATCH_TRAINING_FEASIBILITY.md), and documentary tokenizer shortlist G1-D plus later runtime conformance G1-V in [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md). G1-D informs token-sensitive design; it does not block tokenizer-neutral research or require Argus app/device tests.  
 **Authority:** Proposed component-level research framework, prior-art mapping and draft gates. G0–G4 are not accepted or closed product decisions; this document is not an implementation authorization or architecture freeze.
 
 ## 1. Purpose
