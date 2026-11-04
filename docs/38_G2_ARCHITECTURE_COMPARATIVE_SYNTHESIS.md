@@ -46,7 +46,7 @@ This synthesis therefore uses papers to compare mechanisms and trade-offs, not t
 - Autoregressive inference KV memory grows with retained sequence length, layer count and KV width. Grouped-query attention and cache precision can reduce this term.
 - Training activation memory is separate from inference KV memory; checkpointing/recomputation and microbatching target training activations, not the model's parameter/optimizer state.
 
-**Evidence.** MobileLLM provides strong design evidence for sub-billion models through deep-and-thin configurations, embedding sharing and grouped-query attention. MobileFineTuner/FBLayout provide selected physical-phone fine-tuning/layout evidence. None proves a complete random-initialization Argus training graph on Android.
+**Evidence.** MobileLLM provides strong design evidence for sub-billion Transformer models through deep-and-thin configurations, SwiGLU FFNs, embedding sharing and grouped-query attention. It is important to classify the result correctly: the authors explicitly train MobileLLM **from scratch**, but they do so on **32 NVIDIA A100 GPUs**, first exploring 0.25T tokens and then training reported models for 1T tokens—not on a phone. For the 125M/350M variants, the paper finds deeper/thinner layouts outperform shallower/wider variants in its tested settings; embedding sharing reduces a 135M model to 119M parameters (about 11.8%) with a small accuracy trade-off that can be offset by reallocating saved parameters to depth; and 16 query heads with 4 KV heads gives comparable 125M accuracy / about 0.2-point drop at 350M while reducing model size by nearly 10%. These are valuable architecture hypotheses for Argus's small-model budget, not default settings or proof of Android training feasibility. MobileFineTuner/FBLayout add selected physical-phone **fine-tuning** and layout evidence, not from-scratch phone training.
 
 **Argus risks and design questions.**
 
@@ -55,7 +55,7 @@ This synthesis therefore uses papers to compare mechanisms and trade-offs, not t
 - Long context may be expensive even when inference cache is compressed.
 - Exact causal mask, sequence packing, document-boundary masking, normalization, positional encoding and output projection contracts must be frozen.
 
-**Required comparison.** Use a correctness-first causal-attention CPU reference; compare tiled/memory-efficient paths only after parity. Include deep/thin and embedding-sharing/GQA options as design variants, not as inherited defaults. Compare equal parameter, token and compute budgets separately.
+**Required comparison.** Use a correctness-first causal-attention CPU reference; compare tiled/memory-efficient paths only after parity. Include deep/thin, SwiGLU vs other FFNs, tied/shared vs untied embeddings, and MHA/MQA/GQA as separate design variants, not inherited defaults. For a given parameter budget, separately report the trade between shared embedding savings, extra depth, query/KV head counts, KV-cache size, output projection cost and throughput. Compare equal parameter, token and compute budgets separately; MobileLLM's 32×A100 training result is not a mobile runtime or power measurement.
 
 ### 3.2 Selective SSM / Mamba-2 SSD
 
