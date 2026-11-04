@@ -3,7 +3,7 @@
 **Status:** Research synthesis and decision framework; no architecture selected  
 **Last reviewed:** 2026-11-04  
 **Research stage:** Stage 4 — Parallel architecture comparative research  
-**Parallel inputs:** research-backed and analytical feasibility boundary plus later E1–E7 protocol in [33 — From-Scratch Training Feasibility](33_FROM_SCRATCH_TRAINING_FEASIBILITY.md), and documentary tokenizer shortlist G1-D plus later runtime conformance G1-V in [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md). G1-D informs token-sensitive design; it does not block tokenizer-neutral research or require Argus app/device tests.  
+**Parallel inputs:** research-backed and analytical feasibility boundary plus later E1–E7 protocol in [33 — From-Scratch Training Feasibility](33_FROM_SCRATCH_TRAINING_FEASIBILITY.md); documentary tokenizer shortlist G1-D plus later runtime conformance G1-V in [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md); and Transformer-specific component comparisons and ablation contracts in [39 — Transformer Component Research and Pre-G4 Design Contracts](39_TRANSFORMER_COMPONENT_RESEARCH_AND_DESIGN_CONTRACTS.md). G1-D informs token-sensitive design; it does not block tokenizer-neutral research or require Argus app/device tests. Document 39 does not alter G3 dispositions.  
 **Authority:** G0 research scope/evidence controls, G2 family shortlist and G3 component-disposition baseline are accepted planning outputs under ADR-024/025/026 in document 01. G1-D and G4 remain open research/design gates; this document is not an implementation authorization or architecture freeze.
 
 ## 1. Purpose
