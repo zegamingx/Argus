@@ -140,6 +140,18 @@ Together with entries ID-ITATS-004 through ID-ITATS-012, they form a discovery s
 
 The archive's catalogue-level license labels are discovery evidence only. Each item's file, author attribution, embedded third-party material and permitted operations must be checked independently; a CC BY label does not override a conflicting restriction embedded in the corresponding PDF.
 
+### Separate repository-supplied text asset — not an ITATS OER record
+
+The repository also contains `public/assets/DigiTransID.zip`, added on 2026-11-04 by commit `878769b5155e9bc4239c81dba803f88627253118` (Git blob `abdc59d91a3c5e41b18c747f8fc7df2b0ead44c2`). This is independent of the three ITATS PDF records above and must not be assigned an ITATS author/license by association.
+
+Archive inspection found 16 UTF-8 text files (parts 1–15, including 4B), 94,226 compressed bytes and 258,654 expanded bytes. The text covers Indonesian digital transformation and includes fictional/hypothetical case studies across organizational change, AI governance, compute infrastructure, research capacity and multilingual evaluation.
+
+The extracted texts did not expose an explicit author, publication date, publisher, license statement or complete bibliography. Part 6 contains unresolved markers such as `[web:6]` and `[page:6]`. Its origin is therefore **PROVENANCE_REVIEW_PENDING**. The repository's root Apache-2.0 license and the commit uploader are useful repository context, but they do not independently prove that all underlying text is original or that the uploader was authorized to license a derivative work.
+
+The SEED-ID-002 PDF reproduction restriction does not automatically attach to this separately stored ZIP; equally, a ZIP conversion or paraphrase does not remove rights that may apply to underlying source material. Keep the ZIP separate from the ITATS hold until the project owner confirms authorship/rightsholder authority or supplies the complete source/license chain, and the unresolved citations are repaired. Do not activate it for retrieval, tokenizer fitting, derived-artifact distribution or neural training before those checks and operation-specific approvals.
+
+**Provisional source key:** `SEED-ID-004` — `REPOSITORY_CANDIDATE / PROVENANCE_REVIEW_PENDING`. It is a monolingual Indonesian text candidate only, not an aligned tokenizer-development set.
+
 ## 5. SPADA Indonesia: program-scoped CC BY discovery path
 
 The official 2022 Program Bantuan Inovasi Modul Digital (IMD) announcement states that modules/content produced under that program must be licensed Creative Commons CC BY and made openly accessible through SPADA.
