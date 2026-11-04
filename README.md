@@ -189,4 +189,4 @@ The current application prototype must not be confused with the future Genesis f
 
 These are planning gates, not authorization to implement. The detailed phase and research register in [16](docs/16_ROADMAP_RESEARCH_REGISTER.md) is authoritative.
 
-**Documentation-first work does not authorize implementation, builds, workflow dispatches or artifact publication.**
+**Documentation approval now authorizes implementation only. Builds, workflow dispatches, and artifact publication remain blocked until the build and workflow readiness is approved.**
