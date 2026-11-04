@@ -112,6 +112,7 @@ The documents under [docs/](docs/README.md) are the planning source of truth. Th
 | [31 — Indonesian-Language OER Source Expansion](docs/31_INDONESIAN_LANGUAGE_OER_SOURCE_EXPANSION.md) | Additional Indonesian OER titles, ITATS source mapping and SPADA program-scoped CC BY path |
 | [32 — Device-Adaptive Knowledge Acquisition and Corpus Budgeting](docs/32_DEVICE_ADAPTIVE_KNOWLEDGE_ACQUISITION.md) | Device-specific acquisition capacity, offline corpus tiers, storage and runtime scheduling |
 | [33 — From-Scratch Training Feasibility](docs/33_FROM_SCRATCH_TRAINING_FEASIBILITY.md) | Evidence classification, Android resource model, sustained thermal/energy constraints and E1–E7 feasibility protocol |
+| [34 — Tokenizer Evaluation and Decision Framework](docs/34_TOKENIZER_EVALUATION_AND_DECISION.md) | Candidate tokenizer families, multilingual fixtures, Unicode conformance, vocabulary/runtime costs and decision gates |
 
 ## Current implementation status
 
@@ -165,8 +166,8 @@ The current application prototype must not be confused with the future Genesis f
 
 1. Complete the documentation and evidence audit, including the P0 remediation design and all cross-document dependencies.
 2. Establish from-scratch training feasibility targets and measurable device/resource constraints using [From-Scratch Training Feasibility](docs/33_FROM_SCRATCH_TRAINING_FEASIBILITY.md).
-3. Evaluate tokenizer candidates on versioned multilingual/domain fixtures, then freeze a comparison fixture.
-4. Compare architecture candidates under equivalent data, tokenizer, parameter/compute budgets and target-device constraints.
+3. Complete [Tokenizer Evaluation and Decision Framework](docs/34_TOKENIZER_EVALUATION_AND_DECISION.md): evaluate candidate tokenizers on versioned multilingual/domain fixtures, then freeze the comparison contract.
+4. Compare architecture candidates under the selected versioned tokenizer, equivalent data, parameter/compute budgets and target-device constraints.
 5. Finalize corpus provenance, item-level rights, preprocessing, packaging and general/personal data separation.
 6. Complete Genesis, model-state, checkpoint/recovery, lifecycle, security and verification contracts.
 7. Pass the implementation-readiness audit before preparing a dependency-ordered implementation plan.

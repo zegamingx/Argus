@@ -312,6 +312,7 @@ The controlling design references are:
 - [22 — General Corpus and Personal Learning](22_GENERAL_CORPUS_AND_PERSONAL_LEARNING.md) for the distinct general and personal learning data paths.
 - [23 — Neural Architecture Research Plan](23_NEURAL_ARCHITECTURE_RESEARCH_PLAN.md) for architecture/tokenizer research and trainable-parameter decisions.
 - [33 — From-Scratch Training Feasibility](33_FROM_SCRATCH_TRAINING_FEASIBILITY.md) for the evidence boundary and E1–E7 feasibility gates that must precede architecture and tokenizer selection.
+- [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md) for the tokenizer pipeline, artifact fingerprint, Unicode/special-token conformance and generation migration contract.
 - [13 — Security and Data Governance](13_SECURITY_PRIVACY_DATA_GOVERNANCE.md) for cross-system privacy and data-governance requirements.
 
 **Supersession rule:** any remaining historical reference in this document to a pretrained base-model artifact or Q/V LoRA is not an Argus target requirement. Such wording must be read only as a description of the prototype's historical assumptions or defects. The accepted target is a locally initialized, versioned Genesis generation with an architecture-specific training contract.

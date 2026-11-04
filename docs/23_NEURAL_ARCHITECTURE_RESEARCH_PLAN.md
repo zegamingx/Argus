@@ -66,7 +66,7 @@ Other architectures may be added when a credible paper, reproducible implementat
 
 ## 4. Experimental method
 
-1. Define common tokenizer candidates and controlled text fixtures so architecture comparisons use the same input representation where valid.
+1. Complete the candidate and fixture protocol in [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md); freeze one versioned tokenizer contract before controlled architecture comparisons.
 2. Build minimal, mathematically correct prototypes for each candidate family.
 3. Validate forward outputs, objective values, gradients and optimizer updates against trusted reference implementations.
 4. Measure training memory separately from inference memory.
@@ -100,7 +100,7 @@ An architecture may be selected only when:
 - Memory and compute fit at least a defined target device tier.
 - Sustained training/inference results are reproducible.
 - Complete model and optimizer states can be checkpointed and restored.
-- Tokenizer and corpus contracts are compatible.
+- The tokenizer has passed the evidence and decision gates in [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md), and the corpus contract is compatible.
 - Known trade-offs and unsupported operations are documented.
 - A reviewed architecture decision record is added to document 01.
 
@@ -131,7 +131,7 @@ These are large-scale server-training results. They justify retaining SSM and Hy
 
 ### 9.3 Multilingual tokenizer evidence
 
-Tokenizer evaluation must include more than vocabulary size:
+Tokenizer evaluation must include more than vocabulary size. The controlled candidate families, exact pipeline manifest, multilingual fixture and decision gates are defined in [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md).
 
 - [Equity with Efficiency (EMNLP 2026)](https://aclanthology.org/2026.emnlp-main.1783/) evaluates tokenizer efficiency and language parity across eleven Southeast Asian languages and includes controlled 1.5B-parameter training. This supports evaluating Indonesian and neighboring languages explicitly rather than assuming an English-dominant tokenizer is adequate.
 - [Scaling Laws or Threshold Effects (Findings of ACL 2026)](https://aclanthology.org/2026.findings-acl.1588/) reports vocabulary-size threshold behavior for BBPE in a specific Mongolian, Tibetan and Uyghur experiment. Its 9K threshold must not be generalized into a universal Argus minimum.

@@ -92,6 +92,7 @@ The target architecture requires additional verification before it can be descri
 | Adaptive training | Workload responds to memory/thermal/power conditions without corrupting optimizer semantics or model structure |
 | Background lifecycle | Pause, process death, Android reclaim, resume, notification and foreground-service policy are tested on named OS versions |
 | Corpus | Source revision, provenance, license notices, split integrity, tokenizer token count, deduplication and checksum are reproducible |
+| Tokenizer | Exact tokenizer artifact/config fingerprint, Unicode and whitespace round-trip behavior, offset semantics, byte-fallback/unknown handling, special-token separation and reference/Android conformance are verified |
 | Personal learning | Unapproved/revoked candidates cannot update weights; general and personal data lineage remain separate |
 | Instance isolation | No hidden model/data/gradient network path; no cross-user synchronization or shared training state |
 | Architecture evolution | Candidate generation, tensor migration, regression gates and rollback are tested before promotion |
