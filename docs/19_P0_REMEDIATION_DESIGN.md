@@ -315,6 +315,7 @@ The controlling design references are:
 - [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md) for the tokenizer pipeline, artifact fingerprint, Unicode/special-token conformance and generation migration contract.
 - [35 — Android Architecture Evidence and Component Comparison Matrix](35_ANDROID_ARCHITECTURE_EVIDENCE_AND_COMPONENT_MATRIX.md) for the Android prior-art evidence, component dispositions and framework-reuse audit boundary.
 - [13 — Security and Data Governance](13_SECURITY_PRIVACY_DATA_GOVERNANCE.md) for cross-system privacy and data-governance requirements.
+- [36 — Pre-Implementation Module and Lifecycle Contracts](36_PRE_IMPLEMENTATION_MODULE_AND_LIFECYCLE_CONTRACTS.md) for cross-module interfaces, state machines, event/error contracts, concurrency, storage transactions and later verification mapping.
 
 **Supersession rule:** any remaining historical reference in this document to a pretrained base-model artifact or Q/V LoRA is not an Argus target requirement. Such wording must be read only as a description of the prototype's historical assumptions or defects. The accepted target is a locally initialized, versioned Genesis generation with an architecture-specific training contract.
 
