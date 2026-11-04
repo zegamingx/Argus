@@ -45,7 +45,7 @@ Observed limitations:
 7. Current tests do not represent model, tokenizer, data, policy, lifecycle or backend contracts.
 8. `public/assets/argus_icon.png` is outside Android's resource path; its runtime/build consumer was not established by this audit.
 
-These are observations about the prototype, not instructions to copy its package structure. Existing paths remain intact until a separately approved migration.
+These are observations about the prototype, not instructions to copy its package structure. Existing paths remain intact until a separately approved migration. The detailed file-by-file ownership and dependency findings are recorded in [46 — Android Source-Tree Ownership and Dependency Audit](46_ANDROID_SOURCE_TREE_OWNERSHIP_AND_DEPENDENCY_AUDIT.md).
 
 ## 3. Structural principles
 
@@ -73,6 +73,9 @@ com.argus.agi
 │   ├── lifecycle/          # App readiness and process lifecycle coordination
 │   └── di/                 # Dependency graph construction, if DI is used
 ├── navigation/             # Routes and destination wiring
+├── application/
+│   ├── usecase/             # User/system operations expressed through contracts
+│   └── orchestration/       # Genesis, learning, inference and acquisition coordination
 ├── feature/
 │   ├── chat/presentation/
 │   ├── neuralcore/presentation/
@@ -120,6 +123,7 @@ com.argus.agi
 |---|---|---|
 | `app` | Process entry, startup, dependency construction and app lifecycle | Neural math, rights decisions or storage implementation |
 | `navigation` | Typed destinations and navigation wiring | Business rules or persistence |
+| `application` | Use cases, workflow coordination, cancellation and lifecycle across subsystems | Compose UI, Android implementations, tensor math or direct database/file access |
 | `feature/*/presentation` | Screen state, events, ViewModels and UI mapping | Direct SQL/file access, JNI, tensor mutation or connector policy |
 | `core/identity` | Stable IDs and identity invariants | Android Context, database entities or UI models |
 | `core/policy` | Purpose-scoped permission and policy decisions | Direct fetching, capture implementation or UI state |
@@ -145,11 +149,11 @@ The intended direction is:
 feature presentation ───────┐
 navigation ─────────────────┤
                             v
-                  app / application use cases
+                     application
+                   use cases / flows
                             |
-             +--------------+----------------+
-             v              v                v
-         core policy     core domain     core lifecycle
+                            v
+                   core contracts/domain
              ^              ^                ^
              |              |                |
        platform adapters  data adapters   engine adapters
@@ -431,6 +435,7 @@ These decisions depend on architecture, tokenizer, storage/security, backend and
 - **Dependency direction:** defined in Section 5.
 - **Gradle module extraction:** intentionally deferred until stable contracts and concrete dependency boundaries justify it.
 - **Native C++/JNI structure:** documented as a future isolated boundary; no native implementation exists in the inspected tree.
+- **File ownership/dependency audit:** recorded in [46 — Android Source-Tree Ownership and Dependency Audit](46_ANDROID_SOURCE_TREE_OWNERSHIP_AND_DEPENDENCY_AUDIT.md).
 - **Source movement, new packages/modules, build-configuration changes and code changes:** not authorized.
 - **Build, test, GitHub Actions, artifact upload and device execution:** not authorized by this document.
 
