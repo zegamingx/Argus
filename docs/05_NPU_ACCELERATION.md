@@ -38,7 +38,7 @@ Sources: [MediaTek NeuroPilot guide](https://developer.mediatek.com/ai/6423c916c
 
 ## 5. Google and Android
 
-AICore provides supported system GenAI capabilities, not a universal NPU driver for arbitrary user models. As of 2026-11-03, LiteRT in Google Play services documents CPU and GPU paths and describes NPU support as coming soon; standalone LiteRT has separate delegate/accelerator options. Re-verify this fast-moving status before coding.
+AICore provides supported system GenAI capabilities, not a universal NPU driver for arbitrary user models. As of 2026-11-04, LiteRT v2.3.2 is listed as the latest standalone Android release with the CompiledModel API. The standard standalone NPU overview (last updated 2026-06-02) documents Qualcomm AI Engine Direct and Intel OpenVINO routes while listing Google Pixel and Samsung System LSI as coming soon; newer LiteRT `/next/` NPU guidance additionally lists Google Tensor, Qualcomm, MediaTek, Intel and Samsung paths, with provider-specific AOT/JIT caveats. LiteRT in Google Play services (announced 2026-10-28; package `play-services-litert`) documents CPU/GPU CompiledModel, while NPU support remains coming soon there. These pages have different update cadence and maturity; record the exact release/provider integration and do not treat a `/next/` entry as blanket stable APK availability. CompiledModel NPU evidence is inference capability, not proof of backward or optimizer execution. Re-verify exact SDK and vendor status before coding.
 
 ## 6. Adapter contract
 
