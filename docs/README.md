@@ -82,6 +82,7 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 | [39 — Transformer Component Research and Pre-G4 Design Contracts](39_TRANSFORMER_COMPONENT_RESEARCH_AND_DESIGN_CONTRACTS.md) | Evidence and matched-comparison contracts for attention variants, position, FFN, normalization/residual topology, depth/width and embeddings |
 | [40 — Initialization and Width-Scaling Research](40_INITIALIZATION_AND_WIDTH_SCALING_RESEARCH.md) | Random-initialization contracts, residual/depth scaling, T-Fixup, DeepNorm, effective-theory initialization and μP/μTransfer across device-conditioned model widths |
 | [41 — Recurrent State and Chunked-Training Lifecycle Contracts](41_RECURRENT_STATE_AND_CHUNKED_TRAINING_CONTRACTS.md) | Mamba-2 dual-state buffers, RWKV-7 WKV/shift state, chunk/BPTT semantics, document resets and atomic recurrent-state recovery |
+| [42 — Architecture-Family Tensor and Operator Inventory](42_ARCHITECTURE_TENSOR_AND_OPERATOR_INVENTORY.md) | Symbolic parameter shapes, forward/backward operators, vocabulary/logit and inference-state memory formulas for Transformer, Mamba-2, RWKV-7 and hybrid profiles |
 
 ## Status vocabulary
 
