@@ -69,8 +69,8 @@ Other architectures may be added when a credible paper, reproducible implementat
 1. Define the component inventory and tokenizer-neutral/tokenizer-sensitive boundaries using [35 — Android Architecture Evidence and Component Comparison Matrix](35_ANDROID_ARCHITECTURE_EVIDENCE_AND_COMPONENT_MATRIX.md).
 2. Extract Android prior-art findings at component level. Distinguish model architecture results from optimizer, runtime, memory-layout and lifecycle results.
 3. Run the tokenizer fixture and candidate comparison in [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md) in parallel with tokenizer-neutral architecture research. Freeze the tokenizer contract before any token-sensitive ablation or final model comparison.
-4. Build or select minimal, mathematically correct reference configurations for each retained component candidate; do not reimplement an existing training loop without first auditing reusable frameworks.
-5. Validate forward outputs, objective values, gradients and optimizer updates against trusted reference implementations.
+4. Define minimal mathematical reference configurations for each retained component candidate and audit reusable implementations/frameworks before considering integration. Source prototypes or new implementation code require a separately authorized implementation phase.
+5. Record the required forward, objective, gradient, optimizer and numerical-parity checks for the later implementation-verification plan; do not describe those checks as passed before code is implemented and tested.
 6. Measure training memory separately from inference memory, including activation and optimizer state.
 7. Compare one component at a time under matched data, parameters/compute, device and sustained conditions. Report parameter-matched and compute-matched results separately.
 8. Record backend actually used, including fallback and graph partitioning.
@@ -93,19 +93,25 @@ AGE should separate:
 
 This abstraction enables controlled research and future module families. It does not mean every graph can be executed efficiently on every backend.
 
-## 6. Selection gate
+## 6. Selection and verification gates
 
-An architecture may be selected only when:
-- The from-scratch feasibility boundary in [33 — From-Scratch Training Feasibility](33_FROM_SCRATCH_TRAINING_FEASIBILITY.md) is understood and the minimum viable target-device envelope is defined.
-- The tokenizer has passed the G1 contract gate in [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md).
-- Component-level evidence and G0–G4 decision gates in [35 — Android Architecture Evidence and Component Comparison Matrix](35_ANDROID_ARCHITECTURE_EVIDENCE_AND_COMPONENT_MATRIX.md) are reviewed.
-- The minimal reference implementation has mathematically validated training from local initialization.
-- Memory and compute fit at least a defined target device tier.
-- Sustained training/inference results are reproducible on named physical Android devices.
-- Complete model and optimizer states can be checkpointed and restored.
-- The corpus contract is compatible and training rights are accepted.
-- Known trade-offs and unsupported operations are documented.
-- A reviewed architecture decision record is added to document 01.
+### 6.1 Pre-implementation architecture design selection
+
+The architecture may be selected as a **design contract for implementation planning** when:
+- The from-scratch feasibility evidence boundary, unresolved risks and provisional minimum-device assumptions in [33 — From-Scratch Training Feasibility](33_FROM_SCRATCH_TRAINING_FEASIBILITY.md) are explicit. This does not claim that E1–E7 passed or that broad on-device pretraining is proven.
+- The tokenizer has passed the design-time G1 shortlist/contract gate in [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md), including a permitted fixture and stable artifact/fingerprint contract.
+- Component-level evidence and the proposed G0–G4 design gates in [35 — Android Architecture Evidence and Component Comparison Matrix](35_ANDROID_ARCHITECTURE_EVIDENCE_AND_COMPONENT_MATRIX.md) have been reviewed.
+- Component/architecture comparisons state whether evidence is direct, indirect, server-scale, pretrained fine-tuning or from-scratch; budget and tokenizer differences are disclosed.
+- Analytical model-state, memory, compute, sequence/context and runtime estimates are documented against a provisional device target, with unresolved assumptions visible.
+- The corpus/source rights needed for the chosen architecture's design and evaluation fixture are recorded; full corpus acceptance and production neural-training eligibility remain under the separate data-governance gate.
+- Unsupported operators, implementation risks, alternatives, migration requirements and the tests still needed are documented.
+- A reviewed ADR in document 01 identifies the architecture as a design selection **not yet physically verified or approved for product support**.
+
+Passing this gate authorizes an implementation-plan review only. It does not authorize code changes, builds, device experiments or a product capability claim.
+
+### 6.2 Post-implementation feasibility and support verification
+
+After implementation is separately authorized, the resulting implementation must pass the relevant numerical, resource, lifecycle, checkpoint and physical-device verification. Document 33's E1–E7 protocol defines the from-scratch/device evidence required for a broad feasibility or device-support claim. This later verification is intentionally not a precondition for choosing a design to implement; it remains a hard precondition for claiming that the implementation works on the declared device tier or that the target from-scratch workload is feasible.
 
 ## 7. Future architecture evolution
 

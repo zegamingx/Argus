@@ -1,6 +1,6 @@
 # System Requirements and Initial Architecture Decisions
 
-**Status:** Draft baseline — proposed requirements and decisions require review.  
+**Status:** Mixed baseline — requirements remain draft; each ADR's explicit status is authoritative. ADR-001 and ADR-009–023 record accepted product/design directions; ADR-002–008 remain proposed.  
 **Last reviewed:** 2026-11-03
 
 ## 1. Product and system boundary

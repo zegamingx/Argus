@@ -167,8 +167,8 @@ The current application prototype must not be confused with the future Genesis f
 
 1. Complete the documentation and evidence audit, including the P0 remediation design and all cross-document dependencies.
 2. Establish from-scratch training feasibility targets and measurable device/resource constraints using [From-Scratch Training Feasibility](docs/33_FROM_SCRATCH_TRAINING_FEASIBILITY.md).
-3. Complete [Tokenizer Evaluation and Decision Framework](docs/34_TOKENIZER_EVALUATION_AND_DECISION.md): evaluate candidate tokenizers on versioned multilingual/domain fixtures, then freeze the comparison contract.
-4. Complete component-level architecture comparison using [35 — Android Architecture Evidence and Component Comparison Matrix](docs/35_ANDROID_ARCHITECTURE_EVIDENCE_AND_COMPONENT_MATRIX.md), then compare architecture candidates under equivalent data, tokenizer, parameter/compute budgets and target-device constraints.
+3. Run [Tokenizer Evaluation and Decision Framework](docs/34_TOKENIZER_EVALUATION_AND_DECISION.md) in parallel with tokenizer-neutral component research in [35 — Android Architecture Evidence and Component Comparison Matrix](docs/35_ANDROID_ARCHITECTURE_EVIDENCE_AND_COMPONENT_MATRIX.md). G1 blocks token-sensitive choices until the tokenizer shortlist/contract is ready.
+4. After G1, complete token-sensitive and architecture comparisons using the same versioned tokenizer, data, parameter/compute budgets and declared device constraints. Freeze only a pre-implementation design contract; physical feasibility/support remains subject to later E1–E7 verification.
 5. Finalize corpus provenance, item-level rights, preprocessing, packaging and general/personal data separation.
 6. Complete Genesis, model-state, checkpoint/recovery, lifecycle, security and verification contracts.
 7. Pass the implementation-readiness audit before preparing a dependency-ordered implementation plan.

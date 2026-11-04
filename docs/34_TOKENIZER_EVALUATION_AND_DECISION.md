@@ -2,7 +2,7 @@
 
 **Status:** Research protocol; tokenizer decision remains OPEN  
 **Last reviewed:** 2026-11-04  
-**Phase:** 4.1–4.2 — Tokenizer evaluation and comparative research  
+**Research stage:** Stage 4.1–4.2 — Tokenizer evaluation and comparative research  
 **Authority:** Candidate definitions, evaluation controls and decision gates. No tokenizer, vocabulary size, normalization profile, packaging policy or runtime is selected by this document.
 
 ## 1. Purpose and decision boundary
@@ -110,7 +110,8 @@ Indonesian and English are the mandatory initial comparison languages because th
 
 - Use only exact, versioned samples with documented permission for the intended evaluation.
 - The final representative fixture must be derived from source records accepted through the corpus/provenance process in [22 — General Corpus and Personal Learning](22_GENERAL_CORPUS_AND_PERSONAL_LEARNING.md) and documents 27–32.
-- A source listed as a discovery or retrieval candidate is not automatically approved for tokenizer training or redistribution.
+- Tokenizer evaluation has its own narrow rights boundary: encoding/decoding diagnostics need permission for the relevant text processing; training a learned tokenizer/vocabulary additionally requires documented permission for that processing and the derived tokenizer artifact. This permission is **not** neural-model training approval and does not activate a source for the general corpus.
+- A source listed as a discovery or retrieval candidate is not automatically approved for tokenizer training, redistribution or neural-model training.
 - Synthetic Unicode and format test cases may be generated for deterministic correctness tests; they must be labeled synthetic and must not be counted as natural-language training data.
 - Do not include personal conversations, private files or user-specific content in tokenizer training or evaluation without the separate consent and data-governance contract.
 - Keep the tokenizer-training sample, intrinsic evaluation sample and any downstream model evaluation split separate. Avoid exact-text and near-duplicate leakage.
@@ -443,10 +444,10 @@ The decision record remains **OPEN** until these questions are resolved with the
 | E-018 | [ByT5: Towards a Token-Free Future with Pre-trained Byte-to-Byte Models](https://doi.org/10.1162/tacl_a_00461), Xue et al., TACL 2022 | Raw UTF-8 byte modeling and its quality/compute/latency trade-offs; T5-specific results are not Android measurements |
 | E-019 | [Tokenizer Choice For LLM Training: Negligible or Crucial?](https://aclanthology.org/2024.findings-naacl.247/), Ali et al., Findings of NAACL 2024 | Controlled 2.6B-scale study; tokenization affects performance/cost, fertility/parity are not sufficient proxies |
 | E-020 | [TokLens: A Multilingual Lens on Tokenizer Quality for LLMs](https://aclanthology.org/2026.acl-srw.18/), Chiu, ACL 2026 Student Research Workshop | Six intrinsic multilingual metrics across 24 tokenizers/15 languages; reported correlations remain confounded and are not causal selection rules |
-| E-021 | [Equity with Efficiency: An Empirical Study of Tokenizers for Multilingual Large Language Models](https://aclanthology.org/2026.emnlp-main.1783/), Wei et al., EMNLP 2026 | Eleven Southeast Asian languages and controlled 1.5B model comparisons; parity-aware/morphology-driven candidates are research leads, not direct mobile results |
+| E-008 | [Equity with Efficiency: An Empirical Study of Tokenizers for Multilingual Large Language Models](https://aclanthology.org/2026.emnlp-main.1783/), Wei et al., EMNLP 2026 | Eleven Southeast Asian languages and controlled 1.5B model comparisons; parity-aware/morphology-driven candidates are research leads, not direct mobile results |
 | E-022 | [Subword Tokenization for Low- and Medium-Resource Languages: A Systematic Evaluation](https://ijcai.org/proceedings/2026/633), Daðason and Loftsson, IJCAI 2026 | WordPiece/BPE/Unigram and vocabulary sweeps across six languages; findings vary by language/task and are not an Indonesian result |
 | E-023 | [SentencePiece training options](https://google.github.io/sentencepiece/doc/options/) and [byte fallback behavior](https://github.com/google/sentencepiece/blob/master/doc/options.md) | Exact normalization, whitespace, special-token and byte-fallback controls; library defaults must be pinned |
 | E-024 | [Hugging Face Tokenizers components](https://huggingface.co/docs/tokenizers/main/en/components) | Normalizer, pre-tokenizer, byte-level alphabet and decoder pipeline concepts; API/version support must be checked before runtime selection |
 | E-025 | [tiktoken BPE design notes](https://github.com/openai/tiktoken/blob/main/README.md) | Byte-pair encoding reversibility/open-text properties as implementation reference; not a dependency selection |
 
-**Current decision:** no tokenizer is selected. Tokenizer evaluation proceeds in parallel with tokenizer-neutral architecture component research under [35 — Android Architecture Evidence and Component Comparison Matrix](35_ANDROID_ARCHITECTURE_EVIDENCE_AND_COMPONENT_MATRIX.md); G1 blocks final vocabulary/head/context/packing-dependent decisions. The required next evidence is a versioned fixture, controlled candidate vocabulary sweeps, Unicode/special-token conformance, cross-language and domain metrics, model-state cost analysis, and an eventual Android runtime comparison. Only then may a tokenizer ADR be proposed.
+**Current decision:** no tokenizer is selected. Tokenizer evaluation proceeds in parallel with tokenizer-neutral architecture component research under [35 — Android Architecture Evidence and Component Comparison Matrix](35_ANDROID_ARCHITECTURE_EVIDENCE_AND_COMPONENT_MATRIX.md); G1 blocks final vocabulary/head/context/packing-dependent decisions. Training candidate vocabularies still requires a rights-cleared tokenizer-evaluation fixture; that approval does not make the same material eligible for neural-model training. The required next evidence is a versioned fixture, controlled candidate vocabulary sweeps, Unicode/special-token conformance, cross-language and domain metrics, model-state cost analysis, and an eventual Android runtime comparison. Only then may a tokenizer ADR be proposed.
