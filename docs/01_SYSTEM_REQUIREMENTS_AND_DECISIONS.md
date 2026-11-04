@@ -187,6 +187,13 @@ The initial comparison set is bounded to four families: (1) decoder-only Transfo
 
 The shortlist authorizes comparative design synthesis and component disposition work only. Every retained family must still demonstrate a complete local random-initialization and forward/loss/backward/optimizer contract, a CPU correctness reference, exact model/optimizer/RNG/cursor checkpoint semantics, auditable implementation/license status, and a credible resource/runtime envelope before it can be recommended at G4. Tokenizer-sensitive decisions remain gated by G1-D. No family is selected for implementation, and no physical device support is claimed.
 
+### ADR-026 — Initial component disposition baseline (G3)
+**Status:** Accepted pre-implementation planning baseline; component implementation and architecture-specific values remain open.
+
+The component matrix in document 35 assigns exactly one primary ADOPT, MODIFY, CUSTOM, DEFER or REJECT disposition to each initial model/runtime component. The baseline adopts a capability-gated CPU correctness backend and bounded memory-optimization techniques as candidates; modifies audited native primitive reuse, GPU adapters, backend-specific layouts and Android training scheduling; reserves Argus-owned Genesis identity/initialization orchestration and P0 checkpoint/recovery as CUSTOM; defers unresolved architecture, tokenizer-sensitive, precision, optimizer and NPU-training choices; and rejects federated/collaborative/server-assisted training for the current local-instance core.
+
+These dispositions define ownership, research direction and the evidence required before later selection. ADOPT/MODIFY does not authorize copying or coding an external implementation. CUSTOM identifies Argus-owned contracts, not completed code. DEFER remains open by design and must not be silently converted. REJECT applies to the current product boundary and may be reconsidered only through a documented product-scope change. G3 closure does not select an architecture or optimizer, settle tokenizer/product-language rights, authorize implementation/builds/workflows, or establish physical Android support.
+
 ## 8. Revised open decisions
 
 These items remain open; they must not be filled with assumed values:
