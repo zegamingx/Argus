@@ -190,7 +190,7 @@ Numerical thresholds must be approved only after the target-device matrix, sessi
 
 Before declaring feasibility, Argus requires: (1) E1 on a named physical Android device from local random initialization; (2) controlled E2 trade-offs; (3) E3 memory fit for the required session; (4) E4 sustained safe throughput; (5) E5 energy fit; (6) E6 transactional recovery; and (7) E7 evidence on the lowest declared physical target tier. E6 integrity failures, repeated E3 OOM/LMK, unsafe thermal state, non-finite updates, rights/provenance failures or energy-policy violations block progression. A stopped run is recorded as a result, not hidden as success.
 
-## 9. Open questions for Phase 4
+## 9. Open questions carried into the architecture and tokenizer decision review
 
 No answer is selected here.
 
