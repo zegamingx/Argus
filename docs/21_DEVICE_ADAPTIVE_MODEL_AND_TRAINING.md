@@ -115,11 +115,11 @@ The same measured Device Capability Profile informs autonomous knowledge acquisi
 
 See [32 — Device-Adaptive Knowledge Acquisition and Corpus Budgeting](32_DEVICE_ADAPTIVE_KNOWLEDGE_ACQUISITION.md) for the acquisition profile and device-specific corpus policy.
 
-## 10. Verification plan
+## 10. Post-implementation device verification plan
 
-Use representative low-, mid- and high-capability Android devices. Measure configuration selection, peak/sustained memory, training throughput, energy, thermal response, pause latency, checkpoint reliability and recovery after process death. Keep exact device, OS, driver, runtime, model and dataset revisions with every result.
+After implementation is separately authorized, use representative low-, mid- and high-capability Android devices to verify configuration selection, peak/sustained memory, training throughput, energy, thermal response, pause latency, checkpoint reliability and recovery after process death. Keep exact device, OS, driver, runtime, model and dataset revisions with every result.
 
-No parameter tiers or thresholds are finalized until this research is complete.
+This section is an empirical verification protocol, not a documentation-stage blocker. The capability dimensions, source reliability and candidate resource envelopes can be researched and analytically bounded now. Physical measurements are required later to claim that a particular configuration actually works or that a named device tier is supported. Until that verification, runtime thresholds and device support remain explicitly **unverified**, rather than preventing completion of the design contract.
 
 
 ## 11. External evidence and transferability
@@ -139,4 +139,4 @@ The following evidence informs the design of the mobile training controller. It 
 3. Keep optimizer state, gradients, activations, temporary workspaces, runtime allocations, checkpoint reserve and Android process headroom in the same peak-memory accounting.
 4. Require complete-run measurements: peak and sustained memory, optimizer updates, bytes/tokens processed, time-to-validation target, energy, thermal behavior, interruptions and recovery.
 5. Use MELON and mobile fine-tuning papers for systems techniques; use narrow-domain from-scratch research and Argus-specific experiments to investigate learning from random initialization.
-6. The feasibility question remains open until a defined model/data/task target is measured on representative Android devices. No parameter ceiling or time budget is inferred from these papers alone.
+6. The **empirical device-feasibility claim** remains unverified until a defined model/data/task target is measured on representative Android devices. This does not block completion of research, analytical resource estimates or selection of a qualified pre-implementation design. No parameter ceiling or time budget is inferred from these papers alone.
