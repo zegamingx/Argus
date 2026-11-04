@@ -3,7 +3,7 @@
 **Status:** Comparative evidence synthesis; no component selected for Argus  
 **Last reviewed:** 2026-11-04  
 **Scope:** Attention semantics, positional representation, feed-forward blocks, normalization/residual placement, depth/width and token embeddings/output head  
-**Dependencies:** Documents 34, 35 and 38  
+**Dependencies:** Documents 34, 35, 38 and 40  
 **Boundary:** Published research and analytical contracts only. No Argus implementation, build, workflow, device test or benchmark is authorized or claimed.
 
 ## 1. Purpose and decision boundary
