@@ -1,6 +1,6 @@
 # Curated Initial Text Seed Set
 
-**Status:** Item-level research completed for selected records; no item is approved for neural training  
+**Status:** Item-level source and license declarations identified for selected records; no item is approved for tokenizer fitting, artifact distribution or neural training  
 **Research date:** 2026-11-03  
 **Purpose:** Turn broad OER/source candidates into concrete, auditable text records for the first acquisition and parsing pilot
 
@@ -17,7 +17,7 @@ The first text pilot should use a small, manually reviewed selection rather than
 
 A license statement on a catalog or landing page must be stored with the exact content URL and file checksum. A PDF that does not contain an embedded license notice must not lose the license evidence from its source record.
 
-All entries below are **CANDIDATE_FOR_RETRIEVAL_AND_TRAINING_REVIEW**, not activated training sources. Neural training must remain disabled until the legal-use review, third-party-content inspection, parser validation and corpus acceptance gates pass.
+All entries below remain candidates, not activated tokenizer or neural-training sources. A declared CC BY license is recorded as **license evidence**, not as an Argus operation approval. Before fitting tokenizer frequencies or distributing a derived tokenizer artifact, the exact acquired edition/file, third-party exceptions, attribution payload, SHA-256 and the applicable operation-specific rights decision must be recorded. Neural training requires its own separate approval and remains disabled.
 
 ## 2. Candidate status
 
@@ -40,8 +40,9 @@ No status here activates a runtime connector or grants an automatic training ent
 - **Authors:** Svein Linge and Hans Petter Langtangen.
 - **Publisher / year:** Springer, 2020.
 - **Language:** English.
-- **Declared license:** CC BY.
+- **Declared license:** CC BY on the Open Textbook Library item record. The publisher's Springer Nature open-access chapter pages for this book explicitly state CC BY 4.0; the inspected chapter-rights pages also state that separately credited third-party material may require its own permission.
 - **Available formats shown:** eBook, PDF and online.
+- **Rights evidence reviewed 2026-11-04:** [Springer Nature chapter rights example](https://link.springer.com/chapter/10.1007/978-3-030-16877-3_4) confirms CC BY 4.0 at chapter level. This is stronger than relying only on the OTL catalogue label, but is not a complete exception-by-exception audit of every page/asset in the downloadable book PDF.
 - **Subject mapping:** KD-02 Mathematics and Statistics; KD-05 Computing and Digital Technology; KD-06 Engineering and Applied Technology.
 - **Content value:** introduces programming as a method for solving mathematical problems, numerical simulation, functions, testing, integration and differential equations.
 - **Limitations:** the title specifies Python 3.6. Treat version-specific code and library guidance as historical, not current implementation advice.
@@ -54,8 +55,9 @@ No status here activates a runtime connector or grants an automatic training ent
 - **Authors:** Zoe Staines, Gerhard Hoffstaedter and Ned Binnie.
 - **Publisher / year:** University of Queensland, 2023.
 - **Language:** English.
-- **Declared license:** CC BY.
+- **Declared license:** the Open Textbook Library record says CC BY; the publisher's [University of Queensland Pressbooks title page](https://uq.pressbooks.pub/introduction-social-sciences/) identifies CC BY 4.0, **except where otherwise noted**.
 - **Available formats shown:** eBook, online, PDF and XML.
+- **Rights evidence reviewed 2026-11-04:** the publisher page confirms the CC BY 4.0 title-level declaration and identifies text, video and online materials in the book. Every explicit exception and embedded media/third-party asset must still be inventoried before tokenizer fitting or artifact distribution.
 - **Subject mapping:** KD-11 Society, Governance and Law; KD-14 Arts, Literature and Culture; KD-15 Education and Research Methods.
 - **Content value:** multidisciplinary introduction covering social-science methods, sociology, anthropology, political science, public policy, psychology, human geography, institutions, environment, health, development and work.
 - **Limitations:** many examples and policy contexts are Australian or global-comparative. Preserve regional context; do not generalize country-specific findings.
@@ -106,8 +108,9 @@ The Program Studi Sistem Informasi ITATS OER collection lists individual records
 - **Publisher / program:** Program Studi Sistem Informasi, Institut Teknologi Adhi Tama Surabaya.
 - **Edition:** first edition, academic year 2026/2027.
 - **Language / format:** Indonesian PDF; 66 pages; approximately 1 MB according to the item page.
-- **Declared item license:** CC BY 4.0 on the individual landing page.
-- **Subject mapping:** KD-05 Computing and Digital Technology; KD-06 Engineering and Applied Technology.
+- **Declared item license:** CC BY 4.0 on the individual landing page; the current ITATS OER catalogue also labels the item CC BY 4.0.
+- **Rights evidence reviewed 2026-11-04:** [individual item page](https://itats.ac.id/sisteminformasi/oer/pemrograman-internet-of-things/) and [ITATS OER catalogue](https://itats.ac.id/sisteminformasi/oer/).
+- **Audit state:** license declaration identified, but the downloaded PDF byte checksum, embedded third-party asset inventory and operation-specific tokenizer/artifact permission record are not complete.
 - **Content value:** IoT architecture, ESP32 and RP2040 Pico, sensors, MQTT/HTTP/CoAP, Node-RED, InfluxDB, cloud middleware, TLS and TinyML.
 - **Content audit note:** the references include commercial Packt books and other cited material. A citation does not itself establish that third-party text or figures were reproduced, but the PDF's images, diagrams, code samples and quoted material must be checked before training. Preserve the landing-page license statement, author attribution and exact PDF checksum.
 - **Status:** RETRIEVAL_PILOT_CANDIDATE; TRAINING_REVIEW_PENDING.
@@ -121,7 +124,9 @@ The Program Studi Sistem Informasi ITATS OER collection lists individual records
 - **Publisher / program:** Program Studi Sistem Informasi, Institut Teknologi Adhi Tama Surabaya.
 - **Edition:** first edition, academic year 2026/2027.
 - **Language / format:** Indonesian PDF; 32 pages; approximately 854 KB according to the item page.
-- **Declared item license:** CC BY 4.0 on the individual landing page.
+- **Declared item license:** CC BY 4.0 on the individual landing page; the current ITATS OER catalogue also labels the item CC BY 4.0.
+- **Rights evidence reviewed 2026-11-04:** [individual item page](https://itats.ac.id/sisteminformasi/oer/transformasi-digital/) and [ITATS OER catalogue](https://itats.ac.id/sisteminformasi/oer/).
+- **Audit state:** license declaration identified, but the downloaded PDF byte checksum, embedded third-party asset inventory and operation-specific tokenizer/artifact permission record are not complete.
 - **Subject mapping:** KD-05 Computing and Digital Technology; KD-11 Society, Governance and Law; KD-12 Economics, Business and Finance; KD-15 Education and Research Methods.
 - **Content value:** digital transformation, strategic frameworks, organizational change, digital maturity and enterprise architecture.
 - **Content audit note:** named frameworks and external standards must be treated as concepts or citations, not a blanket license for third-party source texts. Inspect all diagrams, tables and embedded material. Retain title, author, institution, landing-page license evidence and file checksum.
