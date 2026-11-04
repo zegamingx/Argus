@@ -1,7 +1,7 @@
 # Curated Initial Text Seed Set
 
-**Status:** Item-level source and license declarations identified for selected records; no item is approved for tokenizer fitting, artifact distribution or neural training  
-**Research date:** 2026-11-03  
+**Status:** Retrieval-pilot candidates and rights holds are distinguished per item; no item is approved for tokenizer fitting, artifact distribution or neural training  
+**Research date:** 2026-11-05  
 **Purpose:** Turn broad OER/source candidates into concrete, auditable text records for the first acquisition and parsing pilot
 
 ## 1. Selection principles
@@ -110,7 +110,8 @@ The Program Studi Sistem Informasi ITATS OER collection lists individual records
 - **Language / format:** Indonesian PDF; 66 pages; approximately 1 MB according to the item page.
 - **Declared item license:** CC BY 4.0 on the individual landing page; the current ITATS OER catalogue also labels the item CC BY 4.0.
 - **Rights evidence reviewed 2026-11-04:** [individual item page](https://itats.ac.id/sisteminformasi/oer/pemrograman-internet-of-things/) and [ITATS OER catalogue](https://itats.ac.id/sisteminformasi/oer/).
-- **Audit state:** license declaration identified, but the downloaded PDF byte checksum, embedded third-party asset inventory and operation-specific tokenizer/artifact permission record are not complete.
+- **Audit state (reviewed 2026-11-05):** the individual item page declares CC BY 4.0 and exposes a 66-page substantive preview PDF. The package's separate material/handout entries are labelled `[DUMMY]` / file not selected; do not treat those package entries as available corpus content. The preview's inspected title/identity page contains no restrictive reproduction notice, but this is not a complete third-party-content or legal audit.
+- **Operation status:** preview PDF is a bounded retrieval-pilot candidate only. The exact downloaded-byte SHA-256, page/figure/code/quotation inventory, complete attribution, and separate permission record for tokenizer fitting and derived-artifact distribution remain pending. Keep `TRAINING_REVIEW_PENDING`; do not activate tokenizer training.
 - **Content value:** IoT architecture, ESP32 and RP2040 Pico, sensors, MQTT/HTTP/CoAP, Node-RED, InfluxDB, cloud middleware, TLS and TinyML.
 - **Content audit note:** the references include commercial Packt books and other cited material. A citation does not itself establish that third-party text or figures were reproduced, but the PDF's images, diagrams, code samples and quoted material must be checked before training. Preserve the landing-page license statement, author attribution and exact PDF checksum.
 - **Status:** RETRIEVAL_PILOT_CANDIDATE; TRAINING_REVIEW_PENDING.
@@ -126,11 +127,12 @@ The Program Studi Sistem Informasi ITATS OER collection lists individual records
 - **Language / format:** Indonesian PDF; 32 pages; approximately 854 KB according to the item page.
 - **Declared item license:** CC BY 4.0 on the individual landing page; the current ITATS OER catalogue also labels the item CC BY 4.0.
 - **Rights evidence reviewed 2026-11-04:** [individual item page](https://itats.ac.id/sisteminformasi/oer/transformasi-digital/) and [ITATS OER catalogue](https://itats.ac.id/sisteminformasi/oer/).
-- **Audit state:** license declaration identified, but the downloaded PDF byte checksum, embedded third-party asset inventory and operation-specific tokenizer/artifact permission record are not complete.
+- **Audit state (reviewed 2026-11-05):** the item landing page and catalogue declare CC BY 4.0, but the separate 32-page preview PDF contains a copyright notice prohibiting reproduction of part or all of the module without written permission from the author and ITATS Information Systems Study Program. The package's material entries are also labelled `[DUMMY]` / file not selected.
+- **Rights conflict:** the landing-page CC BY 4.0 declaration and the PDF's written-permission restriction are materially inconsistent. This register does not decide which statement controls. Obtain written clarification from the author/rightsholder and institution before copying, storing, indexing, retrieving or using the PDF.
 - **Subject mapping:** KD-05 Computing and Digital Technology; KD-11 Society, Governance and Law; KD-12 Economics, Business and Finance; KD-15 Education and Research Methods.
-- **Content value:** digital transformation, strategic frameworks, organizational change, digital maturity and enterprise architecture.
-- **Content audit note:** named frameworks and external standards must be treated as concepts or citations, not a blanket license for third-party source texts. Inspect all diagrams, tables and embedded material. Retain title, author, institution, landing-page license evidence and file checksum.
-- **Status:** RETRIEVAL_PILOT_CANDIDATE; TRAINING_REVIEW_PENDING.
+- **Content value:** digital transformation, strategic frameworks, organizational change, digital maturity and enterprise architecture; content value does not override the rights hold.
+- **Content audit note:** named frameworks and external standards must be treated as concepts or citations, not a blanket license for third-party source texts.
+- **Status:** HOLD_RIGHTS_CONFLICT; NOT_ACTIVATED. Excluded from retrieval-pilot ingestion and all tokenizer/training manifests pending written resolution.
 - **Evidence:** [ITATS item metadata and license](https://itats.ac.id/sisteminformasi/oer/transformasi-digital/); [PDF file](https://itats.ac.id/sisteminformasi/wp-content/uploads/sites/6/2026/08/Modul_Buku_Modul_Transformasi_Digital_ITATS.pdf).
 
 ### SEED-ID-003 — Pemrograman Berorientasi Objek
@@ -141,22 +143,25 @@ The Program Studi Sistem Informasi ITATS OER collection lists individual records
 - **Publisher / program:** Program Studi Sistem Informasi, Institut Teknologi Adhi Tama Surabaya.
 - **Edition:** first edition, November 2025.
 - **Language / format:** Indonesian PDF; 64 pages.
-- **Declared item license:** CC BY 4.0 shown in the ITATS OER catalog entry.
+- **Declared item license:** CC BY 4.0 is shown on the individual ITATS item page and in the OER catalogue.
+- **File availability (reviewed 2026-11-05):** the item page identifies a substantive `01. Materi Utama PDF` rather than a dummy package entry. Its 64-page preview PDF is publicly readable; the separate download action returned HTTP 403 in this audit, so an independently acquired original file and SHA-256 have not been established.
+- **Rights-text check:** the reviewed PDF text/cover-title pages did not reveal the same blanket reproduction restriction seen in SEED-ID-002. This is not a complete page-by-page or third-party asset clearance.
 - **Subject mapping:** KD-05 Computing and Digital Technology; KD-15 Education and Research Methods.
 - **Content value:** Java SE practice, class modeling, object-oriented programming principles and GUI application development.
-- **Content audit note:** preserve the specific catalog item and license evidence. Review diagrams, examples, code and third-party content; do not treat all referenced Java documentation as part of the same license.
-- **Status:** RETRIEVAL_PILOT_CANDIDATE; TRAINING_REVIEW_PENDING.
+- **Content audit note:** preserve the individual item page and license evidence. Review diagrams, examples, code and third-party content; do not treat all referenced Java documentation as part of the same license.
+- **Status:** RETRIEVAL_PILOT_CANDIDATE; TRAINING_REVIEW_PENDING. Tokenizer fitting and derived-artifact distribution remain unauthorized pending exact-file, attribution and operation-specific review.
 - **Evidence:** [ITATS OER catalog](https://itats.ac.id/sisteminformasi/oer/); [ITATS item page](https://itats.ac.id/sisteminformasi/oer/pemrograman-berorientasi-objek/); [PDF file](https://itats.ac.id/sisteminformasi/wp-content/uploads/sites/6/2026/08/Modul_Ajar_Pemrograman_Berorientasi_Objek.pdf).
 
 ## 5. Initial retrieval-pilot recommendation
 
 Use a compact cross-domain sample to validate acquisition, parsing, attribution, storage and retrieval:
 
-1. SEED-OTL-001 — English programming and numerical-methods textbook.
-2. SEED-OTL-002 — English social-science textbook.
-3. SEED-ID-001 — Indonesian IoT textbook/module.
-4. SEED-ID-002 — Indonesian digital-transformation book.
-5. SEED-ID-003 — Indonesian object-oriented programming module.
+1. SEED-OTL-001 — English programming and numerical-methods textbook; source/file/exception and use-specific rights review still pending.
+2. SEED-OTL-002 — English social-science textbook; item-level CC BY 4.0 is qualified by exceptions and still needs full asset/use review.
+3. SEED-ID-001 — Indonesian IoT module preview PDF; limited retrieval-pilot candidate, with dummy package add-ons excluded.
+4. SEED-ID-003 — Indonesian object-oriented programming module; substantive preview available, with exact download/checksum and full rights/asset review pending.
+
+SEED-ID-002 — Transformasi Digital is excluded and held for a written rights clarification because its PDF reproduction restriction conflicts with the CC BY 4.0 item-page declaration.
 
 SEED-OTL-003 may be added after its "except otherwise noted" sections and third-party assets are mapped. SEED-OTL-004 remains on share-alike legal hold. SEED-OTL-005 remains on metadata hold until its part/edition mismatch is resolved.
 
