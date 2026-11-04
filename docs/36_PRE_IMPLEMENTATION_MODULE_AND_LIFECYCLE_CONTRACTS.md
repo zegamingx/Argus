@@ -44,7 +44,7 @@ These are logical ownership boundaries. They may map to Gradle modules, Kotlin p
 | Experience/UI | User controls, consent/review surfaces, status presentation, user-visible errors | Direct tensor mutation, connector permission decisions, background worker internals |
 | Application orchestrator | Use-case coordination, readiness, job dispatch, cancellation and app lifecycle | Model mathematics, source licensing decisions or direct storage-file mutation |
 | Trust and policy | Permission scopes, policy evaluation, approval/revocation, network/data rules and fail-closed decisions | Model inference or source fetching implementation |
-| Device capability service | Versioned capability evidence and confidence/unknown states | Guessing hardware execution from chipset strings or advertising unsupported accelerators |
+| Device capability service | Versioned stable capability evidence and confidence/unknown states; exposes a separate live runtime-condition snapshot | Guessing hardware execution from chipset strings or treating transient conditions as permanent hardware capability |
 | Genesis coordinator | Initial profile admission, model construction orchestration, local initialization and first-generation transaction | Corpus pretraining on the startup critical path |
 | Model-generation repository | Immutable manifests/tensors, generation state, active pointer, candidate isolation, validation and rollback | Training mathematics or implicit model selection |
 | Tokenizer service | Versioned tokenizer load, deterministic encode/decode and fingerprint checks | Runtime vocabulary registration or changing token IDs in an active generation |
@@ -78,7 +78,8 @@ The following are minimum logical records. A concrete serialization (Proto, Data
 | Record | Required identity and content | Integrity / lifecycle requirement |
 |---|---|---|
 | InstanceManifest | instance ID, schema version, creation time, local storage namespace, initial policy version | Created once per installation; never reused across instances |
-| DeviceCapabilityProfile | profile ID, Android build/API, ABI/ISA, memory class/headroom evidence, CPU/GPU/NPU provider/runtime/driver/operator evidence, tokenizer-training capability evidence, thermal/energy/storage signals, confidence and unknown fields | Timestamped, source-labelled and versioned; unknown is not converted to supported; stable capability evidence is separated from transient runtime conditions |
+| DeviceCapabilityProfile | profile ID, Android build/API, ABI/ISA, memory class and measured baseline/headroom evidence, CPU/GPU/NPU provider/runtime/driver/operator evidence, tokenizer-training capability evidence, supported telemetry availability, confidence and unknown fields | Timestamped, source-labelled and versioned; unknown is not converted to supported; contains stable capability evidence rather than a live workload snapshot |
+| RuntimeConditionProfile | sample ID/time, current available memory/pressure, OS thermal status, battery/charging/power-saver state, current storage reserve, foreground/background and scheduler constraints | Short-lived observation with source/confidence; re-read for workload admission and never treated as a permanent hardware capability |
 | ModelConfig | architecture family/version, graph/module config, dimensions, tensor dtypes/layouts, context/state shape, precision, selected configuration-profile ID and backend constraints | Canonical fingerprint; unresolved architecture fields remain placeholders until ADR selection |
 | TokenizerManifest | tokenizer ID/revision, profile ID, preparation mode (precomputed/local-trained/algorithmic), algorithm/trainer/runtime versions, normalization/pre-tokenizer/decoder, vocabulary and special IDs, artifact digest, trainer configuration, seed-corpus manifest digest and provenance/license | Immutable within one generation; referenced by digest; no private content is embedded in the manifest |
 | ModelGenerationManifest | instance ID, generation ID, parent generation, ModelConfig fingerprint, TokenizerManifest digest, initialization policy/version/seed metadata, tensor inventory, checksums, schema/storage versions | Immutable after commit; complete tensor inventory and digest verified before ACTIVE |
@@ -102,10 +103,12 @@ The signatures are conceptual. Exact Kotlin types, suspendability, callback styl
 
 ~~~text
 CapabilityProvider.inspect(requestedWorkload) -> DeviceCapabilityProfile
+RuntimeConditionProvider.inspect() -> RuntimeConditionProfile
 
 ConfigurationSelector.select(
     capabilityProfile,
-    researchedArchitectureCandidates,
+    runtimeConditionProfile,
+    researchedConfigurationCandidates,
     resourceBudget
 ) -> ConfigurationDecision
 ~~~
@@ -114,6 +117,7 @@ Requirements:
 - Each capability claim carries evidence source, version, timestamp and confidence.
 - A SoC/device name is not evidence that an API, runtime, operator or precision is executable.
 - Unsupported or unavailable fields remain UNKNOWN.
+- Stable DeviceCapabilityProfile facts are distinct from RuntimeConditionProfile observations; current thermal, battery or memory pressure may reject/defer a workload but does not redefine the device's permanent capability.
 - A configuration must include analytical memory and compute accounting with explicit excluded terms and safety reserve.
 - If no candidate satisfies the documented envelope, Genesis returns a typed UNSUPPORTED_CONFIGURATION result; it must not silently downgrade to a different architecture or claim a model was created.
 - Configuration selection is deterministic for the same manifest inputs unless an explicitly versioned policy says otherwise.
@@ -266,7 +270,9 @@ Requirements:
 ~~~text
 APP_CREATED
   -> CAPABILITY_ASSESSMENT
+  -> RUNTIME_CONDITION_ASSESSMENT
   -> CONFIGURATION_SELECTED
+  -> TOKENIZER_PREPARATION
   -> MODEL_CONSTRUCTION
   -> PARAMETER_INITIALIZATION
   -> INITIAL_GENERATION_STAGED
