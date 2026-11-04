@@ -126,7 +126,7 @@ The documents under [docs/](docs/README.md) are the planning source of truth. Th
 | [42 — Architecture-Family Tensor and Operator Inventory](docs/42_ARCHITECTURE_TENSOR_AND_OPERATOR_INVENTORY.md) | Parameter shapes, training operators, vocabulary/logit and recurrent/KV state accounting across the four G2 families |
 | [43 — G4 Architecture Decision and Device-Profile Contract](docs/43_G4_ARCHITECTURE_DECISION_AND_PROFILE_CONTRACT.md) | G4 hard-gate and matched-comparison process, immutable profile schema and ADR acceptance checklist |
 | [44 — Documentation Governance and Change Control](docs/44_DOCUMENTATION_GOVERNANCE_AND_CHANGE_CONTROL.md) | Document hierarchy, decision authority, evidence/status rules and documentation-only change control |
-| [45 — Android Project Structure and File-Placement Rules](docs/45_ANDROID_PROJECT_STRUCTURE_AND_FILE_PLACEMENT_RULES.md) | Target source/package organization, Gradle boundaries, native/JNI placement and file-placement rules |
+| [45 — Android Project Structure and File-Placement Rules](docs/45_ANDROID_PROJECT_STRUCTURE_AND_FILE_PLACEMENT_RULES.md) | Proposed source/package organization, subsystem ownership crosswalk, Gradle boundaries, native/JNI placement and file-placement rules |
 | [46 — Android Source-Tree Ownership and Dependency Audit](docs/46_ANDROID_SOURCE_TREE_OWNERSHIP_AND_DEPENDENCY_AUDIT.md) | Audited source ownership, cross-package coupling, Gradle/module assessment and migration order |
 
 ## Current implementation status
