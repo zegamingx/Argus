@@ -3,7 +3,7 @@
 **Status:** Static structural audit complete for inspected source tree; remediation not authorized  
 **Audit date:** 2026-11-04  
 **Repository:** `zegamingx/Argus` · **Branch:** `main`  
-**Audit baseline:** `24b26b061574700d82fecd5c2a1485353333cef8`  
+**Audit baseline:** `bd75ac1533e079bfca4d12e1af9ec3170d7187d9` (`docs: clarify structure proposal authority`)  
 **Scope:** Production Kotlin files, Android manifest, source sets, resources, Gradle topology/configuration and file-to-target ownership  
 **Authority:** Observed source facts and structural findings for this snapshot. Target package rules remain in document 45; logical subsystem contracts remain in document 36.  
 **Boundary:** Static repository inspection only. No source file was moved, created or modified; no Gradle configuration was changed; no build, test, workflow or device experiment was run.
@@ -15,6 +15,7 @@ The inspected Android project is a single-module prototype. Its package names id
 The main structural findings are:
 
 - `ArgusViewModel` directly reaches chat, neural execution, training, memory, hardware, file import, network search, app exclusion and AccessibilityService actions.
+- The observed package graph contains a source-level cycle: `com.argus.agi` → `com.argus.agi.ui` → `com.argus.agi.service` → `com.argus.agi`. It is hidden inside the single `:app` Gradle module and must be broken before those boundaries can be extracted.
 - `TrainingManager` combines queue state, worker lifecycle, device admission, model execution and memory updates.
 - `ArgusNeuralEngine` combines numerical execution, tokenizer mutation, benchmark reporting and Android checkpoint file I/O.
 - `model/TrainingManager` imports `sensor.DeviceGuard`, reversing intended dependency direction.
@@ -28,9 +29,9 @@ This is a static structural audit, not a mathematical correctness, privacy-compl
 
 ## 2. Baseline and method
 
-The recursive Git tree and production Kotlin files were inspected at `main` commit `24b26b061574700d82fecd5c2a1485353333cef8`. The preceding project-structure commits changed documentation and repository guidance only.
+The recursive Git tree and all production Kotlin files were re-read at `main` HEAD `bd75ac1533e079bfca4d12e1af9ec3170d7187d9`. The current source inventory was compared with the earlier source snapshot `24b26b061574700d82fecd5c2a1485353333cef8`: the 24 intervening commits changed project/documentation guidance, README/CONTRIBUTING and added `public/assets/Reference_Booting.mp4`; no Kotlin source, Android manifest, Gradle build/settings/catalog or Android resource path changed. The target package proposal has since been revised in document 45, so the observed source graph was checked against that current target rather than assumed to have changed with the documents.
 
-The audit read package declarations/imports/top-level declarations, direct references in principal orchestrator/service classes, Android manifest registrations, Gradle settings/catalog/build scripts, the existing test file and the Android resource tree.
+The audit read package declarations/imports/top-level declarations, direct references in principal orchestrator/service classes, Android manifest registrations, Gradle settings/catalog/build scripts, the existing test file and the Android resource tree. It then built the package graph from explicit imports and direct cross-package references, including the root package's two distinct roles (`ArgusApp` and `MainActivity`).
 
 This is a static dependency audit. It identifies declared imports, direct references, manifest registrations and Gradle declarations. It does not prove every dynamic call path, reflection-based use or Android runtime behavior. No build or test result is claimed.
 
@@ -151,6 +152,9 @@ The visible test gap includes core policy, model identity, numerical reference o
 Observed direct relationships:
 
 ```text
+MainActivity
+  └── imports UI ViewModel, screens and theme
+
 ArgusApp
   ├── constructs model classes
   ├── constructs sensor classes
@@ -182,6 +186,51 @@ PerceptionScreen
 SkillsAndSettingsScreen
   └── Android Context/Intent/PowerManager APIs
 ```
+
+### 6.1 Verified package dependency matrix
+
+The matrix below records observed source edges at the current audit baseline. It distinguishes a legitimate host-to-destination edge from dependencies that bypass the intended application/core contracts.
+
+| Current source | Observed destination | Source evidence | Assessment |
+|---|---|---|---|
+| `com.argus.agi.MainActivity` | `ui.ArgusViewModel`, `ui.screens.*`, `ui.theme.*` | `MainActivity.kt:49–58, 67–69` | Entry-to-presentation hosting is expected; the Activity should not become a workflow owner. |
+| `com.argus.agi.ArgusApp` | `model.*`, `sensor.*` | `ArgusApp.kt:7–11, 17–24` | Composition belongs in bootstrap, but the current `Application` exposes static lazy objects as a service locator. |
+| `com.argus.agi.ui.ArgusViewModel` | root `ArgusApp`, `model`, `sensor` and `service` | `ArgusViewModel.kt:9–20, 43–49, 62–69, 88, 280` | High coupling: presentation constructs concrete adapters, consumes implementation DTOs/state and invokes concrete service actions instead of application-facing APIs. |
+| `com.argus.agi.ui.screens.NeuralCoreScreen` | `model.TrainingData` | `NeuralCoreScreen.kt` imports `TrainingData` directly | Feature presentation is bound to a model-package queue DTO; expose stable learning UI state instead. |
+| `com.argus.agi.ui.screens.PerceptionScreen` | `service.ArgusAccessibilityService` and CameraX/Android settings APIs | `PerceptionScreen.kt:9–13, 69, 84–89` | The screen reads a concrete service static instance. Preview hosting may remain at the UI edge, but capture/session ownership and service state need narrow contracts. |
+| `com.argus.agi.service.ArgusAccessibilityService` | root `ArgusApp` and `sensor.ExcludedAppsManager` | `ArgusAccessibilityService.kt:7–8, 35, 42, 79–80` | Android callback code constructs a platform adapter and reaches application state through globals. |
+| `com.argus.agi.service.ArgusForegroundService` | root `ArgusApp`, `MainActivity` and training/device state | `ArgusForegroundService.kt:12–14, 58, 110–147` | The service reads global workflow objects and imports the concrete Activity for notification navigation. |
+| `com.argus.agi.model.TrainingManager` | `sensor.DeviceGuard` | `TrainingManager.kt:3–4, 35–42, 143` | Dependency inversion: the training coordinator imports an Android-oriented sensor implementation for admission/safety. Depend on a device/resource contract instead. |
+| `model.ArgusNeuralEngine` and `model.WorldModel` | Android `Context` and file APIs | `ArgusNeuralEngine.kt:3–9, 26`; `WorldModel.kt:3–10, 27` | Engine/domain-adjacent code is not platform-independent; persistence and Android access must be separated from numerical/domain behavior. |
+
+`ArgusViewModel` also directly constructs `ExcludedAppsManager(application)` and `WebSearchEngine()` rather than receiving application-facing ports from the composition root. The `sensor` package has no observed imports back into `model`, `service` or `ui` in the audited production files; the problematic edge is `model` → `sensor`, not a reciprocal `sensor` dependency.
+
+### 6.2 Confirmed source-level package cycle
+
+The direct imports/references produce this package-level cycle:
+
+```text
+com.argus.agi.MainActivity
+        │ imports screens and ViewModel
+        ▼
+com.argus.agi.ui
+        │ ViewModel / PerceptionScreen import concrete services
+        ▼
+com.argus.agi.service
+        │ services import ArgusApp and MainActivity
+        └──────────────────────────────────────────────► com.argus.agi
+```
+
+The root package is itself a mixed boundary: `MainActivity` is the Android entry/UI host, while `ArgusApp` is currently used as the global dependency container. The cycle is created by the combination of `MainActivity` → UI, UI → concrete service classes, and service → `ArgusApp`/`MainActivity`. `ArgusViewModel` also imports `ArgusApp` directly.
+
+This is a **source/package dependency cycle**, not evidence of a runtime crash or a Gradle cycle. The current build has only one included Gradle module (`:app`), so Gradle cannot enforce or expose the package boundary. Extracting `app/entry`, `feature/*/presentation` and `platform/android/*` into separate modules without first inverting these edges would create a module dependency cycle.
+
+Required inversion before extraction:
+
+1. UI/ViewModels call application-facing workflow APIs and consume feature-owned immutable state; they do not import `ArgusAccessibilityService` or `ArgusForegroundService`.
+2. Android services call narrow application ingress/control contracts for capture, training-session observation and pause/resume; they do not read global `ArgusApp` properties.
+3. Notification navigation must not require a compile-time reference from the foreground service to `MainActivity`; route through a launcher/navigation boundary owned by the app host.
+4. `app/bootstrap` constructs/binds concrete implementations, while `app/entry` only hosts Android components. No static global service locator is part of the target contract.
 
 Target logical direction:
 
@@ -217,6 +266,7 @@ The graph does not imply one Gradle module for every box.
 | STR-010 | One test file covers two tokenizer checks; filename/class imply a different scope | HIGH | Domain, lifecycle, persistence and platform contracts lack visible test representation | Establish package-mirrored tests by contract |
 | STR-011 | Large feature screens contain platform integration and multiple UI responsibilities | MEDIUM | Presentation code has a broad change surface | State-driven UI; split platform ownership by responsibility |
 | STR-012 | No native source/module exists | INFORMATIONAL | Research intent could be mistaken for current capability | Add native boundary only after architecture/operator/ABI contracts |
+| STR-013 | `com.argus.agi` → `com.argus.agi.ui` → `com.argus.agi.service` → `com.argus.agi` source/package cycle | HIGH | Package boundaries cannot be extracted independently; platform services and UI are mutually coupled through concrete entry/service classes | Move composition to `app/bootstrap`; UI depends on application workflow APIs; services depend on narrow application ingress/control contracts and must not import `MainActivity` or global `ArgusApp` state |
 
 Priority describes structural risk and migration order, not proof of a crash or functional defect.
 
@@ -302,8 +352,8 @@ The package crosswalk does not imply a global event bus, one module per subsyste
 
 When implementation and structural migration are separately authorized:
 
-1. Establish app/entry for Android process components and an explicit composition root in app/bootstrap; remove access through global static objects.
-2. Define/verify the core contracts and application workflow APIs for Genesis, inference, learning, acquisition, knowledge, evaluation and device/resource admission. Preserve the lifecycle and transaction invariants in document 36.
+1. Define/verify core contracts and application-facing workflow ports for Genesis, inference, learning, acquisition, knowledge, evaluation, device/resource admission, capture ingress and session control. Preserve document 36 lifecycle/transaction invariants.
+2. Break the confirmed root ↔ UI ↔ service cycle: feature presentation must stop importing concrete service implementations; Android services must stop importing `MainActivity` and reading global `ArgusApp` objects. Separate `ArgusApp` composition wiring into `app/bootstrap` and Android entry hosting into `app/entry`.
 3. Split the broad ViewModel into feature-owned presentation state holders; use feature/learning for the current NeuralCore UI rather than retaining an implementation-oriented package name.
 4. Move Android service, permission, camera, PackageManager, battery, notification, connectivity, storage and runtime-provider operations behind platform/android adapters. Keep OS scheduling separate from application session ownership.
 5. Separate engine numerical execution from tokenizer identity, model-generation persistence, data ingestion and Android Context/file I/O. Do not create the selected family engine before G4 or the concrete tokenizer before G1-D.
@@ -323,7 +373,9 @@ Open: DI framework selection (with an explicit composition root required); final
 |---|---|
 | Current file inventory | Audited |
 | File ownership mapping | Documented |
-| High-risk dependency couplings | Identified |
+| High-risk dependency couplings | Identified and rechecked at current HEAD |
+| Explicit package dependency graph | Documented from production imports and direct references |
+| Root/UI/service package cycle | Confirmed; must be inverted before Gradle module extraction |
 | Target package ownership | Reworked in document 45 and reconciled here against the complete document 36 logical subsystem inventory |
 | Immediate Gradle module extraction | Not recommended |
 | Future extraction seams | Candidate sequence documented |
@@ -337,3 +389,4 @@ This closes only the static file-ownership/dependency-inventory task for the ins
 
 - 2026-11-04 — Static file-by-file ownership and dependency audit added against `main` at `24b26b061574700d82fecd5c2a1485353333cef8`. No source files or build configuration were changed.
 - 2026-11-04 — Target-owner references reconciled with the revised document 45 package hierarchy and the document 36 subsystem crosswalk. The observed source inventory and findings were not changed.
+- 2026-11-04 — Re-audited `main` at `bd75ac1533e079bfca4d12e1af9ec3170d7187d9`; added an explicit cross-package dependency matrix and confirmed the `com.argus.agi` → `ui` → `service` → `com.argus.agi` cycle. The comparison with the earlier source snapshot found no intervening Kotlin, manifest, Gradle or Android-resource changes. No source/build files were changed.
