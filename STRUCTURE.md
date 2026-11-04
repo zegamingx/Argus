@@ -4,7 +4,7 @@ Package root: `com.argus.agi`
 
 ```
 com.argus.agi
-├── app/
+├── root/
 │   ├── entry/                 # Android Application/Activity entry points
 │   ├── bootstrap/             # Composition root and dependency graph construction
 │   └── navigation/            # Routes and destination wiring
