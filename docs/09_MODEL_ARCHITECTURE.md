@@ -57,7 +57,7 @@ A reproducible test fixture may use a fixed seed. Production instances must not 
 
 ## 6. Tokenizer contract
 
-Tokenizer selection remains open. Candidate approaches include byte-level encoding, byte-level BPE and a vocabulary trained from the accepted local corpus.
+Tokenizer selection remains open and must be device-conditioned within the approved product-language and data-rights boundary. Candidate approaches include raw byte-level encoding, byte-level BPE and a vocabulary trained from an accepted, rights-cleared tokenizer seed corpus. The architecture design may define multiple compatible tokenizer profiles; each local model generation selects and pins exactly one profile before allocating vocabulary-dependent tensors.
 
 Once a model generation begins training, its tokenizer revision and token-ID mapping are immutable for that generation. Every checkpoint and model manifest must include the tokenizer fingerprint and vocabulary/special-token metadata. A tokenizer change creates a new compatible generation or requires explicit tensor migration; runtime vocabulary growth is not allowed.
 
