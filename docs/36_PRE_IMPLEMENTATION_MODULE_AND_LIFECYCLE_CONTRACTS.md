@@ -77,6 +77,36 @@ The application layer owns process-independent workflow state such as Genesis re
 
 Lifecycle events are typed facts, not a second state store. Each workflow owns its authoritative state and may expose a state/result stream to observers. Audit persistence is a repository concern. A global mutable event bus is not required by this contract.
 
+### 3.2 UI observation and immutable feature state
+
+- The application workflow remains the authoritative owner of process-independent state. For long-lived observable workflow status, its outward contract is a read-only `StateFlow<WorkflowSnapshot>`; the mutable state holder remains private to the workflow.
+- A feature ViewModel maps that snapshot into a feature-owned immutable `FeatureUiState` and exposes it read-only to Compose. Screen-specific state types remain small and purpose-built; do not create one global UI state object for unrelated features.
+- A snapshot is keyed by the owning identity (for example, `sessionId`) and carries a monotonic revision/sequence. Where relevant, it exposes the current lifecycle phase, committed progress with an explicit unit, display metrics, recoverable failure and permitted user actions. A field is omitted when it has no meaning for that workflow.
+- Progress displayed as committed work comes from the workflow/repository authority. UI sampling may coalesce intermediate updates, but a ViewModel or notification must never maintain a competing step, batch, epoch or optimizer-update counter.
+- ViewModels send typed commands to application-facing APIs. They do not mutate repositories, model objects, training engines or platform adapters directly. Database rows, network DTOs, engine tensors, raw personal content and Android framework objects are not UI state.
+- Compose collection is lifecycle-aware. Recreating a screen re-observes the latest workflow snapshot; it does not recreate or reset the underlying job/session.
+
+This defines the observation pattern and state guarantees. Concrete per-feature Kotlin data classes are implementation declarations, not additional architecture decisions.
+
+### 3.3 Notification navigation contract
+
+- `app/navigation` owns the canonical internal destination `argus://app/learning/session/{sessionId}` and its mapping to the learning-session screen. The route is an internal application route, not an externally browsable data-ingress surface.
+- `platform/android/notification` creates an explicit, immutable PendingIntent through the host-owned navigation contract. Its identity is unique per session so one session notification cannot overwrite another session's destination.
+- Tapping a notification brings the existing Argus task forward when present. On a cold launch, the normal application root is created before the requested session destination; navigation must not create duplicate Activity instances.
+- The destination treats the route's `sessionId` as an identifier only: it re-queries `application/learning`, validates that the session exists and is visible to the current local instance, then renders the latest snapshot. Notification extras are not authoritative session state or authorization.
+- Opening a session does not implicitly start, resume, stop or otherwise mutate training. Those remain explicit user commands routed through `application/learning`.
+
+The URI is stable route identity; concrete Android PendingIntent construction and navigation-library wiring are platform implementation details and must preserve these semantics.
+
+### 3.4 Composition and dependency-lifetime contract
+
+- The default composition strategy for the current single-`:app` topology is explicit manual constructor injection from `app/bootstrap`. A DI framework is not required for the first implementation or package-boundary migration.
+- The composition root is the only place that binds concrete data, platform and engine adapters to the ports owned by core/application contracts. Framework-created Android entry components receive narrow factories/dependencies through the Application-owned composition boundary; ordinary Kotlin classes use constructor injection.
+- The graph has explicit lifetimes: process scope for repositories and stable registries; workflow/session scope for coordinators, cancellation and candidate ownership; ViewModel scope for presentation state only; Android-component scope for platform adapters tied to that component. No UI or global object becomes the owner of a training session.
+- Expensive model/tokenizer/runtime instances are created lazily after the relevant profile and resource admission, not eagerly while the process graph is constructed.
+- Static companion-object service locators, reflection-based discovery, global mutable registries and arbitrary cross-layer lookups are prohibited. A framework may be reconsidered only with measured graph complexity or a concrete module boundary that justifies it; that does not reopen the constructor-injection contract.
+
+
 ## 4. Cross-module data contracts
 
 The following are minimum logical records. A concrete serialization (Proto, DataStore, Room, flatbuffer or custom binary) is not selected here.
@@ -104,7 +134,7 @@ No document may claim a complete database schema until exact fields, indexes, en
 
 ## 5. Core interface contracts
 
-The signatures are conceptual. Exact Kotlin types, suspendability, callback style and dependency-injection mechanism remain an implementation binding.
+The signatures are conceptual. Exact feature-specific Kotlin types, suspendability and callback style remain implementation bindings. The composition strategy is no longer open: use explicit manual constructor injection through app/bootstrap as defined in section 3.4; a DI framework is optional future tooling, not a prerequisite.
 
 ### 5.1 Device capability and configuration
 
@@ -589,6 +619,7 @@ The pre-implementation contract baseline is ready for review when:
 
 - Every subsystem has a single owner and explicit dependency direction.
 - Every cross-module handoff has a typed identity, version and failure result.
+- UI observes workflow-owned immutable snapshots through the read-only state contract; notification navigation resolves a stable session route without owning session state; app/bootstrap uses an explicit composition root and constructor injection.
 - Genesis, training, knowledge acquisition, candidate review and promotion have explicit state transitions.
 - The active-generation immutability, single-writer, checkpoint and cancellation rules are consistent across documents.
 - Data/consent states cannot be bypassed by connector, UI or worker implementation.
