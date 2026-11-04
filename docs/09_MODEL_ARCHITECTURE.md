@@ -15,7 +15,9 @@ Random initialization is only an initial numerical state. It does not confer gen
 
 The initial neural architecture is deliberately undecided. Candidate families include decoder-only Transformers and attention variants, state-space and recurrent sequence models, hybrid architectures, and additional candidates where evidence supports them.
 
-The first choice must be based on training and inference benchmarks on representative Android devices, numerical correctness, memory, thermal behavior, runtime/operator coverage and extensibility. Do not assume a Transformer is the permanent Argus architecture.
+The pre-implementation design choice must be based on comparative published research, audited implementations and licenses, analytical parameter/compute/memory estimates, the available device/runtime evidence, numerical requirements and extensibility. Compare evidence only within its actual workload category (from-scratch learning, fine-tuning, inference or runtime optimization), and disclose when device, data, tokenizer, model size or training budgets are not matched.
+
+Argus-specific training/inference benchmarks and sustained physical-device measurements are **post-implementation verification**, not prerequisites for completing this research or approving a clearly qualified design contract. They determine whether the implemented configuration meets its resource envelope and which named device tiers can be supported. Until those measurements pass, the design must remain marked unverified and must not be presented as proven Android feasibility. Do not assume a Transformer is the permanent Argus architecture.
 
 ## 3. Architecture-agnostic model description
 
