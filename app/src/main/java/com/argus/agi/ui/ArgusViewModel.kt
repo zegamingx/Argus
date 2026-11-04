@@ -6,7 +6,11 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.argus.agi.app.entry.ArgusApp
+import com.argus.agi.model.ArgusNeuralEngine
+import com.argus.agi.model.TrainingManager
+import com.argus.agi.model.WorldModel
+import com.argus.agi.platform.android.device.DeviceGuard
+import com.argus.agi.platform.android.device.HardwareProfile
 import com.argus.agi.model.BenchmarkResult
 import com.argus.agi.model.TrainingData
 import com.argus.agi.model.WorldEntity
@@ -16,8 +20,7 @@ import com.argus.agi.platform.android.capture.InstalledAppItem
 import com.argus.agi.data.acquisition.SearchResultItem
 import com.argus.agi.platform.android.device.SystemHardwareInfo
 import com.argus.agi.data.acquisition.WebSearchEngine
-import com.argus.agi.platform.android.capture.ArgusAccessibilityService
-import com.argus.agi.platform.android.lifecycle.ArgusForegroundService
+import com.argus.agi.application.runtime.AccessibilityRuntime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,15 +41,17 @@ data class ChatMessage(
     val timestamp: Long = System.currentTimeMillis()
 )
 
-class ArgusViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val neuralEngine = ArgusApp.neuralEngine
-    private val worldModel = ArgusApp.worldModel
-    private val trainingManager = ArgusApp.trainingManager
-    private val deviceGuard = ArgusApp.deviceGuard
-    private val hardwareProfile = ArgusApp.hardwareProfile
-    private val excludedAppsManager = ExcludedAppsManager(application)
-    private val webSearchEngine = WebSearchEngine()
+class ArgusViewModel(
+    application: Application,
+    private val neuralEngine: ArgusNeuralEngine,
+    private val worldModel: WorldModel,
+    private val trainingManager: TrainingManager,
+    private val deviceGuard: DeviceGuard,
+    private val hardwareProfile: HardwareProfile,
+    private val excludedAppsManager: ExcludedAppsManager,
+    private val webSearchEngine: WebSearchEngine,
+    private val accessibilityRuntime: AccessibilityRuntime
+) : AndroidViewModel(application) {
 
     // UI States
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
@@ -82,11 +87,9 @@ class ArgusViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _searchResults = MutableStateFlow<List<SearchResultItem>>(emptyList())
     val searchResults: StateFlow<List<SearchResultItem>> = _searchResults.asStateFlow()
+    val isAccessibilityConnected: StateFlow<Boolean> = accessibilityRuntime.isConnected
 
     init {
-        // Start foreground service for reliable background operation
-        ArgusForegroundService.startService(application)
-
         // Seed initial greeting message
         _messages.value = listOf(
             ChatMessage(
@@ -277,7 +280,7 @@ class ArgusViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun executeActionClick(targetText: String): Boolean {
-        return ArgusAccessibilityService.performClickAction(targetText)
+        return accessibilityRuntime.performClickAction(targetText)
     }
 
     fun toggleAppExclusion(packageName: String) {

@@ -66,7 +66,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import com.argus.agi.platform.android.capture.ArgusAccessibilityService
 import com.argus.agi.ui.ArgusViewModel
 import com.argus.agi.ui.design.ArgusCardBorder
 import com.argus.agi.ui.design.ArgusCyanGlow
@@ -86,7 +85,7 @@ fun PerceptionScreen(viewModel: ArgusViewModel) {
     val hardware by viewModel.hardwareInfo.collectAsState()
     val contextSummary by viewModel.currentContextSummary.collectAsState()
     val cameraLuminance by viewModel.cameraLuminance.collectAsState()
-    val isAccessibilityActive = ArgusAccessibilityService.instance != null
+    val isAccessibilityActive by viewModel.isAccessibilityConnected.collectAsState()
 
     var isCameraExpanded by remember { mutableStateOf(true) }
     var isScreenExpanded by remember { mutableStateOf(true) }

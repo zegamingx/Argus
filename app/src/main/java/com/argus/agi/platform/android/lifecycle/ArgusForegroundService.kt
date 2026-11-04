@@ -9,9 +9,9 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
-import com.argus.agi.app.entry.ArgusApp
-import com.argus.agi.app.entry.MainActivity
 import com.argus.agi.R
+import com.argus.agi.application.runtime.ArgusRuntimeOwner
+import com.argus.agi.platform.android.notification.ARGUS_CORE_NOTIFICATION_CHANNEL_ID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -42,6 +42,9 @@ class ArgusForegroundService : Service() {
         }
     }
 
+    private fun runtimeOrNull() =
+        (application as? ArgusRuntimeOwner)?.argusRuntime
+
     private val serviceScope = CoroutineScope(Dispatchers.Default + Job())
     private var updateJob: Job? = null
 
@@ -55,7 +58,7 @@ class ArgusForegroundService : Service() {
                 return START_NOT_STICKY
             }
             ACTION_TOGGLE_PAUSE -> {
-                ArgusApp.trainingManager.togglePauseTraining()
+                runtimeOrNull()?.training?.togglePause()
                 updateNotification()
             }
             else -> {
@@ -107,32 +110,39 @@ class ArgusForegroundService : Service() {
     }
 
     private fun buildNotification(): Notification {
-        val trainingManager = ArgusApp.trainingManager
-        val deviceGuard = ArgusApp.deviceGuard
-        val hardware = ArgusApp.hardwareProfile.getHardwareInfo()
+        val runtime = runtimeOrNull()
+        val training = runtime?.training?.snapshot()
+        val safety = runtime?.device?.snapshot()
+        val primaryAccelerator = runtime?.hardware?.primaryAcceleratorLabel() ?: "Unknown"
 
-        val isPaused = trainingManager.isTrainingPaused.value
-        val safety = deviceGuard.safetyState.value
-        val currentItem = trainingManager.currentTrainingItem.value
-        val latestLoss = trainingManager.lossHistory.value.lastOrNull()
+        val isPaused = training?.isPaused ?: true
+        val isSafeToTrain = safety?.isSafeToTrain ?: false
+        val batteryPercent = safety?.batteryPercent ?: 0
+        val temperatureCelsius = safety?.temperatureCelsius ?: 0f
+        val currentSource = training?.currentSource
+        val latestLoss = training?.latestLoss
 
         val title = "A.R.G.U.S Core: " + when {
             isPaused -> "Training paused"
-            !safety.isSafeToTrain -> "Thermal and battery guard active"
-            currentItem != null -> "Learning from ${currentItem.source}"
+            !isSafeToTrain -> "Thermal and battery guard active"
+            currentSource != null -> "Learning from $currentSource"
             else -> "Monitoring approved context sources"
         }
 
         val lossText = if (latestLoss != null) "Loss: ${String.format("%.4f", latestLoss)}" else "Loss: not available"
-        val content = "$lossText | ${safety.batteryPct}% (${String.format("%.1f", safety.temperatureCelsius)}°C) | ${hardware.primaryAccelerator.substringBefore('+')}"
+        val content = "$lossText | $batteryPercent% (${String.format("%.1f", temperatureCelsius)}°C) | ${primaryAccelerator.substringBefore('+')}"
 
-        val openAppIntent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-        }
-        val openAppPendingIntent = PendingIntent.getActivity(
-            this, 0, openAppIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val openAppPendingIntent = packageManager
+            .getLaunchIntentForPackage(packageName)
+            ?.let { launchIntent ->
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                PendingIntent.getActivity(
+                    this,
+                    0,
+                    launchIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+            }
 
         val toggleIntent = Intent(this, ArgusForegroundService::class.java).apply {
             action = ACTION_TOGGLE_PAUSE
@@ -144,11 +154,11 @@ class ArgusForegroundService : Service() {
 
         val pauseResumeLabel = if (isPaused) "Resume training" else "Pause training"
 
-        return NotificationCompat.Builder(this, ArgusApp.CHANNEL_ID)
+        return NotificationCompat.Builder(this, ARGUS_CORE_NOTIFICATION_CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(content)
             .setSmallIcon(R.drawable.ic_argus_logo)
-            .setContentIntent(openAppPendingIntent)
+            .apply { if (openAppPendingIntent != null) setContentIntent(openAppPendingIntent) }
             .setOngoing(true)
             .addAction(0, pauseResumeLabel, togglePendingIntent)
             .setPriority(NotificationCompat.PRIORITY_LOW)

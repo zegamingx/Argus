@@ -12,32 +12,50 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.runtime.LaunchedEffect
 import androidx.core.content.ContextCompat
+import com.argus.agi.app.bootstrap.ArgusViewModelFactory
 import com.argus.agi.app.navigation.MainScreen
+import com.argus.agi.platform.android.lifecycle.ArgusForegroundService
 import com.argus.agi.ui.ArgusViewModel
 import com.argus.agi.ui.design.ArgusTheme
 
 class MainActivity : ComponentActivity() {
 
-    private val viewModel: ArgusViewModel by viewModels()
+    private val viewModel: ArgusViewModel by viewModels {
+        val argusApplication = application as ArgusApp
+        ArgusViewModelFactory(argusApplication, argusApplication.container)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        if (savedInstanceState == null) {
+            ArgusForegroundService.startService(this)
+        }
+
         setContent {
             ArgusTheme {
-                // Runtime Permissions Launcher
                 val permissionsLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestMultiplePermissions()
-                ) { /* permissions evaluated */ }
+                ) { /* permission state is observed by the owning feature */ }
 
                 LaunchedEffect(Unit) {
                     val neededPermissions = mutableListOf<String>()
-                    if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                    if (
+                        ContextCompat.checkSelfPermission(
+                            this@MainActivity,
+                            Manifest.permission.CAMERA
+                        ) != PackageManager.PERMISSION_GRANTED
+                    ) {
                         neededPermissions.add(Manifest.permission.CAMERA)
                     }
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                        if (
+                            ContextCompat.checkSelfPermission(
+                                this@MainActivity,
+                                Manifest.permission.POST_NOTIFICATIONS
+                            ) != PackageManager.PERMISSION_GRANTED
+                        ) {
                             neededPermissions.add(Manifest.permission.POST_NOTIFICATIONS)
                         }
                     }
