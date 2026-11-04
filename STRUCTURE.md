@@ -1,9 +1,7 @@
-# Argus Package Structure
-
-Package root: `com.argus.agi`
+# Argus Repository Structure
 
 ```
-com.argus.agi
+Argus/
 ├── app/
 │   ├── entry/                 # Android Application/Activity entry points
 │   ├── bootstrap/             # Composition root and dependency graph construction
@@ -57,5 +55,3 @@ com.argus.agi
 └── ui/
     └── design/                # Shared Compose design system and visual primitives
 ```
-
-All packages live under `app/src/main/java/com/argus/agi/`.
