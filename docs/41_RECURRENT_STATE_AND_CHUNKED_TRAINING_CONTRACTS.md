@@ -41,9 +41,9 @@ M_{conv} \in \mathbb{R}^{B \times (E+2GN) \times K}
 S_{ssm} \in \mathbb{R}^{B \times H \times P \times N}
 \]
 
-These are **two separate state objects with different update rules**. A checkpoint or inference session that persists only S_ssm but drops M_conv will not reproduce the same next-token computation. Conversely, saving the convolution buffer but not the SSM state is also incomplete.
+These are **two separate state objects with different update rules and potentially different dtypes**. In the pinned upstream implementation, the default convolution-state dtype follows the convolution weights, while the SSM-state dtype follows the input-projection weights; an explicit cache dtype can override both. A checkpoint or inference session that persists only S_ssm but drops M_conv will not reproduce the same next-token computation. Conversely, saving the convolution buffer but not the SSM state is also incomplete. The state manifest must store each component's dtype independently rather than one assumed per-layer dtype.
 
-The official Mamba-2 implementation's single-token step updates the convolution buffer by shifting in the new x/B/C channels, then updates the SSM state using the discretized decay and input-dependent B coefficients. The output is read from that updated SSM state using C, with the D skip term and optional gated normalization applied afterward.
+The official Mamba-2 implementation's single-token step updates the convolution buffer by shifting in the new x/B/C channels, then updates the SSM state using the discretized decay and input-dependent B coefficients. The output is read from that updated SSM state using C, with the D skip term and optional gated normalization applied afterward. The upstream inference-cache allocator initializes both buffers to zero, and its explicit initialization path clears both together; an Argus reset operation must be atomic across the pair.
 
 ### 2.2 SSD is a chunk algorithm, not token-wise inference disguised as training
 
