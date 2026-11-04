@@ -4,7 +4,7 @@
 
 This directory is the engineering source of truth for Argus planning. It distinguishes accepted design direction, current repository facts, unresolved research and future implementation. A design document does not prove a capability exists in the application.
 
-The repository-wide authority and change-control rules are defined in [44 — Documentation Governance and Change Control](44_DOCUMENTATION_GOVERNANCE_AND_CHANGE_CONTROL.md). The Android package hierarchy, Gradle module strategy and project file-placement rules are defined in [45 — Android Project Structure and File-Placement Rules](45_ANDROID_PROJECT_STRUCTURE_AND_FILE_PLACEMENT_RULES.md). The numbered files remain physically flat and stable; the workstream grouping below is for navigation and ownership, not a directory migration.
+The repository-wide authority and change-control rules are defined in [44 — Documentation Governance and Change Control](44_DOCUMENTATION_GOVERNANCE_AND_CHANGE_CONTROL.md). The proposed Android package hierarchy, subsystem-to-package crosswalk, dependency direction, Gradle module strategy and project file-placement rules are defined in [45 — Android Project Structure and File-Placement Rules](45_ANDROID_PROJECT_STRUCTURE_AND_FILE_PLACEMENT_RULES.md). The numbered files remain physically flat and stable; the workstream grouping below is for navigation and ownership, not a directory migration.
 
 ## Project vision
 
