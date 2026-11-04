@@ -9,7 +9,7 @@
 
 Document 02 identifies module/API contracts, error taxonomy, event/message schema, model lifecycle, concurrency rules, data schema, deployment diagrams and sequence diagrams as required pre-implementation outputs. This document supplies the first architecture-neutral version of those contracts.
 
-The contracts define **what each subsystem owns and guarantees**, not how its implementation is written. They are independent of a specific Transformer/SSM/RWKV/hybrid selection, tokenizer family, Kotlin package layout, native training framework or accelerator. The proposed physical Kotlin package hierarchy and file-placement rules are defined in [45 — Android Project Structure and File-Placement Rules](45_ANDROID_PROJECT_STRUCTURE_AND_FILE_PLACEMENT_RULES.md). Document 36 remains authoritative for logical API/lifecycle ownership; document 45 governs package and source-tree placement. Package boundaries do not imply one Gradle module per package. Family-specific recurrent state requirements for Mamba-2 SSD and RWKV-7 are detailed separately in [41 — Recurrent State and Chunked-Training Lifecycle Contracts](41_RECURRENT_STATE_AND_CHUNKED_TRAINING_CONTRACTS.md), while this document retains the architecture-neutral transaction boundary.
+The contracts define **what each subsystem owns and guarantees**, not how its implementation is written. They are independent of a specific Transformer/SSM/RWKV/hybrid selection, tokenizer family, Kotlin package layout, native training framework or accelerator. The proposed physical Kotlin package hierarchy and file-placement rules are defined in [45 — Android Project Structure and File-Placement Rules](45_ANDROID_PROJECT_STRUCTURE_AND_FILE_PLACEMENT_RULES.md). Document 36 remains authoritative for logical API/lifecycle ownership; document 45 governs package and source-tree placement and includes a crosswalk for every subsystem defined here. The package crosswalk must not alter this document's owner/guarantee contracts. Package boundaries do not imply one Gradle module per package. Family-specific recurrent state requirements for Mamba-2 SSD and RWKV-7 are detailed separately in [41 — Recurrent State and Chunked-Training Lifecycle Contracts](41_RECURRENT_STATE_AND_CHUNKED_TRAINING_CONTRACTS.md), while this document retains the architecture-neutral transaction boundary.
 
 The following labels are used:
 
@@ -42,7 +42,7 @@ These are logical ownership boundaries. They may map to Gradle modules, Kotlin p
 | Logical module | Owns | Must not own / must not bypass |
 |---|---|---|
 | Experience/UI | User controls, consent/review surfaces, status presentation, user-visible errors | Direct tensor mutation, connector permission decisions, background worker internals |
-| Application orchestrator | Use-case coordination, readiness, job dispatch, cancellation and app lifecycle | Model mathematics, source licensing decisions or direct storage-file mutation |
+| Application orchestrator | Process-independent use-case coordination, readiness, job/session lifecycle, resource admission, dispatch and cancellation | Android process/service callbacks, OS scheduling APIs, model mathematics, source licensing decisions or direct storage-file mutation |
 | Trust and policy | Permission scopes, policy evaluation, approval/revocation, network/data rules and fail-closed decisions | Model inference or source fetching implementation |
 | Device capability service | Versioned stable capability evidence and confidence/unknown states; exposes a separate live runtime-condition snapshot | Guessing hardware execution from chipset strings or treating transient conditions as permanent hardware capability |
 | Genesis coordinator | Initial profile admission, model construction orchestration, local initialization and first-generation transaction | Corpus pretraining on the startup critical path |
@@ -54,22 +54,28 @@ These are logical ownership boundaries. They may map to Gradle modules, Kotlin p
 | Corpus and knowledge store | Source/item provenance, canonical content where retention permits, indexes and immutable dataset manifests | Treating retrieval eligibility as training eligibility |
 | Acquisition/connectors | Approved network fetch, parsing and connector-specific rate/response behavior | Granting themselves source permission or selecting training eligibility |
 | Evaluation/promotion | General and personal evaluation, regression gates and promotion decision record | Mutating an active generation before a passing validation transaction |
-| Event/diagnostic service | Typed lifecycle events and sanitized operational diagnostics | Raw private text, credentials, prompts or corpus contents in generic event payloads |
+| Event/diagnostic contracts | Typed lifecycle-event schemas and sanitized diagnostic metadata; emitting state remains owned by each workflow | A mandatory global event bus, duplicate state database, raw private text, credentials, prompts or corpus contents in generic event payloads |
 
 ### 3.1 Dependency direction
 
 Dependencies must point toward contracts, not concrete platform implementations:
 
-- UI → application use cases.
-- Application orchestrator → trust policy, device capability, Genesis, repositories and coordinators.
+- UI → application workflow APIs.
+- Application orchestrator → trust policy, device capability, Genesis, repository ports and workflow coordinators.
 - Genesis → capability profile, architecture registry, initializer, tokenizer manifest and generation repository.
 - Inference/training → read-only or candidate model snapshots plus declared backend interfaces.
 - Acquisition → source registry/policy, connector interfaces, provenance store and resource admission.
 - Promotion → evaluation report, candidate manifest and generation repository.
+- Android entry adapters → narrow application-facing ingress/control interfaces; application workflows never depend on Android service implementations.
+- Concrete data, platform and engine adapters → the contracts they implement; they do not form a default dependency chain between one another.
 
 The trust/policy service is consulted by the application orchestrator and by each privileged boundary; it is not a UI-only check. Connectors and model backends cannot override it.
 
 Circular ownership is prohibited. The training engine does not decide whether a dataset is legally eligible, and a connector does not decide whether fetched text can be retained or trained on.
+
+The application layer owns process-independent workflow state such as Genesis readiness and training-session pause/resume. Android process callbacks, foreground-service lifecycle, WorkManager integration, permission APIs and OS scheduling constraints belong to platform adapters. Platform adapters may call narrow application entry-point contracts, but application code must not import Android service or worker classes.
+
+Lifecycle events are typed facts, not a second state store. Each workflow owns its authoritative state and may expose a state/result stream to observers. Audit persistence is a repository concern. A global mutable event bus is not required by this contract.
 
 ## 4. Cross-module data contracts
 
