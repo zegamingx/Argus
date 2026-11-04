@@ -1,8 +1,11 @@
 # Current Repository Baseline
 
-**Repository:** `zegamingx/Argus` · **Branch:** `main`  
-**Inspected commit:** `8cfa9ea7e626de46276161ae71139382d8d0cd53`  
-**Inspection date:** 2026-11-03
+**Repository:** `zegamingx/Argus` · **Documentation branch:** `main`  
+**Repository HEAD cross-checked:** `ec67ac6dde0f2c49927e936da1a156c038679053`  
+**Source inspection baseline:** `4d8104d4400dcd858e648d7b08ac0718385733d3`  
+**Inspection date:** 2026-11-04
+
+A Git comparison from the source inspection baseline to the cross-checked `main` HEAD found no changed application-source paths in that interval; the intervening changes are documentation and repository guidance. The implementation facts below therefore describe the source snapshot at `4d8104d`, with `ec67ac6dde0f2c49927e936da1a156c038679053` recorded as the documentation/repository revision used for this cross-check.
 
 This record separates what was found in the inspected source snapshot from proposed architecture.
 
