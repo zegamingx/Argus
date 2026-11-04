@@ -280,6 +280,22 @@ The denominator must be a measured or credibly sourced **sustained training thro
 
 This estimate helps reject internally inconsistent parameter/token/session targets and compare scenarios. It cannot establish useful learning, convergence, thermal safety or device support.
 
+#### 5.3.1 Compute sensitivity example — not a device benchmark
+
+For illustration only, apply the dense-model approximation above to a few parameter/token budgets. The sustained-rate columns are hypothetical divisors chosen to show sensitivity; **they are not measured Android capability tiers or estimates that a phone will achieve these rates**.
+
+| Illustrative active parameters | Training tokens | Approx. compute | At 1 GFLOP/s sustained | At 10 GFLOP/s sustained | At 100 GFLOP/s sustained |
+|---:|---:|---:|---:|---:|---:|
+| 1M | 1M | 6 TFLOP | 1.67 h | 10 min | 1 min |
+| 5M | 10M | 300 TFLOP | 3.47 days | 8.33 h | 50 min |
+| 10M | 10M | 600 TFLOP | 6.94 days | 16.67 h | 1.67 h |
+| 10M | 100M | 6 PFLOP | 69.44 days | 6.94 days | 16.67 h |
+| 50M | 100M | 30 PFLOP | 347.2 days | 34.72 days | 3.47 days |
+
+This table assumes a dense parameter-dominated workload, continuously sustained throughput, no interruptions, no validation/evaluation tokens, and no additional attention/logit/recomputation overhead beyond the rough 6PT term. It is an order-of-magnitude screening tool only. Actual wall-clock time is likely affected by sequence length, vocabulary logits, activation recomputation, optimizer implementation, data preparation, checkpointing, Android scheduling, throttling and idle periods. SSM/RWKV candidates require separate compute models.
+
+**Interpretation:** a model with only a few million parameters does not automatically become a quick local-training task if it must process many millions of tokens. Conversely, a tiny corpus may make the wall-clock task manageable but still fail to provide sufficient linguistic coverage or useful quality. Parameter count, token exposure, architecture, data quality and user-visible capability must be decided together; optimizing only one is insufficient.
+
 ### 5.4 Thermal and energy telemetry
 
 On Android 10 / API 29 and later, `PowerManager.getCurrentThermalStatus()` and thermal-status listeners provide an OS thermal-status signal. This is not a universal direct SoC-temperature sensor. Record status transitions and correlate them with measured throughput; do not invent a temperature when the platform does not expose one.
