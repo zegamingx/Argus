@@ -178,7 +178,14 @@ Comparisons must identify whether evidence concerns random-initialization traini
 
 The initial component inventory covers backbone, attention semantics and kernels/layout, positional representation, FFN/routing, normalization, residual topology, depth/width and parameter allocation, embeddings/output head, context/packing, initialization, optimizer/update semantics, activation/memory optimization, tensor layouts, CPU/GPU/NPU backend paths, scheduling/thermal control, checkpoint/recovery, tokenizer profile/preparation, personal adaptation boundaries and excluded federated/server-assisted topologies.
 
-Device classes, minimum RAM, named SoCs, numerical admission thresholds and performance promises remain explicitly open until measurable workload/device evidence is defined. G0 closes only the research scope, inventory, comparison controls and evidence boundaries. It does not close G1-D/G2/G3/G4, approve corpus sources, authorize implementation/builds/workflows, or claim physical device support.
+Device classes, minimum RAM, named SoCs, numerical admission thresholds and performance promises remain explicitly open until measurable workload/device evidence is defined. G0 closes only the research scope, inventory, comparison controls and evidence boundaries. It does not close G1-D/G3/G4, approve corpus sources, authorize implementation/builds/workflows, or claim physical device support. The separate G2 family-level comparison shortlist is recorded in ADR-025 and does not select the product architecture.
+
+### ADR-025 — Initial architecture family shortlist (G2)
+**Status:** Accepted shortlist for controlled design comparison only; no architecture or product-support selection is implied.
+
+The initial comparison set is bounded to four families: (1) decoder-only Transformer as the mandatory reference/control; (2) selective state-space models, including Mamba/Mamba-2 SSD; (3) recurrent delta-rule models, represented by the RWKV-7 family as a distinct candidate; and (4) attention–SSM/recurrent hybrids as a secondary composition candidate. Transformer mobile-deployment and fine-tuning results, Mamba/SSD server-scale sequence-model results, RWKV-7 recurrent-state/training results, and hybrid server-scale results are retained only within their actual evidence categories. None establishes random-initialization Android training feasibility.
+
+The shortlist authorizes comparative design synthesis and component disposition work only. Every retained family must still demonstrate a complete local random-initialization and forward/loss/backward/optimizer contract, a CPU correctness reference, exact model/optimizer/RNG/cursor checkpoint semantics, auditable implementation/license status, and a credible resource/runtime envelope before it can be recommended at G4. Tokenizer-sensitive decisions remain gated by G1-D. No family is selected for implementation, and no physical device support is claimed.
 
 ## 8. Revised open decisions
 
