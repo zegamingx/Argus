@@ -49,6 +49,7 @@ This rule keeps the current repository navigable while allowing the index to gro
 | docs/44_DOCUMENTATION_GOVERNANCE_AND_CHANGE_CONTROL.md | Repository-wide documentation and change-control rules | A source of new product or model-architecture decisions |
 | docs/46_ANDROID_SOURCE_TREE_OWNERSHIP_AND_DEPENDENCY_AUDIT.md | Audited file ownership, observed source dependencies, package graph and migration-priority findings | Permission to move files or modify application/build source |
 | docs/47_PACKAGE_INTERFACE_AND_DEPENDENCY_CONTRACT_MATRIX.md | Proposed contract-owner, consumer, provider, state-authority and dependency mapping for target packages; explicit open interface gaps | Creation of Kotlin interfaces or implementation authorization |
+| docs/48_PERSONAL_CAPTURE_AND_EXPERIENCE_INTAKE_CONTRACT.md | Proposed personal-capture ownership, surface/purpose consent, intake routing, review, retention, revocation, deletion and AccessibilityService continuity | Authorization to enable a capture surface, sever AccessibilityService or implement personal-data handling |
 | docs/45_ANDROID_PROJECT_STRUCTURE_AND_FILE_PLACEMENT_RULES.md | Proposed Android package organization, logical-subsystem ownership crosswalk, dependency direction, Gradle module extraction criteria, Kotlin/native boundaries and file-placement rules | Authorization to create modules, move source files or change build configuration |
 
 The application source tree records the prototype implementation. It is not the authority for future product intent. Conversely, a design document cannot be cited as proof that a source-tree capability exists.
@@ -69,6 +70,7 @@ The following grouping is for navigation and ownership only. It does not change 
 | Architecture comparison and G4 preparation | 38–43 | Cross-family synthesis, component/init/state/tensor contracts and the G4 decision framework |
 | Documentation governance | 44 | Document authority, evidence/status semantics and change control |
 | Android package structure, source audit and interface contracts | 45–47 | Target package ownership, observed source dependencies, contract consumers/providers, Gradle seams and open interface gaps |
+| Personal capture and personal-learning intake governance | 48 | Surface/purpose-specific consent, intake owner, memory/experience custody, review, retention, revocation and service continuity |
 
 ## 4. Source-of-truth hierarchy
 
@@ -213,6 +215,7 @@ Update the canonical owner first, then reconcile only the documents affected by 
 | Documentation structure or navigation | Document 44 and/or docs/README.md | Update all affected internal links and root README navigation where relevant |
 | Android package/module/file placement | Document 45 | Reconcile document 36 logical ownership, document 17 observed baseline and document 46 audit before any separately authorized migration |
 | Android package/interface ownership and dependency mapping | Document 47 | Reconcile documents 36, 45 and 46; keep unresolved API gaps explicit and do not infer source/module authorization |
+| Personal capture and experience-intake contract | Document 48 | Reconcile documents 13, 22, 36 and 47; update package mapping only where ownership changes; do not infer capture enablement, source severance or implementation authorization |
 | Android source ownership/dependency audit | Document 46 | Update document 45 target ownership and document 17 implementation baseline only when new source facts materially change |
 | Contributor workflow | CONTRIBUTING.md, under this document | Keep the rule consistent with the current phase and authorization boundary |
 
