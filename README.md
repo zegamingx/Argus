@@ -1,4 +1,6 @@
-<img content=public/assets/argus_icon.png/>
+<div align="center">
+<img width="1200" height="475" src=public/assets/argus_icon.png />
+</div>>
 # ARGUS
 
 ### One Origin. Independent Evolution.
