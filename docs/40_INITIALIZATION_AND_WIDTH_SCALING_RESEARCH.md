@@ -118,7 +118,7 @@ Implementation requirements include:
 - specify initialization variance and learning-rate scaling per parameter type;
 - define output/readout multipliers and tied embedding behavior;
 - keep regularization such as dropout/weight decay separate from width-transferable parameters;
-- prove that the selected optimizer variant is compatible with the chosen μP convention;
+- prove that the selected optimizer variant is compatible with the chosen μP convention; the cited μTransfer paper's optimizer experiments and scaling rules must not be assumed to cover Lion, Adafactor or Sophia without separate derivation and validation;
 - preserve the base-shape manifest and parameterization version in every model generation.
 
 The μP reference implementation uses base-shape metadata and parameter-specific scaling, including special readout handling. It is not equivalent to adding one global width multiplier to the configuration.
