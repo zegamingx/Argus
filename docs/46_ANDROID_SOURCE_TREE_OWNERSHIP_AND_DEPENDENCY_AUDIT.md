@@ -91,8 +91,8 @@ Target paths below refer to document 45. They are design destinations, not exist
 
 | Current file | Current responsibility | Target owner | Finding |
 |---|---|---|---|
-| `ArgusApp.kt` | Application subclass, notification-channel setup, global lazy objects for engine, world model, device guard, hardware profile and training manager | `app/bootstrap` | Correct entry ownership, but static companion properties act as a global service locator. Future construction should be app-owned and passed through explicit dependencies/facades. DI framework choice remains open. |
-| `MainActivity.kt` | Activity, `ArgusScreen`, `MainScreen`, bottom navigation, Compose root and runtime permission requests | `app/bootstrap` + `app/navigation` | Keep the Activity as the Android host; move route definitions/destination wiring to `app/navigation` and keep permission launchers at the Android presentation/platform edge. |
+| `ArgusApp.kt` | Application subclass, notification-channel setup, global lazy objects for engine, world model, device guard, hardware profile and training manager | `app/entry` + `app/bootstrap` | Keep the Android `Application` entry point separate from dependency-graph construction. Static companion properties act as a global service locator and must be replaced only in an approved refactor. |
+| `MainActivity.kt` | Activity, `ArgusScreen`, `MainScreen`, bottom navigation, Compose root and runtime permission requests | `app/entry` + `app/navigation` | Keep the Activity as the Android host; move route definitions/destination wiring to `app/navigation` and keep permission launchers at the Android presentation/platform edge. |
 
 ### 4.2 Current `model/` package
 
@@ -272,8 +272,9 @@ The target names below follow the revised package hierarchy and subsystem crossw
 
 | Current area | Target owner(s) | Future responsibility |
 |---|---|---|
-| Application entry and composition | app/bootstrap | Explicit construction and dependency wiring; no static global service locator |
-| Activity and destinations | app/bootstrap, app/navigation | Android entry point, route definitions and destination composition |
+| Application/Activity entry points | app/entry | Android process entry, Activity host and platform launchers |
+| Dependency graph composition | app/bootstrap | Explicit construction and dependency wiring; no static global service locator |
+| Activity destinations | app/navigation | Route definitions and destination composition |
 | Broad ViewModel and screens | feature/*/presentation | Feature-specific state holders and user intent mapping |
 | Shared Compose theme | ui/design | Shared visual tokens and components |
 | Genesis workflow | application/genesis, core/model, core/device | Initial configuration, initialization orchestration and readiness |
@@ -301,7 +302,7 @@ The package crosswalk does not imply a global event bus, one module per subsyste
 
 When implementation and structural migration are separately authorized:
 
-1. Establish an explicit application composition root in app/bootstrap; remove access through global static objects.
+1. Establish app/entry for Android process components and an explicit composition root in app/bootstrap; remove access through global static objects.
 2. Define/verify the core contracts and application workflow APIs for Genesis, inference, learning, acquisition, knowledge, evaluation and device/resource admission. Preserve the lifecycle and transaction invariants in document 36.
 3. Split the broad ViewModel into feature-owned presentation state holders; use feature/learning for the current NeuralCore UI rather than retaining an implementation-oriented package name.
 4. Move Android service, permission, camera, PackageManager, battery, notification, connectivity, storage and runtime-provider operations behind platform/android adapters. Keep OS scheduling separate from application session ownership.
