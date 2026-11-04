@@ -1,6 +1,6 @@
 # Tokenizer Evaluation and Decision Framework
 
-**Status:** Research protocol; tokenizer decision remains OPEN  
+**Status:** Evidence synthesis with provisional design shortlist; final product tokenizer ADR remains OPEN  
 **Last reviewed:** 2026-11-04  
 **Research stage:** Stage 4.1–4.2 — Tokenizer evaluation and comparative research  
 **Authority:** Candidate definitions, evaluation controls and decision gates. No tokenizer, vocabulary size, normalization profile, packaging policy or runtime is selected by this document.
@@ -250,6 +250,22 @@ Packing diagnostics must use the same documents and record:
 
 Do not freeze final context length, packing policy or training sample count from tokens alone before the tokenizer shortlist and architecture comparison are complete.
 
+## 6.2 Published multilingual tokenizer evidence (reviewed 2026-11-04)
+
+**Direct Southeast Asian evidence.** [Wei et al., *Equity with Efficiency: An Empirical Study of Tokenizers for Multilingual Large Language Models* (EMNLP 2026)](https://aclanthology.org/2026.emnlp-main.1783/) compare byte-level BPE, Parity-aware BPE, Morphology-Driven Byte Encoding (MYTE) and Byte Latent Transformer across eleven Southeast Asian languages, including Indonesian. Their language-model comparison trains 1.5B-parameter decoder-only models from scratch, using common model/data conditions for the tokenizer comparisons. At a 90K vocabulary, their intrinsic table reports a substantially lower per-language token-cost Gini for Parity-aware BPE (0.028) than byte-level BPE (0.220), while byte-level BPE has a modestly higher aggregate compression-rate figure in that table. Downstream results are task-dependent: standard BPE leads on the reported English classification benchmarks; MYTE leads on XNLI; BPE leads on XCOPA and XStoryCloze; Parity-aware BPE remains competitive rather than winning every benchmark. This is direct evidence that Indonesian/SEA parity deserves explicit weight, not a universal proof that Parity-aware BPE is the best Argus tokenizer. The models are 1.5B-scale and the training runs use multi-GPU infrastructure, so none of the training throughput claims transfer to Android.
+
+**Algorithm-specific evidence.** [Foroutan et al., *Parity-Aware Byte-Pair Encoding: Improving Cross-lingual Fairness in Tokenization* (ACL 2026)](https://aclanthology.org/2026.acl-long.342/) define a fair-max merge rule: at each BPE merge step, choose the merge that most improves the currently worst-compressed language. The inference tokenizer remains byte-level BPE; only vocabulary learning changes. A small aligned development corpus can guide the language-selection step while a larger language-labelled corpus supplies pair-frequency statistics. The paper also defines hybrid and moving-window variants to balance global compression and prevent the merge loop getting stuck on one language. In its 60-language experiments, the base parity-aware method has the lowest reported Gini; hybrid/window variants trade a portion of parity for global compression. The authors explicitly warn that unaligned data or inappropriate normalization units can bias language comparisons.
+
+The official [Swiss AI parity-aware-bpe implementation](https://github.com/swiss-ai/parity-aware-bpe) is MIT-licensed and exports a vocabulary/merge artifact compatible with Hugging Face Tokenizers. Its README specifies the matching pre-tokenizer sequence (`Whitespace` followed by `ByteLevel(use_regex=false)`). This is an auditable research implementation, not an Android tokenizer runtime: the Python training pipeline, pre-tokenizer semantics, exported artifact and candidate Kotlin/native inference runtime still need independent version/API/license review. The algorithm must not be reimplemented from its name alone while silently changing pre-tokenization or normalization.
+
+**Language allocation and screening.** [Meister, Altıntaş and Bosselut, *Language-Specific Effects of Tokenizer Choice in Multilingual Language Models* (2026 preprint)](https://arxiv.org/abs/2610.12144) train 123 models across 54 tokenizer variants. In the main controlled comparison, decoder-only architecture, corpus, training-token budget and optimization are held fixed; the model is 1.27B parameters with a roughly 128K vocabulary and is trained on four GH200 GPUs. Tokenizer sensitivity is larger for languages receiving a smaller share of language-model training data. Excluding a language from tokenizer training raises its held-out bits-per-byte in the studied set. Importantly, simply upweighting low-resource languages in tokenizer-training data does not reliably help and can worsen results when the language model later repeats data. Their per-language intrinsic metrics can screen candidate BPB rankings, but these are learned correlations for the reported languages/configuration, not a substitute for Argus task-quality verification.
+
+**Controlled-comparison method.** [Altıntaş et al., *TokSuite* (ICML 2026)](https://proceedings.mlr.press/v306/altintas26a.html) release fourteen models differing in tokenizer while sharing architecture, data, training budget and initialization, plus a multilingual robustness benchmark with orthographic and surface-form perturbations. Their benchmark covers English, Chinese, Farsi, Italian and Turkish, not Indonesian. It is useful evidence for how to isolate tokenizer effects and test perturbation robustness, not a directly transferable tokenizer winner for Argus.
+
+**Evaluation-data restriction.** The [FLORES+ dataset card](https://huggingface.co/datasets/openlanguagedata/flores_plus) identifies CC BY-SA 4.0, requires acceptance of access terms, and explicitly says FLORES+ is an evaluation benchmark and should not be used as training data. Because Parity-aware BPE uses aligned development examples to guide merge selection, Argus must not reuse FLORES+ as a tokenizer-development/merge-selection corpus merely because a research paper used it. Treat it as held-out evaluation only unless the dataset owner provides explicit permission for the intended tokenizer-development use. A separate rights-cleared parallel development source is required for the base PA-BPE path; if unavailable, document and compare the authors' hybrid/no-dev alternatives, with the measured parity limitations stated.
+
+**Evidence conclusion.** For a product scope that explicitly prioritizes Indonesian and Southeast Asian languages, Parity-aware BPE is the strongest current primary *research candidate* for cross-language cost parity. It is not a final Argus decision: the exact product-language mix, rights-cleared language-labelled corpus, aligned development data, domain composition, vocabulary/model-state budget and runtime path remain open. Standard byte-level BPE remains the necessary baseline; SentencePiece BPE/Unigram remain relevant alternatives for a simpler established artifact/runtime route; raw bytes remain a coverage/sequence-cost control. The evidence does not justify choosing a large vocabulary simply because a 1.5B or 1.27B paper used 90K/128K vocabularies.
+
 ## 7. Controlled comparison protocol
 
 ### 7.1 Candidate matrix
@@ -388,17 +404,34 @@ Changing algorithm, vocabulary, ID assignment, special-token mapping, normalizat
 
 ## 11. Decision gates and unresolved questions
 
-A tokenizer candidate can advance only if it:
-1. Passes deterministic encoding/decoding and declared round-trip behavior.
-2. Has no silent text corruption or unacceptable unknown-token behavior.
-3. Passes Unicode, whitespace, offset and special-token security conformance tests.
-4. Has documented source/trainer provenance and a viable license/redistribution path.
-5. Demonstrates acceptable per-language and per-domain sequence costs on the exact fixture.
-6. Has an acceptable vocabulary/embedding/output-head memory and compute trade-off for a declared model budget.
-7. Has a feasible Android deployment path with exact reference/Android conformance.
-8. Produces a stable, fingerprinted artifact compatible with Genesis/checkpoint contracts.
-9. Is evaluated with downstream model experiments before any claim that intrinsic metrics predict learned quality.
-10. Includes tied-versus-untied embedding/output-head cost profiles and byte/document coverage at candidate context lengths, with final choices explicitly deferred to architecture G1/G3 review.
+### G1-D — Documentary tokenizer shortlist/design gate
+
+G1-D may be completed from published research, official documentation, audited source/API/license evidence and analytical accounting. It does **not** require Argus application tests, physical Android benchmarks, or new downstream model training. It may close when:
+
+1. The initial product-language scope and explicit unsupported-language/fallback policy are documented.
+2. A rights-cleared tokenizer-training corpus and, for PA-BPE, a separately rights-cleared aligned development corpus are identified; any evaluation-only source is excluded from vocabulary/merge selection.
+3. The evidence matrix compares raw-byte, standard byte-level BPE, PA-BPE (including hybrid/no-dev variants where relevant), SentencePiece BPE and SentencePiece Unigram within their actual evaluation scope.
+4. The provisional candidate shortlist and rationale account for per-language/domain quality evidence, compression, vocabulary/model-state costs and data availability.
+5. The tokenizer artifact lifecycle, exact pre-tokenization/normalization contract, special-token policy, versioning and generation-migration boundary are defined.
+6. A plausible Android inference runtime has been identified from current public APIs/source/licensing, with unsupported capabilities and provider limits explicitly recorded.
+7. The ADR states which conclusions are research-backed, analytically established, implementation-dependent and still empirically unverified.
+
+G1-D does not claim exact Argus corpus fertility results, downstream quality, Android runtime conformance or device performance.
+
+### G1-V — Post-implementation tokenizer validation
+
+After tokenizer integration is separately authorized, verify:
+
+1. Deterministic encode/decode, no silent corruption, and the exact declared round-trip/normalization behavior.
+2. Unicode, malformed input, whitespace, offset/alignment, byte fallback and special-token injection boundaries.
+3. Exact token-ID parity between the frozen reference implementation and the Android runtime for the entire conformance fixture.
+4. Stable fingerprint/artifact load, thread safety, cancellation and large-input failure behavior.
+5. Cold/warm latency, peak allocations, artifact size and memory on named device tiers.
+6. Candidate-language/domain sequence-cost distributions on the approved Argus fixture.
+7. Downstream bits-per-byte and task-level evaluation when the corresponding architecture/training path is implemented, using matched data/compute and held-out data.
+8. Compatibility between tokenizer fingerprint, model generation, dataset shards and checkpoint recovery.
+
+A failed G1-V item blocks the affected implementation/runtime support claim; it does not retroactively invalidate completion of the documentary research phase.
 
 No candidate may be selected solely because it has:
 - The lowest mean token count.
@@ -422,7 +455,7 @@ Open decisions:
 9. Android tokenizer implementation/runtime and dependency/license choice.
 10. Migration policy for tokenizer revisions and vocabulary changes.
 
-The decision record remains **OPEN** until these questions are resolved with the required corpus, feasibility, downstream and Android evidence.
+The **documentary shortlist** can close without Argus downstream-training or Android-device results. The **final design ADR** remains open only for explicit product-language scope, rights-cleared tokenizer-training/development data, analytical vocabulary/model cost, artifact policy and runtime/source review. Downstream quality and exact Android conformance are recorded under G1-V for post-implementation verification; they must not be used to keep G1-D or the overall documentation phase pending.
 
 ## 12. Relationship to the wider Argus research plan
 
@@ -449,5 +482,12 @@ The decision record remains **OPEN** until these questions are resolved with the
 | E-023 | [SentencePiece training options](https://google.github.io/sentencepiece/doc/options/) and [byte fallback behavior](https://github.com/google/sentencepiece/blob/master/doc/options.md) | Exact normalization, whitespace, special-token and byte-fallback controls; library defaults must be pinned |
 | E-024 | [Hugging Face Tokenizers components](https://huggingface.co/docs/tokenizers/main/en/components) | Normalizer, pre-tokenizer, byte-level alphabet and decoder pipeline concepts; API/version support must be checked before runtime selection |
 | E-025 | [tiktoken BPE design notes](https://github.com/openai/tiktoken/blob/main/README.md) | Byte-pair encoding reversibility/open-text properties as implementation reference; not a dependency selection |
+| E-026 | [Parity-Aware Byte-Pair Encoding: Improving Cross-lingual Fairness in Tokenization](https://aclanthology.org/2026.acl-long.342/), Foroutan et al., ACL 2026 | Fair-max language-specific merge selection; aligned development corpus can be small and separate from language-labelled pair-count corpus; base, hybrid and moving-window variants; 60-language fairness result. Requires careful normalization/alignment and does not choose Argus language coverage |
+| E-027 | [Parity-aware BPE reference implementation](https://github.com/swiss-ai/parity-aware-bpe), reviewed 2026-11-04 | Public MIT-licensed research implementation; exports vocabulary/merge artifacts with a Hugging Face Tokenizers pre-tokenizer recipe. Python training code is not an Android runtime or license audit of transitive dependencies |
+| E-028 | [Equity with Efficiency: An Empirical Study of Tokenizers for Multilingual Large Language Models](https://aclanthology.org/2026.emnlp-main.1783/), Wei et al., EMNLP 2026 | Eleven SEA languages including Indonesian; controlled 1.5B decoder-only models from scratch; PA-BPE improves cost parity, but downstream winners vary by task and server-GPU results do not transfer to Android |
+| E-029 | [Language-Specific Effects of Tokenizer Choice in Multilingual Language Models](https://arxiv.org/abs/2610.12144), Meister et al., 2026 preprint | 123 controlled models/54 tokenizers; sensitivity differs by language/training share; naive tokenizer-data upweighting is not a universal fix; metric screening is promising but not a causal quality guarantee |
+| E-030 | [TokSuite](https://proceedings.mlr.press/v306/altintas26a.html), Altıntaş et al., ICML 2026 | Fourteen controlled tokenizer variants with same model/data/budget/initialization and perturbation benchmark; methodological reference, but language coverage does not include Indonesian |
+| E-031 | [FLORES+ dataset card](https://huggingface.co/datasets/openlanguagedata/flores_plus), current v5.0 | CC BY-SA 4.0 and gated terms; intended for evaluation and explicitly not training data. Do not use as PA-BPE merge-selection/development data without permission for that purpose |
 
-**Current decision:** no tokenizer is selected. Tokenizer evaluation proceeds in parallel with tokenizer-neutral architecture component research under [35 — Android Architecture Evidence and Component Comparison Matrix](35_ANDROID_ARCHITECTURE_EVIDENCE_AND_COMPONENT_MATRIX.md); G1 blocks final vocabulary/head/context/packing-dependent decisions. Training candidate vocabularies still requires a rights-cleared tokenizer-evaluation fixture; that approval does not make the same material eligible for neural-model training. The required next evidence is a versioned fixture, controlled candidate vocabulary sweeps, Unicode/special-token conformance, cross-language and domain metrics, model-state cost analysis, and an eventual Android runtime comparison. Only then may a tokenizer ADR be proposed.
+
+**Current recommendation:** keep Parity-aware BPE as the primary research candidate for an Indonesian/SEA-first multilingual profile, standard byte-level BPE as the baseline, SentencePiece BPE/Unigram as implementation/runtime alternatives, and raw bytes as a coverage/sequence-cost control. This is a conditional shortlist, not an accepted tokenizer ADR. The product-language matrix and tokenizer-development corpus rights are still required before the documentary design choice can be closed. The Android conformance and downstream model-quality checks are G1-V obligations after implementation. Tokenizer evaluation proceeds in parallel with tokenizer-neutral architecture research; the eventual architecture ADR must bind to an exact tokenizer ID and fingerprint.
