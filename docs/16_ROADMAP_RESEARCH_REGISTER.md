@@ -45,7 +45,7 @@ Investigate parameter growth, module addition/replacement, architecture migratio
 
 | ID | Topic | Position | Follow-up |
 |---|---|---|---|
-| R-001 | Android LiteRT CompiledModel | ASSESS | Recheck API maturity, device coverage and NPU route |
+| R-001 | Android LiteRT CompiledModel | ASSESS | Separate standalone v2.3.2 from Play services 17.0.0; audit CPU/GPU inference, standalone vendor NPU maturity, actual operator coverage, package/API constraints, Play services telemetry/terms/offline behavior, and keep inference separate from training/backward capability |
 | R-002 | Qualcomm QAIRT/QNN/GENIE | ASSESS | Verify licensing, APK packaging and exact SoC support |
 | R-003 | MediaTek NeuroPilot | ASSESS | Verify current APK-accessible route and device coverage |
 | R-004 | NNAPI lifecycle | HOLD for new design | Retain only justified legacy compatibility; recheck upstream lifecycle |
@@ -112,6 +112,8 @@ The following publications and technical references inform the existing research
 | E-032 | [Prism: Efficient Zeroth-Order Fine-Tuning for On-Device LLMs](https://doi.org/10.1145/3795866.3844151), ACM MobiCom 2026 | Publication identity and topic verified from conference/program metadata | Full paper/method/device results not yet audited; no quantitative claims accepted |
 | E-033 | [On-device Training: A First Overview on Existing Systems](https://doi.org/10.1145/3696003), ACM Transactions on Sensor Networks 2024 | Broad system taxonomy for resource-constrained on-device training | Survey across mixed device classes and DNN tasks; not proof of broad Android LLM pretraining |
 | E-034 | [MobileFineTuner Android SDK documentation](https://github.com/Edge-Intelligence-Lab/MobileFineTuner/blob/main/docs/ANDROID_SDK.md), repository snapshot reviewed 2026-11-04 | Current AAR/JNI interface, arm64-v8a scope, LoRA `trainStep` and one-step synthetic GPT-2 smoke test | SDK wrapper currently differs in scope from the paper's broader experiments; no complete Android dataset loop/checkpoint manager is documented |
+| E-035 | [LiteRT Android release/API matrix](https://developers.google.com/edge/litert/android), [CompiledModel inference/operator matrix](https://developers.google.com/edge/litert/inference) and [standalone NPU provider guidance](https://developers.google.com/edge/litert/next/npu), reviewed 2026-11-04 | Standalone LiteRT v2.3.2 lists CompiledModel for Android inference; current documentation describes CPU/GPU and provider-specific NPU paths with different maturity | Inference only; standalone, `/next/` and Google Play services provider support are not interchangeable, and operator tables do not prove Argus training/backward support |
+| E-036 | [LiteRT in Google Play services — privacy and data collection](https://developers.google.com/edge/litert/android/play_services), reviewed 2026-11-04 | Model inputs are processed on-device; runtime may send diagnostics/usage metadata such as device, app, configuration, event, error and performance information | Not a zero-network/zero-telemetry dependency; requires privacy, terms, offline and user-disclosure review before adoption |
 
 **Evidence rule:** distinguish (a) model inference, (b) fine-tuning/adaptation, (c) narrow-domain from-scratch learning, and (d) broad-language pretraining from random initialization. Evidence in one category must not be cited as proof of another.
 
