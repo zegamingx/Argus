@@ -23,13 +23,18 @@ Research questions:
 
 ### B. State-space and recurrent sequence models
 
-Evaluate selective/state-space sequence models and other recurrent designs.
+Evaluate selective state-space models (including Mamba-family designs), recurrent linear-time architectures (including RWKV-family designs), and other sequence models that avoid or alter the conventional attention KV-cache pattern.
+
+These are not one interchangeable architecture class. Their state update equations, training parallelization, inference cache/state, numerical behavior, tensor layouts and kernel requirements differ. Compare each family on its own mathematical contract rather than treating “linear-time” or “recurrent” as a complete performance description.
 
 Research questions:
-- What is the persistent recurrent state and how is it represented?
-- Can stable training and backward propagation be implemented with available mobile kernels?
-- How does long-sequence throughput compare under realistic memory movement?
-- What are the quality and context-retention trade-offs?
+- What is the persistent recurrent state and how is it represented, serialized and updated?
+- Which operations admit parallel/chunked training, and which require sequential recurrence at inference?
+- What are prefill and single-token decode costs separately?
+- How do state size, cache size, activation/workspace memory and memory traffic scale with context and model width?
+- Can stable training and backward propagation be implemented with available mobile CPU/GPU kernels?
+- What are the quality, recall, copying, in-context-learning and long-context trade-offs?
+- What numerical precision and accumulation behavior does each recurrent update require?
 
 ### C. Hybrid architectures
 
@@ -67,15 +72,18 @@ Other architectures may be added when a credible paper, reproducible implementat
 ## 4. Experimental method
 
 1. Define the component inventory and tokenizer-neutral/tokenizer-sensitive boundaries using [35 — Android Architecture Evidence and Component Comparison Matrix](35_ANDROID_ARCHITECTURE_EVIDENCE_AND_COMPONENT_MATRIX.md).
-2. Extract Android prior-art findings at component level. Distinguish model architecture results from optimizer, runtime, memory-layout and lifecycle results.
+2. Extract and critically compare existing publications, reference implementations, source code, licenses and Android/runtime documentation. Distinguish architecture results from optimizer, runtime, memory-layout and lifecycle results.
 3. Run the tokenizer fixture and candidate comparison in [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md) in parallel with tokenizer-neutral architecture research. Freeze the tokenizer contract before any token-sensitive ablation or final model comparison.
-4. Define minimal mathematical reference configurations for each retained component candidate and audit reusable implementations/frameworks before considering integration. Source prototypes or new implementation code require a separately authorized implementation phase.
-5. Record the required forward, objective, gradient, optimizer and numerical-parity checks for the later implementation-verification plan; do not describe those checks as passed before code is implemented and tested.
-6. Measure training memory separately from inference memory, including activation and optimizer state.
-7. Compare one component at a time under matched data, parameters/compute, device and sustained conditions. Report parameter-matched and compute-matched results separately.
-8. Record backend actually used, including fallback and graph partitioning.
-9. Inspect checkpoint recovery, model serialization, initialization and candidate-generation compatibility.
-10. Publish evidence, uncertainty, component disposition (ADOPT/MODIFY/CUSTOM/DEFER/REJECT) and rejected alternatives before architecture freeze.
+4. Build an evidence matrix from published measurements and documented analytical estimates. Record the actual model scale, starting weights, dataset, training objective, hardware, runtime, metrics and limitations for every reported result. Do not reinterpret unlike workloads as a controlled head-to-head comparison.
+5. Define minimal mathematical reference configurations for each retained component candidate and audit reusable implementations/frameworks before considering integration. Source prototypes or new implementation code require a separately authorized implementation phase.
+6. Record the required forward, objective, gradient, optimizer and numerical-parity checks for the later implementation-verification plan; do not describe those checks as passed before code is implemented and tested.
+7. Calculate training and inference memory separately, including activations, gradients, optimizer state, recurrent state/KV cache, temporary workspaces and runtime overhead. State all excluded terms and precision assumptions.
+8. Compare one component at a time under matched data, parameter/compute, and workload assumptions where existing evidence permits. Report parameter-matched and compute-matched evidence separately. Do not label literature measurements from different devices as device-matched.
+9. Record the backend actually used in each published implementation, including fallback and graph partitioning where reported.
+10. Inspect checkpoint recovery, model serialization, initialization and candidate-generation compatibility.
+11. Publish evidence maturity, uncertainty, component disposition (ADOPT/MODIFY/CUSTOM/DEFER/REJECT) and rejected alternatives before architecture freeze.
+
+Physical Android measurements of Argus candidates are reserved for the post-implementation E1–E7 verification plan. Their absence must be disclosed as an implementation-support uncertainty, not used to leave the literature and analytical research incomplete.
 
 The research corpus must be used consistently. Any corpus or tokenizer change during comparison must be versioned and documented. Published Android fine-tuning speedups do not establish from-scratch architecture superiority.
 
@@ -138,7 +146,19 @@ This establishes that useful behavior can emerge in a narrow task distribution a
 
 These are large-scale server-training results. They justify retaining SSM and Hybrid as candidates, but they do not establish the best architecture, layer ratio, training efficiency or mobile performance for Argus-sized models.
 
-### 9.3 Multilingual tokenizer evidence
+### 9.3 State-space and recurrent evidence
+
+[Dao and Gu, *Transformers are SSMs: Generalized Models and Efficient Algorithms Through Structured State Space Duality* (ICML 2024)](https://proceedings.mlr.press/v235/dao24a.html) formalize the relationship between structured state-space models and attention variants. Their Mamba-2 State Space Duality (SSD) core layer is reported as 2–8× faster than the compared Mamba selective-SSM core in the paper's evaluated setup, while remaining competitive with Transformers on the reported language-modeling benchmarks. This is a core-layer result, not a measured Android end-to-end training or decode result.
+
+The large-scale [*An Empirical Study of Mamba-based Language Models*](https://research.nvidia.com/publication/2024-06_empirical-study-mamba-based-language-models) compares 8B Transformer, Mamba, Mamba-2 and a Mamba-2/attention hybrid under common large-scale training conditions. Its findings are task-dependent: pure SSM variants show weaknesses on some copying, in-context-learning and long-context tasks, while its evaluated hybrid is stronger on the paper's reported standard-task average. These server-scale findings justify keeping SSM and hybrid candidates in the research set; they do not determine an Argus-scale layer ratio or Android winner.
+
+A separate [system analysis of Mamba-2 SSD](https://doi.org/10.1109/LCA.2025.3609283) identifies that recurrent computation can constrain prefill throughput and studies how SSD changes parallelism and compute/memory behavior. This is an important qualification: a recurrent architecture does not automatically make every prompt-processing workload faster. Argus must separate prefill, decode, training and checkpoint costs.
+
+[Peng et al., *RWKV-7 “Goose” with Expressive Dynamic State Evolution* (2025)](https://arxiv.org/abs/2503.14456) describe a recurrent architecture with constant-size recurrent inference state and parallelizable training, and report models from 0.19B to 2.9B parameters trained on a 3.1-trillion-token multilingual corpus. The paper's scale and training resources are not evidence of smartphone training feasibility. RWKV is nevertheless a concrete recurrent candidate whose state serialization, training kernels, initialization, tokenizer coupling, memory traffic and Android implementation maturity should be assessed rather than hiding it inside a generic “SSM” label.
+
+**Research implication:** the comparison set must distinguish at least (a) dense attention Transformer, (b) selective SSM/Mamba-family, (c) recurrent delta-rule/RWKV-family and (d) attention–SSM hybrid. A family may be excluded later with an evidence-backed rationale; none is preselected by this list.
+
+### 9.4 Multilingual tokenizer evidence
 
 Tokenizer evaluation must include more than vocabulary size. The controlled candidate families, exact pipeline manifest, multilingual fixture and decision gates are defined in [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md).
 
@@ -148,14 +168,16 @@ Tokenizer evaluation must include more than vocabulary size. The controlled cand
 
 For every candidate tokenizer, record per-language fertility, bytes per token, normalized sequence length, bits-per-byte where a compatible language-model evaluation exists, special-token behavior, Unicode round-trip behavior, and embedding/output-head cost. Keep data composition and tokenizer revision fixed when comparing architecture candidates.
 
-### 9.4 Research boundary
+### 9.5 Research boundary and device-conditioned selection
 
-The current research order is:
+The documentation-stage research sequence is:
 
-1. Define the training-feasibility target and what constitutes useful learning for Argus.
-2. Evaluate tokenizer candidates on the same versioned language/domain fixtures.
-3. Freeze a common tokenizer/input fixture for controlled architecture prototypes.
-4. Compare Transformer, SSM/recurrent and Hybrid with equivalent data and stated parameter/compute budgets.
-5. Validate the leading candidates on representative Android devices under sustained thermal and memory conditions.
+1. Define the learning target and feasibility envelope from published evidence and analytical resource accounting.
+2. Compare tokenizer families using the versioned language/domain fixture and record the tokenizer design-time decision.
+3. Compare dense Transformer, selective SSM/Mamba, recurrent delta-rule/RWKV and hybrid candidates using available controlled literature, implementation audits and analytical estimates.
+4. Identify which conclusions are general, which depend on the device/runtime, and which remain implementation-dependent.
+5. Prepare the pre-implementation architecture contract with explicit configuration candidates, exclusions, assumptions and later E1–E7 verification obligations.
 
-This order is an experimental dependency, not an architecture decision. Local Knowledge Genesis remains the accepted direction; external pretrained models are not substituted as the Argus foundation by this research plan.
+A key open design question is whether Genesis chooses (a) different dimensions/configurations within one supported architecture family, (b) among a small portfolio of architecture families according to measured device capability, or (c) a staged combination of the two. The research must compare these policies for engineering cost, portability, model quality, kernel maturity, checkpoint/migration complexity and device coverage. Device adaptation must not mean maintaining duplicated model implementations for every SoC vendor. The chosen policy and exact support tiers must be recorded in a reviewed ADR.
+
+Physical Android benchmarking of Argus implementations occurs after implementation authorization. Those measurements validate the selected design and define actual device support; they do not gate completion of this evidence synthesis. Local Knowledge Genesis remains the accepted direction; external pretrained models are not substituted as the Argus foundation by this research plan.
