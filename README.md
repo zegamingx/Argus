@@ -114,6 +114,7 @@ The documents under [docs/](docs/README.md) are the planning source of truth. Th
 | [33 — From-Scratch Training Feasibility](docs/33_FROM_SCRATCH_TRAINING_FEASIBILITY.md) | Evidence classification, Android resource model, sustained thermal/energy constraints and E1–E7 feasibility protocol |
 | [34 — Tokenizer Evaluation and Decision Framework](docs/34_TOKENIZER_EVALUATION_AND_DECISION.md) | Candidate tokenizer families, multilingual fixtures, Unicode conformance, vocabulary/runtime costs and decision gates |
 | [35 — Android Architecture Evidence and Component Comparison Matrix](docs/35_ANDROID_ARCHITECTURE_EVIDENCE_AND_COMPONENT_MATRIX.md) | Android prior art, Genesis constraints, tokenizer-neutral/sensitive components, framework reuse and G0–G4 gates |
+| [36 — Pre-Implementation Module and Lifecycle Contracts](docs/36_PRE_IMPLEMENTATION_MODULE_AND_LIFECYCLE_CONTRACTS.md) | Logical API boundaries, data contracts, state machines, typed errors/events, concurrency, atomic storage and verification obligations |
 
 ## Current implementation status
 
