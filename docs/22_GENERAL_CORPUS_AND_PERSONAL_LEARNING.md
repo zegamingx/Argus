@@ -1,7 +1,7 @@
 # General Corpus and Personal Learning
 
 **Status:** Accepted learning split; corpus acceptance and tokenizer remain open  
-**Last reviewed:** 2026-11-03
+**Last reviewed:** 2026-11-04
 
 ## 1. Purpose
 
@@ -36,18 +36,27 @@ Argus does not need to force multilingual breadth into the first bootstrap relea
 
 ## 4. License and provenance gate
 
-The Small C4 dataset card states that its license inherits from original C4. The original C4 dataset card identifies ODC-BY and also states that Common Crawl terms apply to underlying content.
+The Small C4 dataset card states that its license inherits from original C4. The original C4 dataset card identifies ODC-BY for the C4 dataset/database and separately states that Common Crawl terms apply to the underlying crawled content. Common Crawl's current Terms of Use (last updated 2024-03-07) say that crawled material may also be subject to the original website owner's separate terms; they also prohibit uses such as privacy invasion and harvesting personally identifiable information for separate use. Therefore, the ODC-BY label on C4 must not be interpreted as a blanket license from every website publisher represented in the corpus.
+
+The current Small C4 dataset card confirms the 30,000-row sampling method: first 10,000 rows from C4 train; first 10,000 rows from C4 validation; next 10,000 rows from that same C4 validation split. This makes the 10,000-row test partition distinct by row order from validation, but not independent at the upstream split level. Retain this limitation in all evaluation claims.
+
+The dataset viewer also demonstrates heterogeneous web content rather than a curated textbook corpus. The reduced card exposes only passage text; the original C4 includes source URL/timestamp fields, but those are not present in the small-c4 text-only derivative described here. This loss of source identity weakens item-level rights review, privacy remediation and deletion lineage. It is a material drawback for Argus even though the smaller artifact is convenient.
 
 Before bundling or redistributing:
-1. Pin the exact source repository revision and file list.
-2. Inspect all license/notice files and original C4/Common Crawl terms.
-3. Determine attribution and redistribution obligations.
-4. Record preprocessing and filtering changes.
-5. Preserve dataset and shard checksums.
-6. Produce a corpus manifest and include required notices in the app/package.
-7. Record known limitations and source-level split construction.
+1. Pin the exact Small C4 repository commit, source C4 revision, Parquet files and file list.
+2. Preserve the C4 ODC-BY database attribution and the applicable Common Crawl Terms of Use; separately assess the original website/content terms and the intended Argus training/redistribution use.
+3. Determine attribution and redistribution obligations for both the reduced derivative and the source.
+4. Establish whether the lack of original URL/timestamp makes item-level rights and privacy assurance insufficient for the intended use; do not fabricate missing provenance.
+5. Run versioned language, quality, spam, personal-data/sensitive-content and safety screening on the exact pinned bytes, with documented false-negative limitations and an item-level hold/quarantine path.
+6. Record preprocessing and filtering changes; preserve dataset and shard checksums.
+7. Produce a corpus manifest, record the source-level validation/test overlap, and include required notices in the app/package.
+8. Require an explicit source approval before this dataset becomes TRAINING_ELIGIBLE; until then it remains a bootstrap candidate only.
 
 The word “bundled” means the approved corpus is available locally for training without a network requirement at training time. Whether it is packaged inside the APK or delivered as a separately installable offline asset is a packaging decision; it must not become a required online model-weight download.
+
+
+
+Evidence reviewed 2026-11-04: [Small C4 dataset card](https://huggingface.co/datasets/brando/small-c4-dataset), [original C4 dataset card and licensing note](https://huggingface.co/datasets/allenai/c4), and [Common Crawl Terms of Use](https://commoncrawl.org/terms-of-use/).
 
 ## 5. Corpus preparation pipeline
 
