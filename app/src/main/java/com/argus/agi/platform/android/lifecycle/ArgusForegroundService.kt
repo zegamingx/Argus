@@ -1,4 +1,4 @@
-package com.argus.agi.service
+package com.argus.agi.platform.android.lifecycle
 
 import android.app.Notification
 import android.app.PendingIntent

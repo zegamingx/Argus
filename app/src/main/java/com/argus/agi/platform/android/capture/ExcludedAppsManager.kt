@@ -1,4 +1,4 @@
-package com.argus.agi.sensor
+package com.argus.agi.platform.android.capture
 
 import android.content.Context
 import android.content.pm.ApplicationInfo

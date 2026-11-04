@@ -66,7 +66,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import com.argus.agi.service.ArgusAccessibilityService
+import com.argus.agi.platform.android.capture.ArgusAccessibilityService
 import com.argus.agi.ui.ArgusViewModel
 import com.argus.agi.ui.design.ArgusCardBorder
 import com.argus.agi.ui.design.ArgusCyanGlow

@@ -1,11 +1,11 @@
-package com.argus.agi.service
+package com.argus.agi.platform.android.capture
 
 import android.accessibilityservice.AccessibilityService
 import android.os.Bundle
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import com.argus.agi.app.entry.ArgusApp
-import com.argus.agi.sensor.ExcludedAppsManager
+import com.argus.agi.platform.android.capture.ExcludedAppsManager
 
 class ArgusAccessibilityService : AccessibilityService() {
 

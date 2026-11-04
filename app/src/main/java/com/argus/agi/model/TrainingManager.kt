@@ -1,7 +1,7 @@
 package com.argus.agi.model
 
 import android.content.Context
-import com.argus.agi.sensor.DeviceGuard
+import com.argus.agi.platform.android.device.DeviceGuard
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

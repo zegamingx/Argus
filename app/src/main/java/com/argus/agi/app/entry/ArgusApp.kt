@@ -7,8 +7,8 @@ import android.os.Build
 import com.argus.agi.model.ArgusNeuralEngine
 import com.argus.agi.model.TrainingManager
 import com.argus.agi.model.WorldModel
-import com.argus.agi.sensor.DeviceGuard
-import com.argus.agi.sensor.HardwareProfile
+import com.argus.agi.platform.android.device.DeviceGuard
+import com.argus.agi.platform.android.device.HardwareProfile
 
 class ArgusApp : Application() {
 

@@ -1,4 +1,4 @@
-package com.argus.agi.sensor
+package com.argus.agi.data.acquisition
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

@@ -1,4 +1,4 @@
-package com.argus.agi.sensor
+package com.argus.agi.platform.android.device
 
 import android.content.BroadcastReceiver
 import android.content.Context
