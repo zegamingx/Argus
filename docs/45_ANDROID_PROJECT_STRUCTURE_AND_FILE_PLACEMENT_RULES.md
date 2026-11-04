@@ -4,14 +4,14 @@
 **Last reviewed:** 2026-11-04  
 **Source-tree observation:** `main` at commit `24b26b061574700d82fecd5c2a1485353333cef8` (same inspected source snapshot used by document 46)  
 **Scope:** Android repository layout, Kotlin package ownership, subsystem boundaries, Gradle module extraction, native/JNI boundary, resource and test placement, build configuration ownership and migration rules  
-**Dependencies:** Documents 01, 02, 15, 17–21, 23, 35, 36, 43 and 44  
+**Dependencies:** Documents 01, 02, 15, 17–21, 23, 35, 36, 43, 44, 46 and 47  
 **Boundary:** Structural design only. This document does not create folders, move or rename source files, add Gradle modules, select the neural architecture/tokenizer/backend, change build configuration or authorize implementation, builds, tests, workflows or device experiments.
 
 ## 1. Purpose
 
 Argus needs a project structure that can support an Android application, local model lifecycle, tokenizer, training and inference, device capability assessment, knowledge acquisition, policy enforcement, persistent data, Android services and a future native compute engine without coupling UI, platform APIs and numerical kernels.
 
-This document defines the observed source layout, target Kotlin package organization, dependency direction, criteria for Gradle module extraction, Kotlin/native boundary, resource/test/configuration placement, prototype-file ownership and rules for a future migration.
+This document defines the observed source layout, target Kotlin package organization, dependency direction, criteria for Gradle module extraction, Kotlin/native boundary, resource/test/configuration placement, prototype-file ownership and rules for a future migration. The contract-owner, permitted-consumer, provider/adaptor and authoritative-state mapping for those packages is maintained separately in [47 — Package Interface and Dependency Contract Matrix](47_PACKAGE_INTERFACE_AND_DEPENDENCY_CONTRACT_MATRIX.md).
 
 The structure is architecture-neutral. It does not select Transformer, Mamba-2, RWKV-7, a hybrid, tokenizer family, optimizer, precision, GPU/NPU provider or model profile.
 
@@ -479,6 +479,7 @@ These decisions depend on architecture, tokenizer, storage/security, backend and
 - **Gradle module extraction:** intentionally deferred until stable contracts and concrete dependency boundaries justify it.
 - **Native C++/JNI structure:** documented as a future isolated boundary; no native implementation exists in the inspected tree.
 - **File ownership/dependency audit:** recorded in [46 — Android Source-Tree Ownership and Dependency Audit](46_ANDROID_SOURCE_TREE_OWNERSHIP_AND_DEPENDENCY_AUDIT.md).
+- **Package/interface ownership and consumer/provider mapping:** proposed in [47 — Package Interface and Dependency Contract Matrix](47_PACKAGE_INTERFACE_AND_DEPENDENCY_CONTRACT_MATRIX.md); open capture-ingress and API bindings remain unresolved.
 - **Source movement, new packages/modules, build-configuration changes and code changes:** not authorized.
 - **Build, test, GitHub Actions, artifact upload and device execution:** not authorized by this document.
 
@@ -487,3 +488,4 @@ This document may be used to audit/classify current files and prepare a future s
 ## 16. Change history
 
 - 2026-11-04 — Initial Android project structure and file-placement contract prepared from the inspected `main` source tree. No application files or Gradle configuration were changed.
+- 2026-11-04 — Linked the package/interface contract crosswalk in document 47. Target ownership and dependency rules remain unchanged; no source or build files were changed.
