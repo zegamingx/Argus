@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.argus.agi.feature.chat.presentation.ChatMessage
 import com.argus.agi.model.ArgusNeuralEngine
 import com.argus.agi.model.TrainingManager
 import com.argus.agi.model.WorldModel
@@ -29,17 +30,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
-import java.util.UUID
-
-data class ChatMessage(
-    val id: String = UUID.randomUUID().toString(),
-    val isUser: Boolean,
-    val text: String,
-    val thinkReasoning: String? = null,
-    val attachedFileName: String? = null,
-    val attachedImageUri: Uri? = null,
-    val timestamp: Long = System.currentTimeMillis()
-)
 
 class ArgusViewModel(
     application: Application,

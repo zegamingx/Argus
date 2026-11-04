@@ -1,6 +1,6 @@
 # Argus Android Source-Tree Ownership and Dependency Audit
 
-**Status:** Pre-migration static audit retained; initial package relocation completed; dependency remediation remains open  
+**Status:** Pre-migration static audit retained; composition-root/runtime-ingress follow-up reviewed; dependency remediation remains open  
 **Audit date:** 2026-11-04; structural follow-up: 2026-11-05  
 **Repository:** `zegamingx/Argus` · **Branch:** `main`  
 **Pre-migration audit baseline:** `bd75ac1533e079bfca4d12e1af9ec3170d7187d9` (`docs: clarify structure proposal authority`)  
@@ -11,22 +11,24 @@
 
 ## 1. Executive result
 
-The pre-migration Android project was a single-module prototype. The current project remains single-module after the first bounded package move. The package paths now better reflect intended ownership, but the current source still does not enforce all boundaries described by architecture and lifecycle contracts.
+The original audit remains the pre-migration dependency baseline. The repository still has one Android application module, `:app`. Since the initial path relocation, a process-scoped composition root and narrow runtime-ingress contracts have been introduced. The old global `ArgusApp` service locator and static AccessibilityService action path have been removed, but presentation and legacy prototype boundaries remain incomplete.
 
-The main structural findings are:
+The current structural findings are:
 
-- `ArgusViewModel` directly reaches chat, neural execution, training, memory, hardware, file import, network search, app exclusion and AccessibilityService actions.
-- The pre-migration package cycle was `com.argus.agi` → `com.argus.agi.ui` → `com.argus.agi.service` → `com.argus.agi`. After relocation, the equivalent coupling remains across `app/entry` → `ui/ArgusViewModel` → `platform/android/*` → `app/entry`; package renaming did not remove it.
+- `ArgusViewModel` still directly reaches chat, neural execution, training, memory, hardware, file import, network search, app exclusion and AccessibilityService action contracts. It remains cross-feature and imports concrete model, data and platform implementations.
+- The pre-migration `root → ui → service → root` cycle is retained as historical evidence. The later `app/bootstrap/ArgusContainer` and `ArgusRuntimeOwner` ingress removed the static `ArgusApp` service-locator path and the service's static live-instance action path. This is not complete dependency inversion: the app entry still starts the Android foreground service, the runtime facade is transitional, and the ViewModel still reaches concrete adapters.
+- `ArgusContainer` is now the process-scoped composition root. It constructs the legacy model, training, device, hardware, capture and acquisition implementations; constructor injection is explicit and no DI framework is used.
+- `application/runtime/ArgusRuntime.kt` currently groups training, device, hardware, capture and accessibility runtime ports. Its interface ownership must be refined into workflow/contract owners rather than expanded as a generic service registry.
 - `TrainingManager` combines queue state, worker lifecycle, device admission, model execution and memory updates.
 - `ArgusNeuralEngine` combines numerical execution, tokenizer mutation, benchmark reporting and Android checkpoint file I/O.
-- The pre-migration `model/TrainingManager` → `sensor.DeviceGuard` dependency was updated to the corresponding `platform/android/device` package path. This is a location correction only; application-layer resource admission remains to be extracted.
-- Android services access global objects through `ArgusApp`; AccessibilityService also exposes a static live-instance action path.
-- Compose screens directly use CameraX, Android settings/permission APIs and platform service classes.
+- Android service and device classes now reside under `platform/android/*` and access the process runtime through narrow interfaces; feature presentation still performs some direct CameraX, Settings and permission operations.
+- `ExcludedAppsManager` remains a mixed Android installed-app discovery/exclusion-state prototype.
+- The chat-only `ChatMessage` presentation model has been separated into `feature/chat/presentation`; the cross-feature ViewModel remains to be decomposed.
 - The single test file does not represent most documented subsystem boundaries.
 
-**Recommendation:** retain one Gradle application module during the first package-boundary migration. Establish package ownership and dependency direction first. Extract Gradle modules only after stable APIs and concrete build/test/ABI boundaries exist. Creating many empty modules now would add complexity without proving the boundaries are correct.
+**Recommendation:** retain one Gradle application module while package ownership, workflow contracts and dependency direction are stabilized. Extract Gradle modules only after stable APIs and concrete build/test/ABI boundaries exist. Creating many empty modules now would add complexity without proving the boundaries are correct.
 
-This is a static structural audit, not a mathematical correctness, privacy-compliance, API deprecation or product-readiness audit. Those remain governed by documents 15 and 17–19 and the relevant technical contracts.
+This remains a static structural audit, not a mathematical correctness, privacy-compliance, API deprecation or product-readiness audit. No build, test, workflow or device result is claimed.
 
 ## 2. Baseline and method
 
@@ -353,41 +355,42 @@ The package crosswalk does not imply a global event bus, one module per subsyste
 
 ## 9. Remaining migration order
 
-The project owner has authorized bounded package/path relocation. The first physical move is complete as recorded in Section 11. The following items describe the remaining responsibility and dependency remediation; they are not implied to be complete by package movement:
+The project owner has authorized bounded package/path relocation. The first physical move is recorded in Section 11; composition-root/runtime-ingress follow-up is recorded below. Remaining work is responsibility and dependency remediation, not a reason to create empty packages or Gradle modules.
 
 1. Define and verify the core contracts and application-facing workflow ports for Genesis, inference, learning, acquisition, knowledge, evaluation, device/resource admission, capture ingress and session control. Preserve document 36 lifecycle/transaction invariants.
-2. Break the remaining entry ↔ presentation ↔ platform cycle. Feature presentation must stop importing concrete Android service implementations; Android services must stop importing `MainActivity` or reading global `ArgusApp` objects. Move actual dependency construction into `app/bootstrap`; `ArgusApp` must remain an Android entry host.
-3. Split the cross-feature ViewModel into feature-owned presentation state holders that consume workflow snapshots and send commands through application APIs.
-4. Complete platform isolation. Accessibility/foreground service and device classes have been physically moved under `platform/android/*`, but their global app access remains. CameraX/permission actions in the perception screen and installed-app exclusion persistence also need controlled adapters/policy ownership.
+2. **Completed for the current bounded scope:** construct dependencies in `app/bootstrap`; keep `ArgusApp` as an Android entry host; replace the global `ArgusApp` service locator and static AccessibilityService instance with `ArgusRuntimeOwner` and narrow runtime ingress. The aggregate `application/runtime` contracts remain transitional and require ownership refinement.
+3. Split the cross-feature ViewModel into feature-owned presentation state holders that consume workflow snapshots and send commands through application APIs. Do this only after the relevant workflow APIs and feature state ownership are defined; do not relocate the monolith wholesale.
+4. Continue platform isolation. Service/device implementations have moved under `platform/android/*`; direct CameraX, Android Settings and permission operations remain in presentation, and `ExcludedAppsManager` still mixes PackageManager discovery with exclusion state.
 5. Separate neural numerical execution from tokenizer identity, training workflow, model-generation persistence, data ingestion and Android Context/file I/O. Do not create the selected family engine before G4 or the concrete tokenizer before G1-D.
 6. Isolate local persistence, checkpoint/generation transactions, policy/consent records, source manifests, audit events and knowledge repositories in their owning data domains.
 7. Add contract-mirrored unit and integration tests for each bounded change; establish forbidden-dependency checks before Gradle module extraction.
 8. Add a native module only after architecture/operator/ABI/memory contracts justify it and the required project-owner authorization is given.
 9. Extract Gradle boundaries only when stable APIs and measured build/test/security/ABI benefits justify them.
-10. Update documents 17–19, 36, 45 and relevant architecture/verification references after each bounded migration.
+10. Update direct documentation dependents after each bounded migration; do not create a new document for every source movement.
 
 Do not combine package moves with optimizer changes, tokenizer selection, architecture rewrites, database migrations, dependency upgrades or UI redesign in one broad commit.
 
 ## 10. Open decisions and disposition
 
-Open: completion of the explicit `app/bootstrap` composition root and constructor-injection wiring; final workflow API shapes and remaining package/module granularity; persistence/encryption/schema; test framework/source-set split; benchmark module; tokenizer/runtime after G1-D; native engine after G4; supported ABIs/NDK/CMake/STL; consumer for `public/assets/argus_icon.png`; dependency removals after full usage review; disposition of the implicit APK copy task.
+Open: final workflow API shapes and owners for the transitional runtime ingress; feature ViewModel decomposition; local persistence/encryption/schema; test framework/source-set split; benchmark module; tokenizer/runtime after G1-D; native engine after G4; supported ABIs/NDK/CMake/STL; consumer for `public/assets/argus_icon.png`; dependency removals after full usage review; disposition of the implicit APK copy task.
 
 | Area | Disposition |
 |---|---|
-| Current file inventory | Audited |
+| Pre-migration file inventory | Audited and retained as baseline |
+| Current physical path map | Rechecked after package and composition-root moves |
 | File ownership mapping | Documented |
-| High-risk dependency couplings | Identified and rechecked at current HEAD |
-| Explicit package dependency graph | Documented from production imports and direct references |
-| Root/UI/service package cycle | Confirmed; must be inverted before Gradle module extraction |
-| Target package ownership | Reworked in document 45 and reconciled here against the complete document 36 logical subsystem inventory |
-| Package/interface contract mapping | Proposed in document 47; exact Kotlin signatures and implementation bindings remain open |
+| High-risk dependency couplings | Rechecked; presentation/model coupling remains |
+| Static service-locator path | Removed from `ArgusApp` and AccessibilityService |
+| Explicit package dependency graph | Historical cycle retained; current graph requires a follow-up after ViewModel/workflow decomposition |
+| Target package ownership | Defined in document 45 and reconciled with document 36 |
+| Package/interface contract mapping | Proposed in document 47; exact workflow API and implementation bindings remain open |
 | Immediate Gradle module extraction | Not recommended |
 | Future extraction seams | Candidate sequence documented |
-| Source movement | Initial package/path relocation performed at the post-migration checkpoint; remaining decomposition open |
+| Source movement | Initial path relocation plus composition/runtime-ingress follow-up performed; feature and legacy-prototype decomposition remains |
 | Build/test/Actions/device execution | Not performed |
 | Implementation authorization | Bounded structural migration authorized; behavior/API/schema refactors remain separately gated |
 
-This closes the pre-migration inventory and records a bounded structural follow-up. It does not close the remaining dependency remediation, G1-D, G4, P0 remediation, implementation readiness or device verification.
+This closes the pre-migration inventory and records the source-structure follow-up. It does not close the remaining workflow/dependency remediation, G1-D, G4, P0 remediation, implementation readiness or device verification.
 
 ## 11. Post-migration path checkpoint
 
@@ -410,6 +413,21 @@ The package migration also updated imports in ArgusApp, ArgusViewModel, Training
 
 No build, test, GitHub Actions run or device verification was performed for this checkpoint. Compilation and manifest resolution remain unverified.
 
+
+### 11.1 Composition-root and runtime-ingress follow-up (2026-11-05)
+
+The following changes supersede the corresponding pre-migration observations above:
+
+- `app/bootstrap/ArgusContainer.kt` now owns construction of process-scoped concrete dependencies; `ArgusViewModelFactory` performs explicit constructor injection.
+- `app/entry/ArgusApp.kt` implements `ArgusRuntimeOwner` and exposes the container through the runtime contract. The global companion-object fields are gone.
+- `application/runtime/ArgusRuntime.kt` defines the current service-facing snapshots and narrow ports for training, device, hardware, capture and accessibility. This is a transitional aggregate contract, not the final workflow-specific application API hierarchy.
+- `platform/android/capture/ArgusAccessibilityService.kt` registers its action controller through `AccessibilityActionRegistry`; it no longer exposes a static live service instance.
+- `platform/android/lifecycle/ArgusForegroundService.kt` reads state and sends pause control through runtime interfaces instead of global `ArgusApp` fields.
+- The capture adapter currently forwards transient screen context only. It no longer enqueues captured screen text into training from this adapter; personal learning admission remains a separate consent/review workflow.
+- `feature/chat/presentation/ChatMessage.kt` now owns the chat presentation message type. `ArgusViewModel` imports the feature-owned type; the ViewModel itself remains transitional and cross-feature.
+
+These are source-level observations. They do not establish that the contracts are complete, that Android process/service lifecycle is correct, or that the project compiles.
+
 ## 12. Change history
 
 - 2026-11-04 — Static file-by-file ownership and dependency audit added against `main` at `24b26b061574700d82fecd5c2a1485353333cef8`. No source files or build configuration were changed.
@@ -417,3 +435,5 @@ No build, test, GitHub Actions run or device verification was performed for this
 - 2026-11-04 — Re-audited `main` at `bd75ac1533e079bfca4d12e1af9ec3170d7187d9`; added an explicit cross-package dependency matrix and confirmed the `com.argus.agi` → `ui` → `service` → `com.argus.agi` cycle. The comparison with the earlier source snapshot found no intervening Kotlin, manifest, Gradle or Android-resource changes. No source/build files were changed.
 - 2026-11-04 — Added the package/interface cross-reference to document 47. This update changes audit navigation/disposition only; the inspected source baseline and dependency findings are unchanged.
 - 2026-11-05 — Recorded the owner-authorized initial package relocation at `b0441af8`. Added the current path map and confirmed that service-locator access and the entry/UI/platform dependency cycle remain. No build, test, workflow or device result is claimed.
+
+- 2026-11-05 — Rechecked the follow-up composition-root and runtime-ingress changes at `d9c3924` and `8a9014c`: documented process-scoped construction, removal of static service-locator access, platform-service ingress through runtime ports, and the transient-only capture handoff. Extracted `ChatMessage` into `feature/chat/presentation`. No build/test result is claimed.

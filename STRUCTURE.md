@@ -1,6 +1,6 @@
 # Argus Repository Structure
 
-This file describes the **physical repository and Android source layout** at `main`. Kotlin package ownership and dependency direction are governed by documents 45–48; Gradle project topology is defined by the settings and build files.
+This file records the **physical repository and Android source layout** at `main`. Kotlin package ownership and dependency direction are governed by documents 45–48; Gradle project topology is defined by the settings and build files.
 
 ## Physical repository layout
 
@@ -12,32 +12,59 @@ Argus/
 │   └── src/
 │       ├── main/
 │       │   ├── AndroidManifest.xml
-│       │   ├── java/com/argus/agi/
-│       │   │   ├── app/
-│       │   │   │   ├── entry/       # ArgusApp, MainActivity
-│       │   │   │   └── navigation/  # MainScreen and screen routing
-│       │   │   ├── data/
-│       │   │   │   └── acquisition/ # WebSearchEngine prototype connector
-│       │   │   ├── feature/
-│       │   │   │   ├── chat/presentation/
-│       │   │   │   ├── learning/presentation/
-│       │   │   │   ├── perception/presentation/
-│       │   │   │   └── settings/presentation/
-│       │   │   ├── model/           # Legacy mixed prototype; not target ownership
-│       │   │   ├── platform/android/
-│       │   │   │   ├── capture/     # Accessibility and installed-app adapters
-│       │   │   │   ├── device/      # Device and hardware observations
-│       │   │   │   └── lifecycle/   # Foreground service adapter
-│       │   │   └── ui/
-│       │   │       ├── ArgusViewModel.kt  # Transitional monolithic ViewModel
-│       │   │       └── design/     # Shared Compose theme and typography
-│       │   └── res/
-│       └── test/
-├── docs/                            # Numbered engineering documents and index
+│       │   └── java/com/argus/agi/
+│       │       ├── app/
+│       │       │   ├── bootstrap/
+│       │       │   │   ├── ArgusContainer.kt
+│       │       │   │   └── ArgusViewModelFactory.kt
+│       │       │   ├── entry/
+│       │       │   │   ├── ArgusApp.kt
+│       │       │   │   └── MainActivity.kt
+│       │       │   └── navigation/
+│       │       │       └── MainScreen.kt
+│       │       ├── application/
+│       │       │   └── runtime/
+│       │       │       └── ArgusRuntime.kt
+│       │       ├── data/
+│       │       │   └── acquisition/
+│       │       │       └── WebSearchEngine.kt
+│       │       ├── feature/
+│       │       │   ├── chat/presentation/
+│       │       │   │   ├── ChatMessage.kt
+│       │       │   │   └── ChatScreen.kt
+│       │       │   ├── learning/presentation/
+│       │       │   │   └── NeuralCoreScreen.kt
+│       │       │   ├── perception/presentation/
+│       │       │   │   └── PerceptionScreen.kt
+│       │       │   └── settings/presentation/
+│       │       │       └── SkillsAndSettingsScreen.kt
+│       │       ├── model/              # Four transitional mixed prototype classes
+│       │       ├── platform/android/
+│       │       │   ├── capture/
+│       │       │   │   ├── AccessibilityActionRegistry.kt
+│       │       │   │   ├── ArgusAccessibilityService.kt
+│       │       │   │   └── ExcludedAppsManager.kt
+│       │       │   ├── device/
+│       │       │   │   ├── DeviceGuard.kt
+│       │       │   │   └── HardwareProfile.kt
+│       │       │   ├── lifecycle/
+│       │       │   │   └── ArgusForegroundService.kt
+│       │       │   └── notification/
+│       │       │       └── ArgusNotificationChannels.kt
+│       │       └── ui/
+│       │           ├── ArgusViewModel.kt  # Transitional cross-feature ViewModel
+│       │           └── design/
+│       │               ├── Color.kt
+│       │               ├── Theme.kt
+│       │               └── Type.kt
+│       ├── res/
+│       └── test/java/com/argus/agi/
+│           └── ArgusAppRobolectricTest.kt
+├── docs/                         # Numbered engineering documents and index
 ├── gradle/
 │   ├── libs.versions.toml
 │   └── wrapper/
-├── public/assets/                   # Repository/distribution assets
+├── public/assets/                # README/project assets, not Android runtime resources
 ├── .gitignore
 ├── CONTRIBUTING.md
 ├── LICENSE
@@ -52,39 +79,45 @@ Argus/
 
 ## Gradle project topology
 
-The repository contains one Android application Gradle project:
+The repository contains one Android application Gradle module:
 
-- `:app` — Android application, production source and tests.
-- Root Gradle files — shared plugin declarations, dependency repositories and root build settings.
-- `gradle/` — dependency version catalog and wrapper configuration.
+- `:app` — Android application, production source, Android resources and current tests.
+- Root Gradle files — plugin declarations and shared build configuration.
+- `gradle/` — dependency version catalog and Gradle wrapper.
 
-There are no separate Gradle projects named `:core`, `:application`, `:data`, `:engine`, `:feature`, `:platform` or `:ui`. These are logical package roots under `com.argus.agi` when source is assigned to them; they are not top-level Gradle modules.
+There are no separate Gradle modules named `:core`, `:application`, `:data`, `:engine`, `:feature`, `:platform` or `:ui`. These are logical package roots under `com.argus.agi`, not top-level Gradle projects.
 
-## Package ownership and migration state
+## Current structural state
 
-The initial bounded source migration placed the Android entry/navigation layer, feature screens, shared UI design, Android capture/device/lifecycle adapters and the concrete web-search connector under their agreed logical package roots.
+The repository has moved beyond the first package relocation:
 
-Four legacy model files remain under `model/`: `ArgusNeuralEngine`, `Tokenizer`, `TrainingManager` and `WorldModel`. They combine responsibilities that must be separated before final ownership can be assigned safely. `ui/ArgusViewModel.kt` also remains as a transitional monolithic Android ViewModel; feature screens still consume it and are not yet backed by separate workflow APIs.
+- `app/bootstrap` owns the process-scoped composition root and ViewModel factory.
+- `app/entry` contains the Android Application and Activity.
+- `app/navigation` contains the current app shell and destination switching.
+- Feature screens live under their respective `feature/*/presentation` packages. The chat message presentation type is also owned by `feature/chat/presentation`.
+- `application/runtime` currently contains transitional runtime ports used by Android adapters. It is not yet the final workflow-specific application API layout.
+- Android capture, device, foreground lifecycle and notification adapters live under `platform/android/*`.
+- The concrete web-search connector lives under `data/acquisition`.
+- `model/` still contains four mixed legacy prototype classes. Their responsibilities must be separated before assigning final owners.
+- `ui/ArgusViewModel.kt` remains a transitional cross-feature ViewModel. It still reaches concrete model, data and platform classes; it must be decomposed into feature-owned state holders after the corresponding workflow APIs are established.
+- `ui/design/` contains shared Compose theme, color and typography resources.
 
-The current package layout is therefore an **intermediate migration state**, not a claim that the full architecture or dependency inversion is implemented. The source ownership audit and migration order are in:
-
-- [45 — Android Project Structure and File-Placement Rules](docs/45_ANDROID_PROJECT_STRUCTURE_AND_FILE_PLACEMENT_RULES.md)
-- [46 — Android Source-Tree Ownership and Dependency Audit](docs/46_ANDROID_SOURCE_TREE_OWNERSHIP_AND_DEPENDENCY_AUDIT.md)
-- [47 — Package Interface and Dependency Contract Matrix](docs/47_PACKAGE_INTERFACE_AND_DEPENDENCY_CONTRACT_MATRIX.md)
-- [48 — Personal Capture and Experience Intake Contract](docs/48_PERSONAL_CAPTURE_AND_EXPERIENCE_INTAKE_CONTRACT.md)
+The current layout is an **intermediate migration state**, not proof that every dependency boundary is enforced. The source ownership and dependency audit is recorded in [46 — Android Source-Tree Ownership and Dependency Audit](docs/46_ANDROID_SOURCE_TREE_OWNERSHIP_AND_DEPENDENCY_AUDIT.md); package placement rules and target ownership remain in [45](docs/45_ANDROID_PROJECT_STRUCTURE_AND_FILE_PLACEMENT_RULES.md) and [47](docs/47_PACKAGE_INTERFACE_AND_DEPENDENCY_CONTRACT_MATRIX.md).
 
 ## File-placement rules
 
-1. Android entry points and manifest-declared components stay in the Android application source set.
-2. Production Kotlin/Java source belongs under `app/src/main/java/`, organized by package ownership.
-3. Android resources belong under `app/src/main/res/`; tests belong under the matching test source set.
+1. Android components and manifest-declared classes stay in the Android application source set.
+2. Production Kotlin/Java source belongs under `app/src/main/java/`, arranged by package ownership.
+3. Android runtime resources belong under `app/src/main/res/`; tests belong in the matching test source set.
 4. Version-catalog and wrapper configuration remain under `gradle/`; shared build configuration remains at the root or in reviewed build logic.
-5. Public project assets belong under `public/assets/` only when they are repository/distribution assets. Android runtime resources belong under `app/src/main/res/`.
+5. `public/assets/` is for repository/distribution assets. Files consumed by Android at runtime belong under `app/src/main/res/` or `app/src/main/assets/`.
 6. Numbered engineering documents remain directly under `docs/`; stable paths and numbering are governed by [44 — Documentation Governance and Change Control](docs/44_DOCUMENTATION_GOVERNANCE_AND_CHANGE_CONTROL.md).
-7. Add a Kotlin package only when a real declaration has an owner and callers. Do not recreate empty placeholder trees or one Gradle module per logical package.
+7. Add a Kotlin package only when a real declaration has a clear owner and callers. Do not recreate empty placeholder trees or one Gradle module per logical package.
 
-## Migration checkpoint
+## Migration checkpoints
 
-The initial package relocation is recorded in commit [`b0441af8`](https://github.com/zegamingx/Argus/commit/b0441af8df127897f3ef579c22116d85337feea6). It changed source paths/package declarations and Android manifest class names, but did not intentionally change runtime behavior, dependencies, Gradle topology, model algorithms or data schemas.
+- Initial package/path relocation: [commit b0441af8](https://github.com/zegamingx/Argus/commit/b0441af8df127897f3ef579c22116d85337feea6).
+- Composition root and runtime ingress: [commit d9c3924](https://github.com/zegamingx/Argus/commit/d9c39243dac32570fdd4882aa8b07c1393933472).
+- Removal of old service-locator/static-service access paths and transient-only capture ingress: [commit 8a9014c](https://github.com/zegamingx/Argus/commit/8a9014c7728c65124caa0a6204e16baab84c5cfd).
 
-No build or test result is claimed for this checkpoint. The remaining work is dependency inversion and decomposition of the mixed prototype classes, followed by verification of each bounded change.
+These changes establish source/package direction only; no build or test result is implied. Further work remains on feature ViewModel decomposition, workflow API ownership, mixed model prototypes, platform permission/camera adapters, persistence and verification.

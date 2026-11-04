@@ -80,7 +80,6 @@ import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import com.argus.agi.R
 import com.argus.agi.ui.ArgusViewModel
-import com.argus.agi.ui.ChatMessage
 import com.argus.agi.ui.design.ArgusBlueAccent
 import com.argus.agi.ui.design.ArgusCardBorder
 import com.argus.agi.ui.design.ArgusCyanGlow
