@@ -79,6 +79,7 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 | [36 — Pre-Implementation Module and Lifecycle Contracts](36_PRE_IMPLEMENTATION_MODULE_AND_LIFECYCLE_CONTRACTS.md) | Architecture-neutral module/API boundaries, data records, state machines, typed errors/events, concurrency, transactions and later verification obligations |
 | [37 — Optimizer Research and Lion Assessment](37_OPTIMIZER_RESEARCH_AND_LION_ASSESSMENT.md) | AdamW/Lion/Adafactor comparison, Lion state-memory accounting, device-adaptive batch semantics and exact optimizer recovery |
 | [38 — G2 Architecture Comparative Synthesis](38_G2_ARCHITECTURE_COMPARATIVE_SYNTHESIS.md) | Cross-family trade-offs for Transformer, Mamba-2 SSD, RWKV-7 and hybrid; matched comparison rules and G4 deliverables |
+| [39 — Transformer Component Research and Pre-G4 Design Contracts](39_TRANSFORMER_COMPONENT_RESEARCH_AND_DESIGN_CONTRACTS.md) | Evidence and matched-comparison contracts for attention variants, position, FFN, normalization/residual topology, depth/width and embeddings |
 
 ## Status vocabulary
 
@@ -93,6 +94,6 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 
 ## Change control and completion
 
-Material decisions belong in [01 — System Requirements and Decisions](01_SYSTEM_REQUIREMENTS_AND_DECISIONS.md). Unresolved questions belong in [16 — Roadmap and Research Register](16_ROADMAP_RESEARCH_REGISTER.md). Detailed Genesis, device adaptation, corpus, architecture, autonomous acquisition, knowledge-domain, source-connector, source-candidate, open-text, curated seed, domain-balanced text, Indonesian OER, device-adaptive acquisition, from-scratch feasibility, tokenizer, component-level Android architecture, cross-system implementation contracts, optimizer research and G2 comparative synthesis belong in documents 20–38.
+Material decisions belong in [01 — System Requirements and Decisions](01_SYSTEM_REQUIREMENTS_AND_DECISIONS.md). Unresolved questions belong in [16 — Roadmap and Research Register](16_ROADMAP_RESEARCH_REGISTER.md). Detailed Genesis, device adaptation, corpus, architecture, autonomous acquisition, knowledge-domain, source-connector, source-candidate, open-text, curated seed, domain-balanced text, Indonesian OER, device-adaptive acquisition, from-scratch feasibility, tokenizer, component-level Android architecture, cross-system implementation contracts, optimizer research and G2 comparative synthesis belong in documents 20–39. Transformer component evidence and pre-G4 design contracts belong in document 39.
 
 The documentation phase ends only when requirements, architecture, model and tokenizer research, corpus governance, resource budgets, cross-system module/lifecycle contracts, verification strategy and cross-document consistency have been reviewed. The contracts in document 36 are a proposed baseline and remain subject to ADR reconciliation and explicit closure of their open bindings. Passing that gate authorizes an implementation-plan review only. It does not automatically authorize coding, builds or workflow execution.
