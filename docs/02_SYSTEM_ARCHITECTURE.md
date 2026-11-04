@@ -1,7 +1,7 @@
 # System Architecture
 
-**Status:** Proposed logical architecture  
-**Last reviewed:** 2026-11-03
+**Status:** Proposed logical architecture with architecture-neutral module/lifecycle contract draft  
+**Last reviewed:** 2026-11-04
 
 ## 1. Objective
 
@@ -61,7 +61,7 @@ Android is the first target. Android permissions, SAF, MediaProjection, Accessib
 
 ## 8. Architecture outputs still required
 
-Before implementation, specify module/API contracts, error taxonomy, event/message schema, model lifecycle, concurrency rules, data schema, deployment diagrams and sequence diagrams. Diagrams must not imply an unimplemented component already exists.
+The first architecture-neutral draft of module/API contracts, error taxonomy, event/message envelope, model and training lifecycle, concurrency rules, logical data records, deployment boundary and sequence diagrams is recorded in [36 — Pre-Implementation Module and Lifecycle Contracts](36_PRE_IMPLEMENTATION_MODULE_AND_LIFECYCLE_CONTRACTS.md). These contracts are proposed design artifacts, not implemented APIs. Before implementation planning is approved, reconcile them with the accepted ADRs and close the open bindings listed in document 36, including selected architecture/tokenizer fields, storage/encryption/migration policy, exact permissions and numeric resource thresholds. Diagrams must not imply an unimplemented component already exists.
 
 ## 9. Argus Genesis and independent-instance integration
 
@@ -113,4 +113,4 @@ An instance has its own instance identifier, model generations, weights, checkpo
 
 The Genesis-time capability profile constrains the initial model configuration. A separate runtime controller constrains current workload based on live conditions. Neither controller may silently change architecture or model tensor shapes during a training step; structural changes require a candidate generation, migration and validation.
 
-Detailed contracts are in [20 — Argus Genesis Engine](20_ARGUS_GENESIS_ENGINE.md) and [21 — Device-Adaptive Model and Training](21_DEVICE_ADAPTIVE_MODEL_AND_TRAINING.md).
+Detailed contracts are in [20 — Argus Genesis Engine](20_ARGUS_GENESIS_ENGINE.md) and [21 — Device-Adaptive Model and Training](21_DEVICE_ADAPTIVE_MODEL_AND_TRAINING.md). The cross-system logical interfaces and state/transaction contracts are consolidated in [36 — Pre-Implementation Module and Lifecycle Contracts](36_PRE_IMPLEMENTATION_MODULE_AND_LIFECYCLE_CONTRACTS.md).
