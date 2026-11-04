@@ -110,7 +110,7 @@ At minimum record:
 - Per-split document count and token count.
 - Known exclusions, bias and data-quality limitations.
 
-Token count must be measured using the selected Argus tokenizer. File size and document count are not reliable substitutes for training volume.
+Token count must be measured using the tokenizer fingerprint selected by the active local model generation. File size and document count are not reliable substitutes for training volume.
 
 ## 7. General learning lifecycle
 
