@@ -9,7 +9,7 @@
 
 Document 02 identifies module/API contracts, error taxonomy, event/message schema, model lifecycle, concurrency rules, data schema, deployment diagrams and sequence diagrams as required pre-implementation outputs. This document supplies the first architecture-neutral version of those contracts.
 
-The contracts define **what each subsystem owns and guarantees**, not how its implementation is written. They are independent of a specific Transformer/SSM/RWKV/hybrid selection, tokenizer family, Kotlin package layout, native training framework or accelerator.
+The contracts define **what each subsystem owns and guarantees**, not how its implementation is written. They are independent of a specific Transformer/SSM/RWKV/hybrid selection, tokenizer family, Kotlin package layout, native training framework or accelerator. Family-specific recurrent state requirements for Mamba-2 SSD and RWKV-7 are detailed separately in [41 — Recurrent State and Chunked-Training Lifecycle Contracts](41_RECURRENT_STATE_AND_CHUNKED_TRAINING_CONTRACTS.md), while this document retains the architecture-neutral transaction boundary.
 
 The following labels are used:
 
