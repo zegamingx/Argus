@@ -16,6 +16,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -91,6 +92,7 @@ class ArgusForegroundService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         updateJob?.cancel()
+        serviceScope.cancel()
     }
 
     private fun startNotificationLoop() {

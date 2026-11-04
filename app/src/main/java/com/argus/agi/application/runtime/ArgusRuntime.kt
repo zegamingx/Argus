@@ -16,7 +16,6 @@ interface ArgusRuntime {
     val training: TrainingRuntime
     val device: DeviceRuntime
     val hardware: HardwareRuntime
-    val knowledge: KnowledgeRuntime
     val capture: CaptureRuntime
     val accessibility: AccessibilityRuntime
 }
@@ -30,7 +29,6 @@ data class TrainingStatusSnapshot(
 interface TrainingRuntime {
     fun snapshot(): TrainingStatusSnapshot
     fun togglePause()
-    fun enqueueData(source: String, title: String, content: String)
 }
 
 data class DeviceSafetySnapshot(
@@ -48,12 +46,14 @@ interface HardwareRuntime {
     fun primaryAcceleratorLabel(): String
 }
 
-interface KnowledgeRuntime {
-    fun updateScreenContext(packageName: String, visibleText: String)
-}
-
 interface CaptureRuntime {
     fun isPackageExcluded(packageName: String): Boolean
+
+    /**
+     * Updates process-local context for the current request/session only.
+     * This operation must not persist personal content or create a training candidate.
+     */
+    fun updateTransientScreenContext(packageName: String, visibleText: String)
 }
 
 interface AccessibilityActionController {

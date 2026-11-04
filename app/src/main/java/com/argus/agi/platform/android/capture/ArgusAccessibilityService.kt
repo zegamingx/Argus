@@ -1,7 +1,6 @@
 package com.argus.agi.platform.android.capture
 
 import android.accessibilityservice.AccessibilityService
-import android.os.Bundle
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import com.argus.agi.application.runtime.AccessibilityActionController
@@ -69,12 +68,9 @@ class ArgusAccessibilityService : AccessibilityService(), AccessibilityActionCon
         lastScreenTextHash = currentHash
         lastPerceptionTime = now
 
-        runtime.knowledge.updateScreenContext(packageName, fullText)
-        runtime.training.enqueueData(
-            source = "Screen ($packageName)",
-            title = "Screen: ${packageName.substringAfterLast('.')}",
-            content = fullText.take(400)
-        )
+        // Keep this provisional capture path transient. Personal training requires
+        // the separate consent, review, provenance and admission workflow.
+        runtime.capture.updateTransientScreenContext(packageName, fullText)
     }
 
     override fun onInterrupt() = Unit

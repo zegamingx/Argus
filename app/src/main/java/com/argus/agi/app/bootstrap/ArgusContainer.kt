@@ -6,7 +6,6 @@ import com.argus.agi.application.runtime.CaptureRuntime
 import com.argus.agi.application.runtime.DeviceRuntime
 import com.argus.agi.application.runtime.DeviceSafetySnapshot
 import com.argus.agi.application.runtime.HardwareRuntime
-import com.argus.agi.application.runtime.KnowledgeRuntime
 import com.argus.agi.application.runtime.TrainingRuntime
 import com.argus.agi.application.runtime.TrainingStatusSnapshot
 import com.argus.agi.data.acquisition.WebSearchEngine
@@ -70,9 +69,6 @@ class ArgusContainer(application: Application) : ArgusRuntime {
             trainingManager.togglePauseTraining()
         }
 
-        override fun enqueueData(source: String, title: String, content: String) {
-            trainingManager.enqueueData(source, title, content)
-        }
     }
 
     override val device: DeviceRuntime = object : DeviceRuntime {
@@ -93,15 +89,13 @@ class ArgusContainer(application: Application) : ArgusRuntime {
         }
     }
 
-    override val knowledge: KnowledgeRuntime = object : KnowledgeRuntime {
-        override fun updateScreenContext(packageName: String, visibleText: String) {
-            worldModel.updateScreenContext(packageName, visibleText)
-        }
-    }
-
     override val capture: CaptureRuntime = object : CaptureRuntime {
         override fun isPackageExcluded(packageName: String): Boolean {
             return excludedAppsManager.isAppExcluded(packageName)
+        }
+
+        override fun updateTransientScreenContext(packageName: String, visibleText: String) {
+            worldModel.updateScreenContext(packageName, visibleText)
         }
     }
 }
