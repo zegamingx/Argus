@@ -48,7 +48,7 @@ This rule keeps the current repository navigable while allowing the index to gro
 | docs/20–43 and 45 | Topic-specific product, research, architecture, data, lifecycle, project-structure and decision-gate contracts within each document's declared scope | A competing global decision register |
 | docs/44_DOCUMENTATION_GOVERNANCE_AND_CHANGE_CONTROL.md | Repository-wide documentation and change-control rules | A source of new product or model-architecture decisions |
 | docs/46_ANDROID_SOURCE_TREE_OWNERSHIP_AND_DEPENDENCY_AUDIT.md | Audited file ownership, observed source dependencies and migration-priority findings | Permission to move files or modify application/build source |
-| docs/45_ANDROID_PROJECT_STRUCTURE_AND_FILE_PLACEMENT_RULES.md | Android package organization, Gradle module extraction criteria, Kotlin/native boundaries and file-placement rules | Authorization to create modules, move source files or change build configuration |
+| docs/45_ANDROID_PROJECT_STRUCTURE_AND_FILE_PLACEMENT_RULES.md | Proposed Android package organization, logical-subsystem ownership crosswalk, dependency direction, Gradle module extraction criteria, Kotlin/native boundaries and file-placement rules | Authorization to create modules, move source files or change build configuration |
 
 The application source tree records the prototype implementation. It is not the authority for future product intent. Conversely, a design document cannot be cited as proof that a source-tree capability exists.
 
