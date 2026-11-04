@@ -1,4 +1,4 @@
-package com.argus.agi
+package com.argus.agi.app.entry
 
 import android.app.Application
 import android.app.NotificationChannel

@@ -4,7 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.os.Bundle
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
-import com.argus.agi.ArgusApp
+import com.argus.agi.app.entry.ArgusApp
 import com.argus.agi.sensor.ExcludedAppsManager
 
 class ArgusAccessibilityService : AccessibilityService() {

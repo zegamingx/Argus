@@ -1,4 +1,4 @@
-package com.argus.agi.ui.screens
+package com.argus.agi.feature.settings.presentation
 
 import android.content.Context
 import android.content.Intent
@@ -62,18 +62,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.argus.agi.ui.ArgusViewModel
-import com.argus.agi.ui.theme.ArgusBlueAccent
-import com.argus.agi.ui.theme.ArgusCardBorder
-import com.argus.agi.ui.theme.ArgusCyanGlow
-import com.argus.agi.ui.theme.ArgusCyanPrimary
-import com.argus.agi.ui.theme.ArgusDarkBg
-import com.argus.agi.ui.theme.ArgusSuccess
-import com.argus.agi.ui.theme.ArgusSurface
-import com.argus.agi.ui.theme.ArgusSurfaceVariant
-import com.argus.agi.ui.theme.ArgusTextMuted
-import com.argus.agi.ui.theme.ArgusTextPrimary
-import com.argus.agi.ui.theme.ArgusTextSecondary
-import com.argus.agi.ui.theme.ArgusWarning
+import com.argus.agi.ui.design.ArgusBlueAccent
+import com.argus.agi.ui.design.ArgusCardBorder
+import com.argus.agi.ui.design.ArgusCyanGlow
+import com.argus.agi.ui.design.ArgusCyanPrimary
+import com.argus.agi.ui.design.ArgusDarkBg
+import com.argus.agi.ui.design.ArgusSuccess
+import com.argus.agi.ui.design.ArgusSurface
+import com.argus.agi.ui.design.ArgusSurfaceVariant
+import com.argus.agi.ui.design.ArgusTextMuted
+import com.argus.agi.ui.design.ArgusTextPrimary
+import com.argus.agi.ui.design.ArgusTextSecondary
+import com.argus.agi.ui.design.ArgusWarning
 
 @Composable
 fun SkillsAndSettingsScreen(viewModel: ArgusViewModel) {

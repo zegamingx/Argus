@@ -1,4 +1,4 @@
-package com.argus.agi.ui.theme
+package com.argus.agi.ui.design
 
 import androidx.compose.ui.graphics.Color
 

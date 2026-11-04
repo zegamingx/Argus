@@ -1,16 +1,6 @@
-package com.argus.agi
+package com.argus.agi.app.navigation
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
-import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -20,7 +10,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
@@ -34,7 +23,6 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -45,59 +33,21 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
+import com.argus.agi.feature.chat.presentation.ChatScreen
+import com.argus.agi.feature.learning.presentation.NeuralCoreScreen
+import com.argus.agi.feature.perception.presentation.PerceptionScreen
+import com.argus.agi.feature.settings.presentation.SkillsAndSettingsScreen
 import com.argus.agi.ui.ArgusViewModel
-import com.argus.agi.ui.screens.ChatScreen
-import com.argus.agi.ui.screens.NeuralCoreScreen
-import com.argus.agi.ui.screens.PerceptionScreen
-import com.argus.agi.ui.screens.SkillsAndSettingsScreen
-import com.argus.agi.ui.theme.ArgusCyanPrimary
-import com.argus.agi.ui.theme.ArgusDarkBg
-import com.argus.agi.ui.theme.ArgusSurface
-import com.argus.agi.ui.theme.ArgusTextMuted
-import com.argus.agi.ui.theme.ArgusTheme
+import com.argus.agi.ui.design.ArgusCyanPrimary
+import com.argus.agi.ui.design.ArgusDarkBg
+import com.argus.agi.ui.design.ArgusSurface
+import com.argus.agi.ui.design.ArgusTextMuted
 
 enum class ArgusScreen(val label: String, val icon: ImageVector) {
     CHAT("Terminal", Icons.AutoMirrored.Filled.Chat),
     NEURAL_CORE("Neural Core", Icons.Default.Memory),
     PERCEPTION("Perception", Icons.Default.Visibility),
     SETTINGS("Skills & Privacy", Icons.Default.Tune)
-}
-
-class MainActivity : ComponentActivity() {
-
-    private val viewModel: ArgusViewModel by viewModels()
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-
-        setContent {
-            ArgusTheme {
-                // Runtime Permissions Launcher
-                val permissionsLauncher = rememberLauncherForActivityResult(
-                    contract = ActivityResultContracts.RequestMultiplePermissions()
-                ) { /* permissions evaluated */ }
-
-                LaunchedEffect(Unit) {
-                    val neededPermissions = mutableListOf<String>()
-                    if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                        neededPermissions.add(Manifest.permission.CAMERA)
-                    }
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                            neededPermissions.add(Manifest.permission.POST_NOTIFICATIONS)
-                        }
-                    }
-                    if (neededPermissions.isNotEmpty()) {
-                        permissionsLauncher.launch(neededPermissions.toTypedArray())
-                    }
-                }
-
-                MainScreen(viewModel = viewModel)
-            }
-        }
-    }
 }
 
 @Composable

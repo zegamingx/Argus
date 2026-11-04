@@ -6,7 +6,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.argus.agi.ArgusApp
+import com.argus.agi.app.entry.ArgusApp
 import com.argus.agi.model.BenchmarkResult
 import com.argus.agi.model.TrainingData
 import com.argus.agi.model.WorldEntity

@@ -1,4 +1,4 @@
-package com.argus.agi.ui.theme
+package com.argus.agi.ui.design
 
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme

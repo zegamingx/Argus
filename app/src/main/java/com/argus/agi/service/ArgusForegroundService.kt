@@ -9,8 +9,8 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
-import com.argus.agi.ArgusApp
-import com.argus.agi.MainActivity
+import com.argus.agi.app.entry.ArgusApp
+import com.argus.agi.app.entry.MainActivity
 import com.argus.agi.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

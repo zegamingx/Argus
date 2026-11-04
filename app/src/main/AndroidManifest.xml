@@ -17,7 +17,7 @@
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 
     <application
-        android:name=".ArgusApp"
+        android:name=".app.entry.ArgusApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -30,7 +30,7 @@
         android:theme="@style/Theme.Argus">
 
         <activity
-            android:name=".MainActivity"
+            android:name=".app.entry.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:windowSoftInputMode="adjustResize"
