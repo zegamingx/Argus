@@ -27,7 +27,7 @@ The P0 work has hard dependencies. The recommended order is:
 
 1. **Genesis identity contract:** define the architecture-agnostic per-instance and generation identity, immutable manifest boundary and atomic first-generation publication (AUD-014). This contract can be designed now; concrete tensor inventory and configuration are instantiated only after the upstream research gates.
 2. **From-scratch feasibility research:** define the useful-learning target, summarize published from-scratch and mobile-training evidence, derive analytical model/data/compute/memory bounds, state provisional device assumptions, and document stop criteria now. Do not wait for Argus device measurements. The physical feasibility and support claims are verified later through E1–E7 after implementation. Follow [16 — Roadmap and Research Register](16_ROADMAP_RESEARCH_REGISTER.md) and [33 — From-Scratch Training Feasibility](33_FROM_SCRATCH_TRAINING_FEASIBILITY.md).
-3. **Tokenizer and architecture design decisions:** establish a research-backed tokenizer shortlist/contract from published results, rights-reviewed source options and analytical vocabulary/model costs; compare tokenizer-neutral architecture families in parallel. Token-sensitive component decisions must bind to the tokenizer design selected at G4. Runtime conformance and downstream model-quality measurements are post-implementation validation obligations, not prerequisites for completing this documentary design work (AUD-013).
+3. **Tokenizer and architecture design decisions:** establish a research-backed, device-conditioned tokenizer profile portfolio and selection contract from published results, rights-reviewed source options and analytical vocabulary/model costs; compare tokenizer-neutral architecture families in parallel. G4 approves the portfolio and deterministic selection/fallback policy; each local model generation binds to the exact selected tokenizer ID and fingerprint. Runtime conformance and downstream model-quality measurements are post-implementation validation obligations, not prerequisites for completing this documentary design work (AUD-013).
 4. **Learning mathematics:** define the trainable parameter groups, loss reduction, complete backward graph and optimizer semantics only for the architecture that passes the feasibility and selection gates (AUD-001).
 5. **State durability:** persist the exact candidate-generation, optimizer and resumable-session state with atomic recovery (AUD-002).
 6. **Data governance:** enforce source rights/provenance for general corpus inputs and consent/classification/redaction/review/revocation/deletion for personal inputs (AUD-003/AUD-004).
@@ -73,7 +73,7 @@ GENESIS_READY therefore means **constructed, initialized, persisted and recovera
 
 ## 4. Tokenizer and vocabulary contract — AUD-013
 
-The recommended first implementation uses an immutable vocabulary for each model revision:
+The recommended first implementation uses one immutable tokenizer artifact/vocabulary for each model generation:
 
 - The tokenizer payload and fingerprint are part of the model-generation manifest.
 - Inference, evaluation and training use the same tokenizer instance/configuration and do not register new tokens at runtime.
