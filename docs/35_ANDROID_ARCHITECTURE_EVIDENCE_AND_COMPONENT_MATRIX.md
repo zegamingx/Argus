@@ -338,17 +338,19 @@ Do not:
 
 | Deliverable | Artifact | Status |
 |---|---|---|
-| Android prior-art evidence table | Section 3 + evidence register in document 33 | **BASELINE PRESENT; further source audits open** |
+| Android prior-art evidence table | Section 3 + evidence register in document 33 | **BASELINE PRESENT; selected source/API audits recorded; remaining source and license reviews remain open** |
 | Genesis constraints | Section 2 | **DOCUMENTED** |
-| Architecture component comparison matrix | Section 4 | **SKELETON WITH PRELIMINARY DISPOSITIONS** |
-| Tokenizer comparison and device-conditioned profile policy | Document 34 | **CANDIDATE COMPARISON AND ANALYTICAL PROFILE METHOD PRESENT; G1-D OPEN ON PRODUCT-LANGUAGE PRIORITY, SOURCE RIGHTS AND RUNTIME AUDIT** |
+| Architecture component comparison matrix | Section 4 plus documents 38–41 | **DETAILED RESEARCH BASELINE PRESENT; no component, initialization, optimizer or backbone winner selected. Document 39 covers Transformer internals, document 40 initialization/width scaling, and document 41 recurrent state/chunk lifecycle. Architecture-family-specific full graph/operator/precision contracts and matched G4 synthesis remain open.** |
+| Tokenizer comparison and device-conditioned profile policy | Document 34 | **CANDIDATE COMPARISON, STAGED PROFILE-SELECTION PROPOSAL AND STATIC FORMAT-MATCHED RUNTIME/API/ABI CONTRACT PRESENT; G1-D OPEN** — product owner must accept product-language/unsupported-language policy; exact frequency and (if base PA-BPE retained) aligned-development manifests must be approved for their distinct operations; exact file revisions/checksums, third-party exceptions and attribution remain pending; final per-profile runtime/API/ABI/format choices remain unselected. Runtime static audit is present; no Android ABI/runtime conformance is claimed. |
 | Adopt/Modify/Custom/Defer/Reject decision log | Section 4 / ADR-026 | **BASELINE ACCEPTED FOR PLANNING; deferred architecture-specific choices remain open** |
 | Controlled experiment plan | Section 7 and document 33 | **PROTOCOL PRESENT; ARGUS RESULTS NOT RUN** |
-| Pre-implementation architecture design memo | Future ADR in document 01 | **BLOCKED BY G1/G3 AND COMPARATIVE DESIGN EVIDENCE**; physical feasibility remains unverified and must be tested after implementation |
+| Pre-implementation architecture design memo | Future ADR in document 01 | **G4 BLOCKED BY G1-D AND FINAL FAMILY-SPECIFIC COMPARATIVE SYNTHESIS / ADR**; G3 disposition baseline is closed but all architecture-specific DEFER choices remain unselected. Physical feasibility remains unverified and must be tested after implementation, not used to block documentary design completion |
 
 ## 11. Cross-document authority
 
 Optimizer algorithm candidates, Lion state-memory accounting, update semantics and exact-resume requirements are detailed in [37 — Optimizer Research and Lion Assessment](37_OPTIMIZER_RESEARCH_AND_LION_ASSESSMENT.md). The optimizer disposition remains DEFER; AdamW is a comparison control and Lion is an admitted candidate, not a selected default.
+
+Transformer attention/position/FFN/normalization and embedding contracts are developed in [39 — Transformer Component Research](39_TRANSFORMER_COMPONENT_RESEARCH_AND_DESIGN_CONTRACTS.md); Genesis initialization and width scaling are developed in [40 — Initialization and Width-Scaling Research](40_INITIALIZATION_AND_WIDTH_SCALING_RESEARCH.md); Mamba-2/RWKV-7 recurrent carry, chunk/BPTT, document reset and checkpoint contracts are in [41 — Recurrent State and Chunked-Training Lifecycle Contracts](41_RECURRENT_STATE_AND_CHUNKED_TRAINING_CONTRACTS.md). These are research/design references, not accepted component selections or implementation evidence.
 
 
 - [33 — From-Scratch Training Feasibility](33_FROM_SCRATCH_TRAINING_FEASIBILITY.md): separates from-scratch, fine-tuning and runtime evidence; device constraints and E1–E7.
