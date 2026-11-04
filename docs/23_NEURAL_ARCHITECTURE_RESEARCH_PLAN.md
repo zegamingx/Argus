@@ -127,6 +127,8 @@ Future growth may add parameters, modules or structural variants. Every candidat
 
 ## 8. Current decision
 
+The cross-family system trade-offs, matched comparison controls and G4 synthesis deliverables are consolidated in [38 — G2 Architecture Comparative Synthesis](38_G2_ARCHITECTURE_COMPARATIVE_SYNTHESIS.md). Optimizer alternatives, including the Lion assessment and exact-state recovery implications, are consolidated in [37 — Optimizer Research and Lion Assessment](37_OPTIMIZER_RESEARCH_AND_LION_ASSESSMENT.md). These documents refine the evidence base but do not select a backbone or optimizer and do not close G4.
+
 **No initial architecture family is selected.** The G2 comparison scope is bounded to four families: decoder-only Transformer as the mandatory reference/control, selective SSM (Mamba/Mamba-2 SSD), recurrent delta-rule (RWKV-7 family), and attention–SSM/recurrent hybrid as a secondary candidate. This is a shortlist for design comparison, not a ranking or implementation selection. Model dimensions and parameter count remain per-device outputs after architecture and capability analysis, not global constants.
 
 
