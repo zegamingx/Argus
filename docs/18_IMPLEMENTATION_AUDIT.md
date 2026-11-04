@@ -1,12 +1,14 @@
 # Implementation Audit — P0 Static Verification
 
 **Repository:** `zegamingx/Argus`  
-**Branch:** `master`  
-**Current documentation branch:** `main` (this file remains a historical audit snapshot)  
-**Source baseline:** `4d8104d4400dcd858e648d7b08ac0718385733d3`  
-**Audit branch head:** `b1f41db3166e383b84ef0716ee4f43e7544744c5`  
-**Review date:** 2026-11-03  
-**Review type:** Source/configuration inspection (static; no code changes)  
+**Historical source-audit branch:** `master`  
+**Current documentation branch:** `main`  
+**Source baseline audited:** `4d8104d4400dcd858e648d7b08ac0718385733d3`  
+**Historical audit branch head:** `b1f41db3166e383b84ef0716ee4f43e7544744c5`  
+**Current main cross-check:** `aec1f57077dcfa7bc32957f31d01e5454b5395b6`  
+**Source continuity check:** No application-source paths changed between the audited source baseline and the cross-checked `main` HEAD.  
+**Source audit date:** 2026-11-03 · **Documentation continuity review:** 2026-11-04  
+**Review type:** Static source/configuration inspection; no code changes  
 **Execution status:** Build, automated tests, emulator tests and physical-device tests were not run.
 
 The two commits between the source baseline and the audit branch head changed documentation only. The application source was therefore re-read at the unchanged source baseline; the audit branch head is recorded separately to avoid treating a documentation commit as a source-code revision.
@@ -69,16 +71,24 @@ Unresolved chat queries, retrieved web snippets, imported document text, image-d
 
 **Required action:** Use a candidate store with provenance, sensitivity labels, preview, explicit approval/rejection and deletion. Web snippets must remain untrusted evidence and must not become training data merely because a query was unresolved.
 
-### AUD-014 — No verifiable base-model artifact or deterministic model loader
+### AUD-013 — Runtime vocabulary growth can desynchronize optimizer-state dimensions
+
+**Severity:** CRITICAL — tensor-shape and optimizer safety  
+**Evidence:** `Tokenizer.encode(autoRegister = true)`, `ArgusNeuralEngine.ensureVocabCapacity()`, `trainStep()`
+
+The tokenizer can register tokens at runtime and expand the embedding/output-head tensors, while the optimizer moment arrays remain allocated at the original vocabulary size. A newly registered target token can therefore index beyond the optimizer-state arrays and terminate the training worker.
+
+**Required action:** Freeze the tokenizer vocabulary and fingerprint for each model generation, with explicit unknown-token or byte-fallback behavior. Any future vocabulary change must be a new, validated generation migration that updates every dependent tensor and optimizer state atomically. The detailed source evidence and acceptance criteria are in P0-D below.
+### AUD-014 — Prototype model state is not bound to a complete, durable Genesis identity
 
 **Severity:** CRITICAL — model identity and training validity  
-**Evidence:** `app/src/main/java/com/argus/agi/model/ArgusNeuralEngine.kt`; current repository tree
+**Evidence:** `app/src/main/java/com/argus/agi/model/ArgusNeuralEngine.kt`; inspected repository tree
 
-The engine initializes its embedding, attention, feed-forward and output-head matrices with `randomVector(...)`. Its constructor calls `loadCheckpointIfExists()`, but that loader restores only the four LoRA matrices and `adamStep`; it does not load a complete base-model artifact. No base-model weight bundle or corresponding artifact loader was found in the inspected repository tree.
+The engine initializes its embedding, attention, feed-forward and output-head matrices with `randomVector(...)`. Its constructor calls `loadCheckpointIfExists()`, but that loader restores only the four LoRA matrices and `adamStep`; it does not restore the complete model state, tokenizer contract or required optimizer state. No complete model-generation manifest and tensor-state loader was found in the inspected repository tree.
 
-A fresh installation therefore starts from randomly initialized base weights. The current implementation cannot establish a stable base-model identity, tokenizer/model compatibility, provenance or reproducible inference state. Calling the current operation fine-tuning is misleading: it is not continuing a verified pretrained base model. This also prevents checkpoint validation from proving which model the adapter belongs to.
+**The absence of an externally pretrained base-model bundle is not a defect under the accepted Local Knowledge Genesis direction.** Local parameter initialization is intentional. The defect is that the prototype cannot durably identify, validate, restore and resume the complete locally initialized generation. A checkpoint cannot establish the exact architecture/tokenizer identity or reconstruct all model and optimizer state needed for valid continuation.
 
-**Required action:** Define and implement a versioned base-model artifact contract before enabling training. The loader must verify model ID/revision, architecture configuration, tokenizer fingerprint, tensor names/shapes/dtypes, quantization metadata, checksums, provenance and license. Load and validate the complete artifact into an isolated state before publishing it to inference. Random initialization may remain available only for deterministic test fixtures or explicitly labeled experiments; it must not be presented as a loaded or fine-tunable production model.
+**Required action:** Define and implement a versioned Genesis manifest and complete model-state persistence contract. Bind the instance and generation IDs, architecture/configuration fingerprint, immutable tokenizer fingerprint, full tensor inventory, initialization policy/metadata and integrity checksums. Persist and restore all mutable model and optimizer state required by the selected training design through an atomic, validated generation/checkpoint transaction.
 
 ### AUD-005 — On-device and zero-cloud UI wording conflicts with actual network behavior
 
@@ -160,13 +170,18 @@ The Gradle build and tests were not executed during this review, so compilation 
 
 ## 3. Recommended remediation order
 
-1. **P0 — Establish the Local Knowledge Genesis model-state identity and immutable tokenizer contract:** AUD-014 and AUD-013. The former pretrained-base-model requirement is superseded.
-2. **P0 — Learning correctness and checkpoint integrity:** AUD-001 and AUD-002.
-3. **P0 — Privacy/data governance and explicit approval:** AUD-003 and AUD-004.
-3. **P1 — Concurrency, lifecycle and durability:** AUD-008 and AUD-009.
-4. **P1 — Hardware/thermal capability correctness:** AUD-006 and AUD-007.
-5. **P1 — Product claims and user disclosure:** AUD-005 and AUD-010.
-6. **P2 — Baseline/localization/test completeness:** AUD-011 and AUD-012.
+1. **P0 — Architecture-agnostic Genesis identity and initial-generation transaction:** AUD-014. Define the instance/generation identity and atomic manifest boundary without selecting a backbone or tokenizer.
+2. **P0 — From-scratch feasibility envelope:** complete the research-backed and analytically established model/data/compute/resource constraints. E1–E7 physical verification remains a later implementation gate.
+3. **P0 — Immutable tokenizer/vocabulary contract:** complete G1 and bind vocabulary/tensor dimensions to the generation; address AUD-013. Tokenizer-sensitive architecture choices remain blocked until the selected contract is available.
+4. **P0 — Architecture-specific learning mathematics:** define complete gradients and optimizer semantics for the architecture/configuration selected through the research gates; address AUD-001.
+5. **P0 — Exact state durability and recovery:** define full model/optimizer/session checkpoint state and atomic recovery after the tensor inventory is known; address AUD-002.
+6. **P0 — Data governance and approved-input lifecycle:** enforce source rights/provenance and personal-data consent/classification/redaction/review/revocation/deletion; address AUD-003 and AUD-004.
+7. **P1 — Worker, concurrency, lifecycle and durability:** address AUD-008 and AUD-009.
+8. **P1 — Hardware/thermal capability correctness:** address AUD-006 and AUD-007.
+9. **P1 — Product claims and user disclosure:** address AUD-005 and AUD-010.
+10. **P2 — Baseline/localization/test completeness:** address AUD-011 and AUD-012.
+
+This is the dependency order for design and remediation contracts, not a rule that parallel research workstreams must wait. Source implementation remains unauthorized; physical-device feasibility verification is deferred to the separately authorized implementation phase.
 
 Do not begin broad GPU/NPU or multi-agent implementation before the P0 items have a reviewed design, acceptance criteria and tests.
 
@@ -248,7 +263,7 @@ The Android AccessibilityService enablement is not equivalent to informed consen
 7. Provide inspect, reject, revoke and deletion paths; prove rejected/unapproved content never reaches the optimizer.
 8. Test package/window mismatch, password fields, app exclusion, consent revocation during capture, process restart and queue replay.
 
-### P0-D — Vocabulary growth and optimizer-state shape (additional critical finding)
+### P0-D — Detailed evidence and acceptance gate for AUD-013 vocabulary/optimizer-state shape
 
 **Severity:** CRITICAL  
 **Evidence:** `Tokenizer.encode(autoRegister = true)`, `ArgusNeuralEngine.ensureVocabCapacity()`, `trainStep()`
