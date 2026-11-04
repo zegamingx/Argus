@@ -4,6 +4,8 @@
 
 This directory is the engineering source of truth for Argus planning. It distinguishes accepted design direction, current repository facts, unresolved research and future implementation. A design document does not prove a capability exists in the application.
 
+The repository-wide authority and change-control rules are defined in [44 — Documentation Governance and Change Control](44_DOCUMENTATION_GOVERNANCE_AND_CHANGE_CONTROL.md). The numbered files remain physically flat and stable; the workstream grouping below is for navigation and ownership, not a directory migration.
+
 ## Project vision
 
 Argus is a personal, local-first intelligence intended to be created on the user's Android device and to evolve independently through local learning and explicitly authorized personal experience.
@@ -37,7 +39,23 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 9. **No cross-instance learning:** no model, gradient, optimizer state or personal training data is shared between user instances.
 10. **No unsupported product claims:** the current app remains an early prototype until tests establish the documented behavior.
 
-## Document map
+## Logical workstreams
+
+| Workstream | Documents | Responsibility |
+|---|---|---|
+| Product charter and system boundaries | 01–02 | Requirements, accepted decisions and system flows |
+| Hardware, runtime and platform evidence | 03–08, 12 | Processor/GPU/NPU, SoC, memory, runtime and platform constraints |
+| Model, learning, safety and verification foundations | 09–15 | Model, training, knowledge, governance, performance and verification |
+| Program control and implementation truth | 16–19 | Roadmap, research register, repository baseline, implementation audit and P0 remediation |
+| Genesis and core learning direction | 20–23 | Initial model creation, device adaptation, general/personal learning and architecture research |
+| Knowledge acquisition and corpus governance | 24–32 | Discovery, domain coverage, source rights, corpus candidates and device-adaptive acquisition |
+| Feasibility and pre-implementation foundations | 33–37 | From-scratch feasibility, tokenizer, Android evidence, module/lifecycle contracts and optimizer research |
+| Architecture comparison and G4 preparation | 38–43 | Cross-family synthesis, component/init/state/tensor contracts and G4 framework |
+| Documentation governance | 44 | Document authority, evidence/status semantics and change control |
+
+The grouping is descriptive only. Each document retains its own declared scope and the authority rules in document 44.
+
+## Complete document index
 
 | Document | Scope |
 |---|---|
@@ -84,6 +102,7 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 | [41 — Recurrent State and Chunked-Training Lifecycle Contracts](41_RECURRENT_STATE_AND_CHUNKED_TRAINING_CONTRACTS.md) | Mamba-2 dual-state buffers, RWKV-7 WKV/shift state, chunk/BPTT semantics, document resets and atomic recurrent-state recovery |
 | [42 — Architecture-Family Tensor and Operator Inventory](42_ARCHITECTURE_TENSOR_AND_OPERATOR_INVENTORY.md) | Symbolic parameter shapes, forward/backward operators, vocabulary/logit and inference-state memory formulas for Transformer, Mamba-2, RWKV-7 and hybrid profiles |
 | [43 — G4 Architecture Decision and Device-Profile Contract](43_G4_ARCHITECTURE_DECISION_AND_PROFILE_CONTRACT.md) | Hard-gate/compare method, immutable model-profile schema, multi-profile portfolio decision and G4 ADR acceptance checklist |
+| [44 — Documentation Governance and Change Control](44_DOCUMENTATION_GOVERNANCE_AND_CHANGE_CONTROL.md) | Document authority, repository structure, evidence/status rules, ADR process and documentation-only change control |
 
 ## Status vocabulary
 
@@ -98,6 +117,6 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 
 ## Change control and completion
 
-Material decisions belong in [01 — System Requirements and Decisions](01_SYSTEM_REQUIREMENTS_AND_DECISIONS.md). Unresolved questions belong in [16 — Roadmap and Research Register](16_ROADMAP_RESEARCH_REGISTER.md). Detailed Genesis, device adaptation, corpus, architecture, autonomous acquisition, knowledge-domain, source-connector, source-candidate, open-text, curated seed, domain-balanced text, Indonesian OER, device-adaptive acquisition, from-scratch feasibility, tokenizer, component-level Android architecture, cross-system implementation contracts, optimizer research, G2 synthesis, Transformer component comparisons, initialization/width-scaling research and recurrent-state lifecycle contracts are maintained in documents 20–43.
+Material decisions belong in [01 — System Requirements and Decisions](01_SYSTEM_REQUIREMENTS_AND_DECISIONS.md). Unresolved questions and phase/gate status belong in [16 — Roadmap and Research Register](16_ROADMAP_RESEARCH_REGISTER.md). Repository-wide authority, evidence, status and change rules belong in [44 — Documentation Governance and Change Control](44_DOCUMENTATION_GOVERNANCE_AND_CHANGE_CONTROL.md). Detailed Genesis, device adaptation, corpus, architecture, autonomous acquisition, knowledge-domain, source-connector, source-candidate, open-text, curated seed, domain-balanced text, Indonesian OER, device-adaptive acquisition, from-scratch feasibility, tokenizer, component-level Android architecture, cross-system implementation contracts, optimizer research, G2 synthesis, Transformer component comparisons, initialization/width-scaling research and recurrent-state lifecycle contracts are maintained in documents 20–43.
 
 The documentation phase ends only when requirements, architecture, model and tokenizer research, corpus governance, resource budgets, cross-system module/lifecycle contracts, verification strategy and cross-document consistency have been reviewed. The contracts in document 36 are a proposed baseline and remain subject to ADR reconciliation and explicit closure of their open bindings. Passing that gate authorizes an implementation-plan review only. It does not automatically authorize coding, builds or workflow execution.
