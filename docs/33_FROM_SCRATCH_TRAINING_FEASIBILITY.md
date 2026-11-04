@@ -85,6 +85,101 @@ The supplied “I/O-Cool” reference and its claimed 90–100% compliance resul
 
 Re-entry requires an exact title, authors, venue/archive identifier, canonical URL and the methodology supporting the claim.
 
+### 3.9 Android smartphone and mobile-GPU prior art
+
+The sources below extend the initial evidence set with studies that explicitly use physical smartphones, Android-compatible runtimes or production mobile language-model systems. They materially strengthen the evidence base for on-device fine-tuning and runtime engineering. They do **not** establish broad language-model pretraining from random initialization on one Android phone.
+
+#### 3.9.1 PocketLLM — physical smartphone fine-tuning with derivative-free optimization
+
+[**PocketLLM: Enabling On-Device Fine-Tuning for Personalized LLMs**](https://aclanthology.org/2024.privatenlp-1.10/), PrivateNLP 2024, evaluates local fine-tuning on an OPPO Reno 6 smartphone. The authors report roughly 4 GB memory for RoBERTa-large and 6.5 GB for OPT-1.3B using derivative-free optimization.
+
+This is single-device smartphone evidence for a memory-reduced optimization path, but it is fine-tuning of already trained models. Derivative-free optimization avoids conventional gradient/optimizer-state storage but has different convergence and compute trade-offs; its memory result must not be interpreted as equivalent to full backpropagation training from random initialization.
+
+**Argus relevance:** retain as a low-memory optimizer alternative to study. Do not assume its convergence, throughput or quality is suitable for general foundation learning.
+
+#### 3.9.2 MobileFineTuner — native C++ LLM fine-tuning with Android devices
+
+[**MobileFineTuner: A Mobile-Native Framework for On-Device LLM Fine-Tuning**](https://arxiv.org/abs/2512.08211) presents a native C++ mobile training framework with full-parameter and PEFT examples, parameter sharding, gradient accumulation, activation checkpointing, memory-efficient attention and energy-aware scheduling.
+
+Its device table includes a Huawei P50 Pro running Android 11 with Kirin 9000 and 8 GB RAM, and an iQOO 15 running Android 16 with Snapdragon 8 Elite Gen 5. It also includes a HarmonyOS device and a MacBook, which must not be counted as Android devices. The documented framework supports Android 9+ (API 28+). Its application case study locally adapts Qwen2.5-0.5B using personal health-derived QA samples; the selected base weights are pretrained.
+
+**Argus relevance:** this is one of the closest Android-native training references. Study its C++ execution path, parameter paging/sharding, accumulation semantics, memory instrumentation, power measurement and model/operator integration. Its fine-tuning results do not prove random-init pretraining. Its device results also do not establish compatibility with every SoC, Android version or Argus architecture.
+
+#### 3.9.3 Confidant — collaborative training across mobile devices
+
+[**Confidant: Customizing Transformer-based LLMs via Collaborative Training on Mobile Devices**](https://doi.org/10.1145/3680207.3723487), ACM MobiCom 2025, partitions a pretrained LLM into submodels and uses pipeline-parallel collaboration across heterogeneous devices. The paper evaluates BERT-Base and GPT-2 Medium using mobile phones; its larger Phi-2-2.7B experiment uses one phone plus two laptops, not three phones. Intermediate activations and gradients are exchanged between devices even though raw training records are not shared.
+
+This is collaborative fine-tuning, not independent single-device learning. The paper itself identifies mobile memory pressure and heterogeneous compute as reasons for splitting the model.
+
+**Argus relevance:** useful for model partitioning, heterogeneous scheduling and fault-tolerance research. The cross-device activation/gradient exchange and shared training workflow conflict with Argus's accepted independent-instance boundary and are not an Argus training baseline.
+
+#### 3.9.4 FBLayout — Transformer fine-tuning on Adreno and Mali mobile GPUs
+
+[**FBLayout: Optimizing Memory Layout for Efficient LLM Finetuning on Mobile GPUs**](https://arxiv.org/abs/2607.21624), ACM MobiSys 2026, co-designs tensor layout and forward/backward execution for mobile GPUs. Its physical-device evaluation uses three smartphones: OnePlus Ace5 Pro (Snapdragon 8 Elite / Adreno 830 / 16 GB), OnePlus Ace10 Pro (Snapdragon 8 Gen 1 / Adreno 730 / 12 GB), and OnePlus Ace5 Ultra (Dimensity 9400+ / Mali Immortalis-G925 / 16 GB). The authors report 2.2–5.7× speedups over the evaluated MNN, TFLite and TVM baselines across seven Transformer models.
+
+The measured gain is specific to the paper's layouts, operators, devices and baselines. FBLayout is a forward/backward memory-layout optimization for pretrained-model fine-tuning; it does not demonstrate random-init language pretraining, and its throughput numbers are not transferable Argus targets.
+
+**Argus relevance:** high priority for the Android GPU runtime research track. Extract the mobile GPU memory-access and tensor-layout constraints; separately verify licensing, code availability, operator coverage and applicability to the eventual Argus architecture.
+
+#### 3.9.5 Gboard — production-scale on-device language-model adaptation through federated learning
+
+Google's [**Advances in private training for production on-device language models**](https://research.google/blog/advances-in-private-training-for-production-on-device-language-models/) describes more than 30 deployed Gboard neural language models across 7+ languages and 15+ countries. Client devices compute updates from local data, while federated learning aggregates updates and differential privacy is applied. The article states that the models are pretrained using multilingual C4 before federated client training.
+
+This is important production evidence that mobile-device language-model training can work at scale with explicit privacy controls. It is not from-scratch training on each phone, and the server-coordinated aggregation/model lifecycle is outside Argus's independent-per-installation design.
+
+**Argus relevance:** privacy accounting, client resource budgeting, consent, contribution frequency, update clipping and observable training policy are useful references. Federated aggregation and shared model weights are not to be adopted without changing the accepted product boundary.
+
+#### 3.9.6 Online-SDFT — standalone Android continual-learning proof of concept
+
+The [Online-SDFT project](https://lin826.github.io/SLM-Online-SDFT/) and its [Android demonstration](https://github.com/lin826/SLM-Online-SDFT) provide an engineering proof of concept in which a physical Android app runs a local learning loop. A frozen pretrained LiquidAI/LFM2.5-230M base makes decisions; ONNX Runtime Training updates a rank-4 LoRA adapter from later feedback. Replay and adapter checkpoints are kept in app-private storage and persist across restarts; the project reports a no-network phone demonstration.
+
+This is a useful example of local adapter update, Android integration and checkpointed continual-learning behavior. The base model remains pretrained and frozen; model export/provisioning is performed on a Linux host; the current FP32 graph targets high-memory ARM64 devices. Its project page explicitly says Android latency, peak memory, battery, thermal behavior and background-job reliability have not been measured, and its synthetic evaluation is narrow.
+
+**Argus relevance:** study the lifecycle, replay, delayed-feedback and local adapter persistence pattern for future personal learning. It is not evidence of general foundation learning or a validated production training runtime.
+
+#### 3.9.7 XPerT — mobile personalization with a cloud model cache
+
+[**Never Start from Scratch: Expediting On-Device LLM Personalization via Explainable Model Selection**](https://doi.org/10.1145/3711875.3729132), ACM MobiSys 2025, evaluates smartphone personalization using already personalized/pretrained LLMs. Its workflow uploads personalized model states to a cloud cache and retrieves a suitable cached model for subsequent users.
+
+This work is useful for data-efficiency and model-selection questions, but it is not local-only independent evolution. It must not be interpreted as from-scratch training or adopted as an Argus cross-instance model-sharing mechanism.
+
+#### 3.9.8 Prism — recent mobile LLM fine-tuning publication; technical audit pending
+
+[**Prism: Efficient Zeroth-Order Fine-Tuning for On-Device LLMs**](https://doi.org/10.1145/3795866.3844151) is listed in the ACM MobiCom 2026 program and proceedings metadata (published 2026-10-26). Its title and venue identify it as on-device zeroth-order LLM fine-tuning. The full technical text was not available for detailed verification in this review.
+
+Record it as **PRIMARY-PAPER AUDIT PENDING**. Do not use numerical results, device compatibility, optimizer details or claims of standalone execution until the complete paper and experimental setup have been inspected.
+
+### 3.10 What the Android prior art changes — and what it does not
+
+| Area | Evidence after the expanded Android review | Argus decision implication |
+|---|---|---|
+| Native Android LLM fine-tuning | Demonstrated by MobileFineTuner on named Android devices; additional single-phone and collaborative approaches exist | Do not design the training runtime as if Android fine-tuning were an unexplored problem |
+| Mobile GPU training kernels | FBLayout reports Transformer fine-tuning across Adreno and Mali phone GPUs | Mobile GPU backward/layout optimization deserves a first-class architecture/runtime assessment |
+| Local continual personalization | Online-SDFT has a standalone Android LoRA/checkpoint proof of concept | Local personal adaptation is technically plausible with a trained base and narrow workload |
+| Production mobile language-model updates | Gboard documents federated, differentially private training at production scale | Mobile model updates are production-proven, but this is a federated lifecycle, not Argus's independent local generation |
+| Heterogeneous/collaborative training | Confidant and related work investigate collaboration/resource heterogeneity | Useful systems research; collaborative aggregation or cross-device state exchange conflicts with Argus's current identity boundary |
+| Broad general-language pretraining from local random initialization on one Android device | No reviewed primary source above demonstrates this complete workload | **Still unproven**; this is the remaining Argus-specific feasibility question |
+
+### 3.11 Reusable engineering techniques versus incompatible system assumptions
+
+**Candidates to study and selectively adapt after correctness/licensing review:**
+- Native C++ training runtime and explicit operator contracts.
+- Parameter sharding/paging and bounded storage I/O.
+- Gradient accumulation with unambiguous optimizer-update semantics.
+- Activation checkpointing/recomputation and memory-aware attention.
+- Mobile GPU-specific tensor layouts, cache-aware kernels and data-movement reduction.
+- Energy-aware scheduling and thermal-status response.
+- RSS/native-memory/power observability and durable local checkpoints.
+- Local replay buffers and delayed-feedback learning for the separate personal-learning path.
+
+**Not part of the accepted Argus baseline:**
+- Federated aggregation or shared general model updates across installations.
+- Cross-user or cross-device gradient/activation exchange.
+- Cloud-assisted backward computation or server-side adapter/model selection.
+- Pretrained foundation weights used as the Genesis origin.
+
+A technique must be evaluated separately from the system topology in which a paper deploys it. Reusing a memory optimization does not require adopting that paper's federated, collaborative or cloud-assisted data/model lifecycle.
+
 ## 4. Claim ledger
 
 | ID | Claim | Evidence position | Argus status |
@@ -98,6 +193,15 @@ Re-entry requires an exact title, authors, venue/archive identifier, canonical U
 | C-07 | Broad general-purpose from-scratch pretraining is feasible on Argus target Android devices | No reviewed source establishes this complete claim | **UNPROVEN — E1–E7 REQUIRED** |
 | C-08 | Server-assisted side-tuning is compatible with Argus local-only training | MobiLLM delegates part of training computation to a server | **REJECTED FOR THE BASELINE** |
 | C-09 | I/O-Cool has a verified 90–100% compliance result relevant to Argus | No matching primary source identified in this pass | **UNVERIFIED / EXCLUDED** |
+| C-10 | Native C++ LLM fine-tuning can run on physical Android smartphones | MobileFineTuner documents Android 9+ support and evaluates a Huawei P50 Pro on Android 11 and iQOO 15 on Android 16 with pretrained-model fine-tuning | **SUPPORTED, CATEGORY B** — Android runtime evidence, not from-scratch foundation training |
+| C-11 | Transformer fine-tuning kernels can be accelerated on mobile Adreno and Mali GPUs | FBLayout evaluates three named smartphones across Adreno 830, Adreno 730 and Mali Immortalis-G925 | **SUPPORTED, WORKLOAD-LIMITED** — paper-specific layout/runtime speedups; not a transferable Argus performance target |
+| C-12 | A standalone Android app can update a local language-model adapter without network access | Online-SDFT provides a physical-device Android proof of concept with a frozen pretrained base and local LoRA/ONNX Runtime Training updates | **SUPPORTED, PROTOTYPE-LIMITED** — does not establish broad training, thermal/energy or production lifecycle readiness |
+| C-13 | Mobile language-model updates are production proven at scale | Gboard reports 30+ NWP LMs using federated learning and formal differential privacy, after multilingual C4 pretraining | **SUPPORTED, FEDERATED/CATEGORY B** — not independent local Genesis or standalone per-installation training |
+| C-14 | A multi-billion parameter LLM can be fine-tuned collaboratively across mobile devices | Confidant demonstrates partitioned collaborative fine-tuning; its Phi-2.7B run uses one phone and two laptops, while smaller model runs use phones | **SUPPORTED, COLLABORATIVE CATEGORY B** — cross-device activation/gradient exchange conflicts with Argus instance isolation |
+| C-15 | Derivative-free optimization can reduce memory for on-device LLM fine-tuning | PocketLLM reports OPPO Reno 6 smartphone fine-tuning for pretrained RoBERTa-large and OPT-1.3B | **SUPPORTED, CATEGORY B** — convergence/compute trade-off must be measured separately |
+| C-16 | Smartphone LLM personalization can use cached personalized models selected via a server | XPerT uses cloud-cached personalized models and on-device fine-tuning | **SUPPORTED, SERVER-ASSISTED** — not a local-only Argus baseline |
+| C-17 | Prism demonstrates a specific on-device fine-tuning technique and numeric result | MobiCom 2026 program/proceedings metadata verifies the publication; full paper text was not audited in this pass | **PRIMARY-PAPER AUDIT PENDING** — no numeric or device claims may be adopted yet |
+
 
 The ledger describes published evidence, not Argus implementation status. A category cannot be upgraded without a manifest identifying the exact weights, data, model, device and measurement protocol.
 
@@ -229,4 +333,13 @@ No answer is selected here.
 | E-013 | [Android PowerManager API](https://developer.android.com/reference/android/os/PowerManager) | Thermal-status query/listener, API 29+ |
 | E-014 | [Android memory management](https://developer.android.com/topic/performance/memory/manage-app-memory) and [app memory budgets](https://developer.android.com/topic/performance/memory/app-memory-budgets) | Process memory and process-state budget evidence |
 
-**Final position:** narrow learning is worth testing; mobile fine-tuning has stronger direct evidence than from-scratch mobile language pretraining; runtime optimization helps but does not replace data, capacity or compute; thermal and energy are first-class constraints. Broad general-purpose from-scratch training on Argus target Android devices remains an open hypothesis until E1–E7 pass on named physical devices.
+| E-026 | [PocketLLM: Enabling On-Device Fine-Tuning for Personalized LLMs](https://aclanthology.org/2024.privatenlp-1.10/), PrivateNLP 2024 | OPPO Reno 6 smartphone fine-tuning with derivative-free optimization | Pretrained RoBERTa-large and OPT-1.3B; memory result does not prove from-scratch training or gradient-based convergence |
+| E-027 | [Confidant: Customizing Transformer-based LLMs via Collaborative Training on Mobile Devices](https://doi.org/10.1145/3680207.3723487), ACM MobiCom 2025 | Pipeline-parallel collaborative pretrained-LLM fine-tuning across mobile/edge devices | Cross-device activation/gradient exchange; Phi-2.7B run uses one phone and two laptops |
+| E-028 | [FBLayout: Optimizing Memory Layout for Efficient LLM Finetuning on Mobile GPUs](https://arxiv.org/abs/2607.21624), ACM MobiSys 2026 | Transformer fine-tuning layout optimization on named Adreno/Mali smartphones | Fine-tuning runtime result, not from-scratch learning; speedups are implementation/device-specific |
+| E-029 | [Advances in private training for production on-device language models](https://research.google/blog/advances-in-private-training-for-production-on-device-language-models/), Google Research 2024 | Production Gboard language-model client training, federated aggregation and differential privacy | Multilingual C4 pretraining precedes federated user-data training; not independent local Genesis |
+| E-030 | [Online-SDFT Android proof of concept](https://github.com/lin826/SLM-Online-SDFT), project materials 2026 | Physical Android local LoRA update loop, replay and adapter checkpoint persistence | Frozen pretrained LFM2.5-230M base, host-side export/provisioning, synthetic/narrow evaluation and missing Android thermal/energy measurements |
+| E-031 | [Never Start from Scratch: Expediting On-Device LLM Personalization via Explainable Model Selection](https://doi.org/10.1145/3711875.3729132), ACM MobiSys 2025 | Smartphone personalization and data-efficiency/model-selection research | Cloud model cache and model exchange; not local-only independent training |
+| E-032 | [Prism: Efficient Zeroth-Order Fine-Tuning for On-Device LLMs](https://doi.org/10.1145/3795866.3844151), ACM MobiCom 2026 | Publication identity and topic verified from conference/program metadata | Full paper/method/device results not yet audited; no quantitative claims accepted |
+| E-033 | [On-device Training: A First Overview on Existing Systems](https://doi.org/10.1145/3696003), ACM Transactions on Sensor Networks 2024 | Broad system taxonomy for resource-constrained on-device training | Survey across mixed device classes and DNN tasks; not proof of broad Android LLM pretraining |
+
+**Final position:** Android research already demonstrates practical LLM fine-tuning, local adapter updates, mobile GPU backward/layout optimization, and production federated language-model adaptation. Argus should reuse the established engineering lessons instead of rediscovering them. However, these results primarily use pretrained models, adaptation objectives, or collaborative/federated topologies. Broad general-purpose language pretraining from random initialization on one independent Android installation remains unproven. E1–E7 should therefore be narrowed to Argus-specific unknowns, not treated as a request to repeat published systems research.
