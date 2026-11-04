@@ -1,0 +1,330 @@
+# Argus Android Source-Tree Ownership and Dependency Audit
+
+**Status:** Static structural audit complete for inspected source tree; remediation not authorized  
+**Audit date:** 2026-11-04  
+**Repository:** `zegamingx/Argus` · **Branch:** `main`  
+**Audit baseline:** `24b26b061574700d82fecd5c2a1485353333cef8`  
+**Scope:** Production Kotlin files, Android manifest, source sets, resources, Gradle topology/configuration and file-to-target ownership  
+**Authority:** Observed source facts and structural findings for this snapshot. Target package rules remain in document 45; logical subsystem contracts remain in document 36.  
+**Boundary:** Static repository inspection only. No source file was moved, created or modified; no Gradle configuration was changed; no build, test, workflow or device experiment was run.
+
+## 1. Executive result
+
+The inspected Android project is a single-module prototype. Its package names identify broad areas, but the current structure does not enforce the boundaries described by the architecture and lifecycle contracts.
+
+The main structural findings are:
+
+- `ArgusViewModel` directly reaches chat, neural execution, training, memory, hardware, file import, network search, app exclusion and AccessibilityService actions.
+- `TrainingManager` combines queue state, worker lifecycle, device admission, model execution and memory updates.
+- `ArgusNeuralEngine` combines numerical execution, tokenizer mutation, benchmark reporting and Android checkpoint file I/O.
+- `model/TrainingManager` imports `sensor.DeviceGuard`, reversing intended dependency direction.
+- Android services access global objects through `ArgusApp`; AccessibilityService also exposes a static live-instance action path.
+- Compose screens directly use CameraX, Android settings/permission APIs and platform service classes.
+- The single test file does not represent most documented subsystem boundaries.
+
+**Recommendation:** retain one Gradle application module during the first package-boundary migration. Establish package ownership and dependency direction first. Extract Gradle modules only after stable APIs and concrete build/test/ABI boundaries exist. Creating many empty modules now would add complexity without proving the boundaries are correct.
+
+This is a static structural audit, not a mathematical correctness, privacy-compliance, API deprecation or product-readiness audit. Those remain governed by documents 15 and 17–19 and the relevant technical contracts.
+
+## 2. Baseline and method
+
+The recursive Git tree and production Kotlin files were inspected at `main` commit `24b26b061574700d82fecd5c2a1485353333cef8`. The preceding project-structure commits changed documentation and repository guidance only.
+
+The audit read package declarations/imports/top-level declarations, direct references in principal orchestrator/service classes, Android manifest registrations, Gradle settings/catalog/build scripts, the existing test file and the Android resource tree.
+
+This is a static dependency audit. It identifies declared imports, direct references, manifest registrations and Gradle declarations. It does not prove every dynamic call path, reflection-based use or Android runtime behavior. No build or test result is claimed.
+
+## 3. Current physical project layout
+
+```text
+Argus/
+├── .gitignore
+├── CONTRIBUTING.md
+├── LICENSE / NOTICE / SECURITY.md
+├── README.md
+├── settings.gradle.kts
+├── build.gradle.kts
+├── gradle.properties
+├── gradle/
+│   ├── libs.versions.toml
+│   └── wrapper/
+├── app/
+│   ├── build.gradle.kts
+│   ├── proguard-rules.pro
+│   └── src/
+│       ├── main/
+│       │   ├── AndroidManifest.xml
+│       │   ├── java/com/argus/agi/
+│       │   │   ├── ArgusApp.kt
+│       │   │   ├── MainActivity.kt
+│       │   │   ├── model/
+│       │   │   ├── sensor/
+│       │   │   ├── service/
+│       │   │   └── ui/
+│       │   └── res/
+│       └── test/java/com/argus/agi/
+│           └── ArgusAppRobolectricTest.kt
+├── docs/
+│   └── engineering documents
+└── public/assets/argus_icon.png
+```
+
+| Item | Current state |
+|---|---|
+| Gradle project name | `A.R.G.U.S` |
+| Included modules | `:app` only |
+| Namespace/application ID | `com.argus.agi` |
+| Native Android source | No `src/main/cpp/` in inspected tree |
+| Unit-test source | One Kotlin test file |
+| Checked-in instrumentation tests | No `app/src/androidTest/` files |
+| Separate core/data/platform/engine modules | None |
+| Benchmark module | None |
+| Version catalog | `gradle/libs.versions.toml` |
+
+A one-module prototype is not automatically wrong. The limitation is that package dependencies compile inside one application module and are enforced only by convention.
+
+## 4. File-by-file ownership audit
+
+Target paths below refer to document 45. They are design destinations, not existing folders or move instructions.
+
+### 4.1 Application entry and navigation
+
+| Current file | Current responsibility | Target owner | Finding |
+|---|---|---|---|
+| `ArgusApp.kt` | Application subclass, notification-channel setup, global lazy objects for engine, world model, device guard, hardware profile and training manager | `app/bootstrap` | Correct entry ownership, but static companion properties act as a global service locator. Future construction should be app-owned and passed through explicit dependencies/facades. DI framework choice remains open. |
+| `MainActivity.kt` | Activity, `ArgusScreen`, `MainScreen`, bottom navigation, Compose root and runtime permission requests | `app` + `navigation` | Route definitions and screen selection are embedded in the Activity. Move route ownership out during an authorized refactor; keep Activity-specific permission launchers at the platform/UI edge. |
+
+### 4.2 Current `model/` package
+
+| Current file | Current responsibility | Target owner | Finding |
+|---|---|---|---|
+| `model/ArgusNeuralEngine.kt` | `BenchmarkResult`, model parameters, forward/training/generation, benchmark and checkpoint load/save | `engine/reference`; contracts in `core/model`, `core/inference`, `core/training`; persistence in `data/model` | Combines numerical execution, tokenizer growth, benchmark reporting and Android `Context`/file I/O. High-priority ownership split. Experimental, not a selected production engine. |
+| `model/Tokenizer.kt` | `Tokenizer`, special-token inventory, token maps, encode/decode and token registration | `core/tokenizer` contract + selected `engine/tokenizer` implementation | Tokenizer identity/API must be distinct from implementation. Mutable runtime vocabulary registration remains gated by G1-D; do not freeze it through a package move. |
+| `model/TrainingManager.kt` | `TrainingStatus`, `TrainingData`, queue/state flows, coroutine worker, device-safety check, neural step and world-model update | `application/orchestration` + `core/training`; scheduler in `platform/android/lifecycle`; numerical step in `engine` | Mixes orchestration, queue state, resource admission and numerical execution. Imports `sensor.DeviceGuard`, reversing intended dependency direction. |
+| `model/WorldModel.kt` | `WorldEntity`, `ReflectionEvaluation`, in-memory entities, screen/camera context and response reflection | `core/knowledge` + `data/knowledge`; updates through application use cases | Memory/knowledge concept sits in `model/` and accepts Android `Context`. Domain records/policy and durable repository ownership are not separated. |
+
+### 4.3 Current `sensor/` package
+
+| Current file | Current responsibility | Target owner | Finding |
+|---|---|---|---|
+| `sensor/DeviceGuard.kt` | `DeviceSafetyState`, battery broadcasts, charging/power observations and training-safety flow | `platform/android/device` + `core/device`/application admission | Android broadcast code is platform-specific. Stable hardware capability and short-lived runtime conditions must be separate contracts. |
+| `sensor/HardwareProfile.kt` | `SystemHardwareInfo`, Android system properties, SoC/CPU heuristics and Vulkan feature flag | `platform/android/device` | Platform ownership is appropriate, but output is heuristic identification rather than verified GPU/NPU execution capability. Core capability records belong in `core/device`. |
+| `sensor/ExcludedAppsManager.kt` | `InstalledAppItem`, installed-app enumeration and exclusion state | `platform/android/capture` + policy-backed repository as required | Mixes PackageManager metadata with user exclusion state. Separate platform discovery, preference persistence and policy decisions. |
+| `sensor/WebSearchEngine.kt` | `SearchResultItem`, OkHttp requests to public search endpoints and result parsing | `core/acquisition` + `data/acquisition` | Concrete network transport/parser is misclassified as a sensor. It must not own source permission, retention or training eligibility. |
+
+### 4.4 Current `service/` package
+
+| Current file | Current responsibility | Target owner | Finding |
+|---|---|---|---|
+| `service/ArgusAccessibilityService.kt` | Accessibility events/node traversal, exclusion checks, screen-context forwarding and training enqueue | `platform/android/capture` | Directly constructs `ExcludedAppsManager`, accesses `ArgusApp.worldModel/trainingManager`, and exposes static live-instance click actions. Future integration should use app-owned capture/action facades and explicit policy checks. |
+| `service/ArgusForegroundService.kt` | Foreground notification, service actions, periodic notification refresh and pause/resume | `platform/android/lifecycle` + `platform/android/notification` | Directly reads global training/device/hardware objects and controls the concrete manager. It should observe an application-owned session facade; scheduling and training policy remain separate. |
+
+### 4.5 Current `ui/` package
+
+| Current file | Current responsibility | Target owner | Finding |
+|---|---|---|---|
+| `ui/ArgusViewModel.kt` | `ChatMessage`, chat/generation, training, benchmark, file/image import, camera context, web search, accessibility click, app exclusion and UI state flows | Split into `feature/*/presentation`; workflows in `application` | Highest-priority presentation coupling. It creates concrete services and directly reaches engine, memory, training, ContentResolver, Bitmap decoding, web search and AccessibilityService. Split into feature state holders; UI should depend on use-case contracts. Avoid exposing Android `Uri` as a core contract. |
+| `ui/screens/ChatScreen.kt` | Chat rendering, message item, attachment picker, clipboard and Toast | `feature/chat/presentation` | Feature ownership is clear. Keep picker/clipboard interaction at the presentation edge; decoding, conversation orchestration and model work belong behind use cases. |
+| `ui/screens/NeuralCoreScreen.kt` | Training status, queue cards, metrics and loss chart | `feature/neuralcore/presentation` | Imports `TrainingData` from `model/`, coupling UI to an implementation DTO. Replace with stable UI state/domain projections. |
+| `ui/screens/PerceptionScreen.kt` | Perception UI, permissions, CameraX provider/analysis/preview, Android settings and accessibility state | `feature/perception/presentation` + `platform/android/capture` | Direct CameraX lifecycle integration and import of `ArgusAccessibilityService` cross the feature/platform boundary. Preview may be hosted by UI; capture/session ownership and service state should be exposed through contracts. |
+| `ui/screens/SkillsAndSettingsScreen.kt` | Settings, app exclusion, Context/Intent/PowerManager and Android settings actions | `feature/settings/presentation` + platform/policy use cases | Power/settings intents and exclusion operations are embedded in the screen. Route platform actions through typed contracts; screen renders state and dispatches intent. |
+| `ui/theme/Color.kt` | Color tokens | `ui/design` | Shared design-system ownership. |
+| `ui/theme/Theme.kt` | Compose theme and system-bar integration | `ui/design` with Activity/window host boundary | Theme belongs in shared design; window-specific effects remain at Android host boundary. |
+| `ui/theme/Type.kt` | Typography | `ui/design` | Shared design-system ownership. |
+
+## 5. Manifest, resources and tests
+
+The manifest registers `.ArgusApp`, the exported launcher `.MainActivity`, a non-exported foreground service and the AccessibilityService with its binding permission and XML metadata. It declares INTERNET, ACCESS_NETWORK_STATE, CAMERA, POST_NOTIFICATIONS, FOREGROUND_SERVICE, FOREGROUND_SERVICE_DATA_SYNC, FOREGROUND_SERVICE_SPECIAL_USE, WAKE_LOCK, REQUEST_IGNORE_BATTERY_OPTIMIZATIONS and VIBRATE permissions; camera hardware is optional.
+
+The app module manifest remains the packaging/registration authority. Moving an Application or service class requires coordinated FQCN and manifest review. The manifest does not justify placing service behavior in domain code.
+
+The audited resource set includes launcher/vector drawables, mipmap icons, strings, a platform Activity theme, AccessibilityService configuration, backup rules and data-extraction rules. The named manifest XML resource references exist in the inspected tree.
+
+The root-level `public/assets/argus_icon.png` is separate from Android resources. Its consumer is unresolved; do not move or duplicate it until an actual consumer is identified.
+
+There is one test file: `app/src/test/java/com/argus/agi/ArgusAppRobolectricTest.kt`. Its class is named `ArgusAppUnitTest`, imports the current `model.Tokenizer`, and contains two tokenizer tests. It does not currently represent an application lifecycle test despite the filename. No checked-in `androidTest` source was found.
+
+The visible test gap includes core policy, model identity, numerical reference operations, training lifecycle/recovery, data transactions, Android services and feature UI contracts.
+
+## 6. Dependency-direction findings
+
+Observed direct relationships:
+
+```text
+ArgusApp
+  ├── constructs model classes
+  ├── constructs sensor classes
+  └── exposes them as global companion properties
+
+ArgusViewModel
+  ├── global ArgusApp services
+  ├── model engine/training/memory DTOs
+  ├── sensor hardware/device/search/exclusion classes
+  └── AccessibilityService static action
+
+TrainingManager
+  ├── ArgusNeuralEngine
+  ├── sensor.DeviceGuard
+  └── WorldModel
+
+ArgusAccessibilityService
+  ├── constructs ExcludedAppsManager
+  └── global ArgusApp world/training objects
+
+ArgusForegroundService
+  ├── global ArgusApp training/device/hardware objects
+  └── MainActivity for notification navigation
+
+PerceptionScreen
+  ├── CameraX and Android settings APIs
+  └── ArgusAccessibilityService
+
+SkillsAndSettingsScreen
+  └── Android Context/Intent/PowerManager APIs
+```
+
+Target logical direction:
+
+```text
+feature presentation / navigation
+              |
+              v
+      application use cases
+              |
+              v
+       core contracts/domain
+          ^      ^      ^
+          |      |      |
+        data  platform engine
+      adapters adapters adapters
+
+app composition root wires implementations to contracts.
+```
+
+The graph does not imply one Gradle module for every box.
+
+| ID | Finding | Priority | Consequence | Required design correction |
+|---|---|---|---|---|
+| STR-001 | `ArgusViewModel` spans features and directly owns service/engine/data access | HIGH | Broad blast radius; UI tests require concrete services | Split feature ViewModels; move workflows into application use cases; pass typed contracts |
+| STR-002 | `TrainingManager` combines queue, worker, device admission, engine and memory | HIGH | Training lifecycle cannot be isolated from Android/numerical implementation | Separate learning coordinator/session lifecycle, scheduler, resource admission, repositories and engine |
+| STR-003 | `ArgusNeuralEngine` owns Android Context and checkpoint file I/O | HIGH | Numerical engine is tied to Android storage | Operate on explicit model/session state; persistence belongs in `data/model` |
+| STR-004 | `model/TrainingManager` imports `sensor.DeviceGuard` | HIGH | Lower-level training depends on platform-oriented package | Define device/admission contracts in core/application; Android observations stay in platform |
+| STR-005 | Services access global `ArgusApp` objects; AccessibilityService has a static instance path | HIGH | Platform entry points bypass explicit dependency/lifecycle boundaries | Application-owned service facades, explicit lifecycle and policy checks |
+| STR-006 | Perception/settings screens directly use CameraX, Android settings and service implementation | MEDIUM | Feature presentation is coupled to platform internals | Platform adapters and application-facing contracts |
+| STR-007 | `WorldModel` is in `model/` and accepts Android Context | MEDIUM | Knowledge domain and persistence are conflated | Split domain contracts from data repository/platform updates |
+| STR-008 | `HardwareProfile` and `DeviceGuard` are both in `sensor/` | MEDIUM | Stable capability and transient conditions risk conflation | Separate core records and platform observation providers |
+| STR-009 | `WebSearchEngine` is in `sensor/` | MEDIUM | Connector transport is misclassified | Connector in data/acquisition; policy/job contracts in core/application |
+| STR-010 | One test file covers two tokenizer checks; filename/class imply a different scope | HIGH | Domain, lifecycle, persistence and platform contracts lack visible test representation | Establish package-mirrored tests by contract |
+| STR-011 | Large feature screens contain platform integration and multiple UI responsibilities | MEDIUM | Presentation code has a broad change surface | State-driven UI; split platform ownership by responsibility |
+| STR-012 | No native source/module exists | INFORMATIONAL | Research intent could be mistaken for current capability | Add native boundary only after architecture/operator/ABI contracts |
+
+Priority describes structural risk and migration order, not proof of a crash or functional defect.
+
+## 7. Build and dependency topology
+
+### 7.1 Gradle module recommendation
+
+**Do not split Gradle modules yet.** Correct package ownership and stable interfaces first, inside the existing `:app` module.
+
+Candidate extraction sequence, not approved module IDs:
+
+| Order | Candidate boundary | Reason | Prerequisite |
+|---|---|---|---|
+| 1 | `:core:domain` or smaller pure-Kotlin core contracts | Enforce Android-free contracts and identity/policy types | Package APIs stabilize |
+| 2 | `:application` | Isolate use cases/lifecycle orchestration | Contracts and composition accepted |
+| 3 | `:data:local` | Isolate Room/file persistence, generations, corpus and knowledge repositories | Storage, encryption, schema and deletion contracts closed |
+| 4 | `:platform:android` | Isolate services, capture, scheduling, device and notification adapters | Android lifecycle/permission contracts stable |
+| 5 | `:engine:api` + `:engine:reference` | Independently test numerical contracts/reference implementation | Model, tokenizer and operator contracts selected |
+| 6 | `:engine:native` | Isolate NDK/CMake/JNI and ABI-specific backends | G4 and native operator/ABI/memory contracts accepted |
+
+Do not create one Gradle module per screen. Feature packages may remain in `:app` until compile-time isolation or independent delivery provides measurable value.
+
+### 7.2 Build configuration observations
+
+| File | Current responsibility | Observation |
+|---|---|---|
+| `settings.gradle.kts` | Plugins/repositories, project name and included modules | Correct root ownership; only `:app` included |
+| Root `build.gradle.kts` | Root plugin aliases with `apply false` | Appropriate root role |
+| `gradle/libs.versions.toml` | Shared plugin/library versions | Correct canonical version-catalog location |
+| `gradle.properties` | Shared Gradle/Kotlin settings | Correct root configuration ownership |
+| `gradle/wrapper/gradle-wrapper.properties` | Wrapper distribution pin | Correct wrapper ownership |
+| `app/build.gradle.kts` | Android app configuration, dependencies, signing inputs and APK copy task | Mixes module configuration with repository-root export side effect |
+
+### 7.3 Implicit APK copy task
+
+The app build script declares a `CopyApkTask` that copies `app/build/outputs/apk/release/app-release.apk` to repository-root `ARGUS.apk`, then finalizes `assembleRelease` with that copy task.
+
+This conflicts with the repository rule that release export/publication must be explicit rather than an implicit side effect of assembly.
+
+**Future disposition:** remove implicit copy finalization from the standard assemble lifecycle. Provide a separately named explicit export task only if requested by the project owner. No build script was changed.
+
+### 7.4 Dependency inventory candidates
+
+The app declares Compose, Lifecycle, Navigation, CameraX, Room, Moshi, Retrofit, OkHttp, Coroutines, Accompanist permissions, Coil and test tooling.
+
+Static inspection found direct OkHttp use in `WebSearchEngine` and CameraX use in `PerceptionScreen`. No production Room database/DAO/entity, DataStore, Retrofit service or Moshi adapter declarations/imports were found in the audited Kotlin files. These become dependency-inventory review candidates; this observation alone does not authorize removal. Confirm transitive, annotation-processing, build-logic and generated use before pruning.
+
+Commented-out DataStore and Play services dependencies are not active declarations. No third-party native training backend is declared in the inspected app module.
+
+## 8. Consolidated ownership map
+
+| Current area | Target owner | Future responsibility |
+|---|---|---|
+| Application class | `app/bootstrap` | Composition root and startup |
+| Activity/navigation | `app` + `navigation` | Android entry point and destinations |
+| Broad ViewModel | `feature/*/presentation` | Feature-specific state holders |
+| Compose screens | `feature/<name>/presentation` | Render state and dispatch intent |
+| Shared theme | `ui/design` | Compose design tokens/components |
+| Neural numerical operations | `engine/reference` or quarantined legacy area | Correctness reference until selection |
+| Tokenizer contract | `core/tokenizer` | Stable API/manifest/fingerprint |
+| Concrete tokenizer | `engine/tokenizer` | Selected implementation after G1-D |
+| Training lifecycle | `application/orchestration` + `core/training` | Session coordination and lifecycle contracts |
+| Training execution | `engine` | Numerical graph implementation |
+| Device contract | `core/device` | Capability/runtime-condition records |
+| Android device observations | `platform/android/device` | Android property/battery/thermal observations |
+| Model/memory identity | `core/model`, `core/knowledge` | Domain records and invariants |
+| Model/checkpoint persistence | `data/model` | Durable manifests and checkpoint transactions |
+| Knowledge persistence | `data/knowledge` | Knowledge repository and indexes |
+| Search connector | `data/acquisition` | Source-specific network fetch and parsing |
+| Acquisition policy/job | `core/acquisition` + application | Source-operation policy and job lifecycle |
+| Accessibility/camera | `platform/android/capture` | Android capture integration |
+| Foreground scheduling/notification | `platform/android/lifecycle`, `notification` | Android job/service adapters |
+
+## 9. Recommended migration order
+
+When implementation is separately authorized:
+
+1. Establish explicit application composition; remove service access through global static objects.
+2. Define application use-case/facade contracts for chat, training sessions, device status, capture, acquisition and model-generation operations.
+3. Split the broad ViewModel into feature-owned state holders.
+4. Move Android service, permission, camera, PackageManager, battery, notification and settings operations behind platform interfaces.
+5. Separate core identity, policy, device, tokenizer, model, training, inference, knowledge and acquisition contracts.
+6. Isolate local persistence, checkpoint/generation transactions, source manifests and knowledge repositories.
+7. Isolate correctness reference and selected tokenizer/backend implementations; keep Android file I/O out of numerical code.
+8. Add the native module only after architecture and native operator/ABI contracts justify it.
+9. Extract stable Gradle boundaries with dependency checks and module-level tests.
+10. Reconcile documents 17–19, 36 and 45 plus exact verification evidence after each bounded migration.
+
+Do not combine package moves with optimizer changes, tokenizer selection, architecture rewrites, database migrations, dependency upgrades or UI redesign in one broad commit.
+
+## 10. Open decisions and disposition
+
+Open: DI framework versus explicit composition; exact use-case APIs; core package/module split; persistence/encryption/schema; test framework/source-set split; benchmark module; tokenizer/runtime after G1-D; native engine after G4; supported ABIs/NDK/CMake/STL; consumer for `public/assets/argus_icon.png`; dependency removals after full usage review; disposition of the implicit APK copy task.
+
+| Area | Disposition |
+|---|---|
+| Current file inventory | Audited |
+| File ownership mapping | Documented |
+| High-risk dependency couplings | Identified |
+| Target package ownership | Defined by document 45 and refined here |
+| Immediate Gradle module extraction | Not recommended |
+| Future extraction seams | Candidate sequence documented |
+| Source movement/build changes | Not performed or authorized |
+| Build/test/Actions/device execution | Not performed |
+| Implementation authorization | Not granted |
+
+This closes only the static file-ownership/dependency-inventory task for the inspected snapshot. It does not close G1-D, G4, P0 remediation, implementation readiness or device verification.
+
+## 11. Change history
+
+- 2026-11-04 — Static file-by-file ownership and dependency audit added against `main` at `24b26b061574700d82fecd5c2a1485353333cef8`. No source files or build configuration were changed.
