@@ -4,7 +4,7 @@
 **Last reviewed:** 2026-11-04  
 **Scope:** Repository documentation structure, source-of-truth hierarchy, decision authority, evidence classification, document lifecycle, cross-document change control and phase boundaries  
 **Authority:** Applies across the repository; accepted product decisions remain governed by document 01 and the project owner  
-**Dependencies:** Documents 01, 02, 15–21, 23, 33–45, docs/README.md and CONTRIBUTING.md  
+**Dependencies:** Documents 01, 02, 15–21, 23, 33–46, docs/README.md and CONTRIBUTING.md  
 **Boundary:** This document defines project rules. It does not select a model architecture, tokenizer, optimizer, device profile, source provider or implementation technology. It does not authorize source-code changes, builds, workflow execution or device testing.
 
 ## 1. Purpose
@@ -47,6 +47,7 @@ This rule keeps the current repository navigable while allowing the index to gro
 | docs/19_P0_REMEDIATION_DESIGN.md | Acceptance contracts for P0 remediation and the evidence needed to close findings | Authorization to implement those contracts |
 | docs/20–43 and 45 | Topic-specific product, research, architecture, data, lifecycle, project-structure and decision-gate contracts within each document's declared scope | A competing global decision register |
 | docs/44_DOCUMENTATION_GOVERNANCE_AND_CHANGE_CONTROL.md | Repository-wide documentation and change-control rules | A source of new product or model-architecture decisions |
+| docs/46_ANDROID_SOURCE_TREE_OWNERSHIP_AND_DEPENDENCY_AUDIT.md | Audited file ownership, observed source dependencies and migration-priority findings | Permission to move files or modify application/build source |
 | docs/45_ANDROID_PROJECT_STRUCTURE_AND_FILE_PLACEMENT_RULES.md | Android package organization, Gradle module extraction criteria, Kotlin/native boundaries and file-placement rules | Authorization to create modules, move source files or change build configuration |
 
 The application source tree records the prototype implementation. It is not the authority for future product intent. Conversely, a design document cannot be cited as proof that a source-tree capability exists.
@@ -66,7 +67,7 @@ The following grouping is for navigation and ownership only. It does not change 
 | Feasibility and pre-implementation foundations | 33–37 | From-scratch feasibility, tokenizer, Android evidence, module/lifecycle contracts and optimizer research |
 | Architecture comparison and G4 preparation | 38–43 | Cross-family synthesis, component/init/state/tensor contracts and the G4 decision framework |
 | Documentation governance | 44 | Document authority, evidence/status semantics and change control |
-| Android project structure | 45 | Source/package ownership, module boundaries, native bridge and file-placement rules |
+| Android project structure and source audit | 45–46 | Target package ownership, source inventory, dependency findings, Gradle seams and file placement |
 
 ## 4. Source-of-truth hierarchy
 
@@ -209,7 +210,8 @@ Update the canonical owner first, then reconcile only the documents affected by 
 | P0 acceptance/remediation contract | Document 19 | Link the source finding in document 18 and the required verification in document 15; do not claim closure before evidence exists |
 | Source, corpus or tokenizer rights | Exact item/source record in the relevant data document | Reconcile documents 22 and/or 26–34 as applicable, plus the research register; never infer permission from a catalog-level label |
 | Documentation structure or navigation | Document 44 and/or docs/README.md | Update all affected internal links and root README navigation where relevant |
-| Android package/module/file placement | Document 45 | Reconcile document 36 logical ownership, document 17 observed baseline and affected source/build dependents before any separately authorized migration |
+| Android package/module/file placement | Document 45 | Reconcile document 36 logical ownership, document 17 observed baseline and document 46 audit before any separately authorized migration |
+| Android source ownership/dependency audit | Document 46 | Update document 45 target ownership and document 17 implementation baseline only when new source facts materially change |
 | Contributor workflow | CONTRIBUTING.md, under this document | Keep the rule consistent with the current phase and authorization boundary |
 
 Do not update every document merely to synchronize dates or repeat a new paragraph. Prefer links to the canonical owner. When a summary must repeat a decision, label it as a summary and keep its wording consistent with the ADR.
