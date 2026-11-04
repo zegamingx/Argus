@@ -312,6 +312,10 @@ The current evidence supports separating three different data roles instead of s
 
 A rights decision must be operation-specific. A source may be permitted for transient evaluation while not being approved for tokenizer training, raw-data redistribution, neural-model training or publication of a derived tokenizer artifact. The frequency manifest and aligned-dev manifest must be separate, immutable and checksum-pinned; no document or near-duplicate may cross between training, development and evaluation partitions.
 
+**Minimum tokenizer-source manifest fields:** stable source/item ID; original and resolved content URL; author/rights holder; exact license/version/URL and license-evidence location; source revision/date; selected file path; SHA-256 of acquired bytes; language/domain labels; acquisition/processing code version; normalization and filtering steps; deduplication key; train/dev/evaluation split; attribution text; third-party content exclusions; and reviewer/approval record.
+
+The permission record must answer separate yes/no/conditional questions for: (a) tokenizer-frequency fitting; (b) PA-BPE aligned development/merge selection; (c) generation of the vocabulary/merge/tokenizer artifact; (d) distribution of that artifact in Argus; (e) redistribution of the raw source corpus; and (f) use in neural-model training. A positive answer for one operation must never be copied into another permission field.
+
 **Product-language proposal — not an accepted decision:** use Indonesian and English as the initial core language tier, with additional language groups admitted through explicit evidence/rights review rather than implied by the corpus catalogue. Preserve deterministic UTF-8 byte coverage as a representation fallback where the selected tokenizer family supports it, but do not equate encodability with model competence. The product owner must still accept or replace the language tiers, priority weights and unsupported-language behavior. Device capability may select an affordable approved profile; it must never silently remove a product-required language.
 
 ## 6.3 Product-language scope and source eligibility baseline
@@ -326,6 +330,18 @@ The current repository does **not** contain an accepted product-language priorit
 | Other languages | No complete scope/priority ADR is present in the reviewed baseline | Open; do not infer inclusion or exclusion |
 
 **G1-D consequence:** the Indonesian/SEA-first PA-BPE framing remains conditional. Before a final tokenizer profile portfolio can be approved, the product owner must define the required languages, priority tiers, unsupported-language behavior and whether language coverage is a global default or a user-selectable/model-generation policy. Device capability may constrain the vocabulary/profile that can be afforded; it must not decide which languages Argus is intended or permitted to support.
+
+**Proposed product-language baseline for owner review — NOT AN ACCEPTED ADR:**
+
+| Proposed tier | Languages / scope | Meaning and boundary |
+|---|---|---|
+| Initial core comparison and proposed minimum product coverage | **Indonesian and English** | Indonesian is an accepted discovery/source-diversity requirement under ADR-022; English is present in the current bootstrap and source research. Treat both as mandatory in the first tokenizer comparison fixture. This proposal does not assign equal model-training weights or establish first-release language priority until the product owner accepts it. |
+| Conditional regional expansion candidates | **Malay, Javanese, Thai, Vietnamese, Burmese/Myanmar, Japanese and Korean** | These have identified parallel-resource leads in TALPCo or related source research. Inclusion requires an explicit product decision, sufficient rights-cleared data and quality/coverage review. Source-catalog presence alone is not a model-support commitment. |
+| Other languages | **Not yet classified** | Do not silently claim support or silently exclude a language as a permanent product policy. Add a language only through a reviewed scope/source/profile change. |
+
+**Proposed unsupported-language behavior:** distinguish *representable input* from *trained language competence*. A byte-level artifact may encode arbitrary UTF-8 byte sequences, but this is not a promise that the model understands the language. A non-byte tokenizer must apply only its declared unknown/byte-fallback behavior. Do not silently transliterate, strip text, switch to another tokenizer, or downgrade a device to an English-only profile. The selected profile must preserve the accepted product-language contract; if no compatible resource profile fits, Genesis must stop with a recoverable explanation before model tensor allocation.
+
+**Weighting remains deliberately open.** Neither equal language weights nor proportional-to-corpus-size weights are accepted. The comparison must report per-language bytes, token counts, fertility/sequence cost and quality proxies separately, then document any aggregate weighting rationale. Device capability may change vocabulary budget and preparation mode, but may not decide product-language membership.
 
 The rights boundary is also operation-specific:
 - **TALPCo:** the upstream README declares CC BY 4.0. The pinned 2023 snapshot has 1,372 common EN/ID/JA sentence IDs; the separate ID–JA token alignment file contains partial token links. Treat it as a small aligned-development candidate, not a frequency corpus. Preserve the author-specified citations, CC BY attribution, exact files and preprocessing lineage. It is not yet approved for Argus tokenizer use.
@@ -357,6 +373,21 @@ The minimum weight-only storage estimate remains (V \times d \times b) per embed
 Tokenizer local training is a separate preparation workload. Its peak memory/time/energy must fit before model tensor allocation and before Genesis readiness, or a previously approved compatible artifact profile must be selected. Do not assume GPU/NPU acceleration for tokenizer training. The neural model's later optimizer state and training workload are budgeted separately; tokenizer-training cost must not be silently counted as model-training cost or vice versa.
 
 The vocabulary sweep should use at least three points **per architecture/resource envelope**, selected from the calculated embedding/head/training-state and sequence-cost trade-off. Existing examples (8K, 16K, 32K, 65K, 90K) are comparison points only, not fixed device tiers or user-visible defaults. A smaller device must not automatically receive raw bytes or an English-only vocabulary; a larger device must not automatically receive a larger vocabulary. Select only among profiles whose language scope, rights, runtime, model dimensions and resource envelope are all compatible.
+
+### 6.4.1 Deterministic profile-selection procedure — proposed
+
+Use a staged eligibility-and-fit procedure rather than a single weighted score or chipset lookup:
+
+1. **Apply product and rights eligibility first.** Reject any candidate whose language coverage conflicts with the owner-approved language contract, whose source manifest lacks the necessary tokenizer-fit/development permissions, or whose artifact distribution obligations cannot be met.
+2. **Apply runtime/format eligibility.** Require an available, version-pinned runtime candidate for the exact artifact format, declared pre-tokenizer/normalizer/decoder, special-token inventory and offset contract. Do not choose a different tokenizer family merely because one library is already packaged.
+3. **Construct the full candidate bundle.** Bind tokenizer ID/fingerprint, vocabulary budget, model hidden dimension, tied/untied output head, precision, context/packing profile, model architecture and supported execution backends. A tokenizer profile cannot be evaluated independently of its model/head dimensions.
+4. **Evaluate Genesis preparation fit.** Calculate tokenizer artifact storage, tokenizer load memory, optional local-training peak memory/time/storage/energy budget, and the memory/storage reserve required for atomic model generation publication. A candidate that exceeds the declared startup-preparation envelope is ineligible.
+5. **Evaluate post-Genesis model fit.** Calculate parameter/head, gradient, optimizer, activation/logit/workspace, context and checkpoint-reserve costs under the selected model/training profile. Keep tokenizer preparation and neural-model training peak memory as separate phases unless the implementation overlaps them.
+6. **Form the feasible Pareto set.** Remove candidates that are strictly dominated across relevant costs/coverage dimensions. Do not collapse language parity, sequence cost, vocabulary/head memory, artifact size and preparation burden into one unexplained score.
+7. **Choose deterministically among feasible profiles.** Apply a versioned tie-break policy declared in the profile registry (for example: preserve required language coverage first; then satisfy the model's target context/sequence envelope; then minimize the maximum resource pressure under explicit safety margins; finally prefer the smaller maintenance/runtime surface). Record rejected alternatives and the reason.
+8. **Commit identity before model tensors.** Persist the chosen tokenizer ID, artifact/runtime versions, full pipeline fingerprint and device capability evidence in the Genesis configuration record before allocating vocabulary-dependent tensors.
+
+If local tokenizer preparation fails its time/memory/storage admission or is cancelled, select only a pre-approved precomputed artifact that satisfies the same language, model and runtime contract. Otherwise fail Genesis recoverably. A fallback may change vocabulary/profile only before tensor allocation; it may never silently mutate an active generation.
 
 ## 7. Controlled comparison protocol
 
