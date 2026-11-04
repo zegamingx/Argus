@@ -78,9 +78,9 @@ The following are minimum logical records. A concrete serialization (Proto, Data
 | Record | Required identity and content | Integrity / lifecycle requirement |
 |---|---|---|
 | InstanceManifest | instance ID, schema version, creation time, local storage namespace, initial policy version | Created once per installation; never reused across instances |
-| DeviceCapabilityProfile | profile ID, Android build/API, ABI/ISA, memory class/headroom evidence, CPU/GPU/NPU provider/runtime/driver/operator evidence, thermal/energy/storage signals, confidence and unknown fields | Timestamped, source-labelled and versioned; unknown is not converted to supported |
-| ModelConfig | architecture family/version, graph/module config, dimensions, tensor dtypes/layouts, context/state shape, precision and backend constraints | Canonical fingerprint; unresolved architecture fields remain placeholders until ADR selection |
-| TokenizerManifest | tokenizer ID/revision, algorithm/trainer/runtime versions, normalization/pre-tokenizer/decoder, vocabulary and special IDs, artifact digest, provenance/license | Immutable within one generation; referenced by digest |
+| DeviceCapabilityProfile | profile ID, Android build/API, ABI/ISA, memory class/headroom evidence, CPU/GPU/NPU provider/runtime/driver/operator evidence, tokenizer-training capability evidence, thermal/energy/storage signals, confidence and unknown fields | Timestamped, source-labelled and versioned; unknown is not converted to supported; stable capability evidence is separated from transient runtime conditions |
+| ModelConfig | architecture family/version, graph/module config, dimensions, tensor dtypes/layouts, context/state shape, precision, selected configuration-profile ID and backend constraints | Canonical fingerprint; unresolved architecture fields remain placeholders until ADR selection |
+| TokenizerManifest | tokenizer ID/revision, profile ID, preparation mode (precomputed/local-trained/algorithmic), algorithm/trainer/runtime versions, normalization/pre-tokenizer/decoder, vocabulary and special IDs, artifact digest, trainer configuration, seed-corpus manifest digest and provenance/license | Immutable within one generation; referenced by digest; no private content is embedded in the manifest |
 | ModelGenerationManifest | instance ID, generation ID, parent generation, ModelConfig fingerprint, TokenizerManifest digest, initialization policy/version/seed metadata, tensor inventory, checksums, schema/storage versions | Immutable after commit; complete tensor inventory and digest verified before ACTIVE |
 | TrainingSessionManifest | session ID, target candidate generation, parent digest, objective/loss version, trainable parameter groups, optimizer/schedule, precision, dataset manifest digest, sampler/cursor policy, accumulation/update semantics, RNG policy, resource profile | Immutable session definition; changes to mathematical semantics require a new session/revision |
 | CheckpointManifest | checkpoint ID, session ID, candidate generation, parent digest, model/optimizer/scheduler/scaler/RNG state, data cursor/sampler, committed update sequence, checksum and storage version | Atomic transaction; exact-resume validation before use |
@@ -158,6 +158,12 @@ Requirements:
 ### 5.3 Tokenizer
 
 ~~~text
+TokenizerProvider.prepare(profileRequest, resourceBudget)
+    -> TokenizerPreparationDecision
+
+TokenizerTrainer.train(seedCorpusManifest, trainerConfig, resourceBudget)
+    -> TokenizerArtifact
+
 TokenizerProvider.load(tokenizerManifest) -> TokenizerInstance
 
 TokenizerInstance.encode(text, options) -> TokenSequence
@@ -166,6 +172,11 @@ TokenizerInstance.fingerprint() -> Digest
 ~~~
 
 Requirements:
+- The prepare operation is invoked before ModelConfig finalizes vocabulary-dependent tensor shapes and before Genesis allocates embeddings/output-head tensors.
+- The profile decision is constrained by the approved product language/domain policy, rights-cleared tokenizer data, the versioned device capability profile and an explicit tokenizer-preparation resource budget.
+- TokenizerTrainer is optional and capability-gated. It may use only a bounded, immutable, rights-cleared tokenizer seed-corpus manifest; tokenizer-training permission does not imply neural-model training permission.
+- Account for tokenizer-training CPU time, peak memory, storage, energy and cancellation. Do not assume GPU/NPU acceleration without a separately verified trainer/backend path.
+- If the selected local-training profile cannot satisfy its declared budget, use only a pre-approved compatible precomputed/algorithmic fallback selected before model tensor allocation, or return a typed failure. No silent profile switch after generation construction begins.
 - No API for implicit vocabulary registration is exposed to production inference/training.
 - Encoding is deterministic for a fixed artifact/configuration and explicit options.
 - Special-token parsing is separated from ordinary user text so untrusted text cannot inject control structure.
@@ -209,6 +220,7 @@ Requirements:
 - Pause is acknowledged only at a declared safe boundary. Stop is distinct from pause.
 - Resume verifies the exact parent/candidate/session/dataset/tokenizer/optimizer/RNG/cursor identity before applying another update.
 - A change to optimizer, precision, packing, gradient reduction or objective creates a new session configuration; it is not a silent adaptive-workload adjustment.
+- The session records and verifies the exact tokenizer manifest digest, profile ID and model configuration fingerprint. A tokenizer profile or vocabulary change requires a new generation/migration contract, never an in-place session mutation.
 - Training never consumes raw acquisition responses or unreviewed personal captures.
 
 ### 5.6 Policy and data governance
@@ -543,7 +555,7 @@ The following are deliberately later tests. Their methods and acceptance criteri
 This document intentionally does not close decisions that depend on architecture, corpus rights or product scope:
 
 1. Exact neural architecture family, module graph, tensor layouts and per-device configuration portfolio.
-2. Exact tokenizer algorithm, product-language weights, vocabulary size, artifact release and Android runtime.
+2. Exact tokenizer algorithm and profile portfolio, product-language weights, device-conditioned vocabulary budgets/preparation modes, artifact releases and Android runtime.
 3. Initial product language/domain mix and the minimum useful-learning target.
 4. Initial training objective, parameter groups, optimizer, precision and mathematical update contract.
 5. Concrete storage engine, encryption/key management, retention periods, migrations, backup/export and deletion policy.
@@ -565,6 +577,7 @@ The pre-implementation contract baseline is ready for review when:
 - The active-generation immutability, single-writer, checkpoint and cancellation rules are consistent across documents.
 - Data/consent states cannot be bypassed by connector, UI or worker implementation.
 - All unresolved architecture/tokenizer/runtime values are clearly marked rather than guessed.
+- Device-conditioned model/tokenizer selection is deterministic from versioned evidence and policy, and every generation pins one exact tokenizer artifact fingerprint.
 - Requirements in document 01 map to a contract and a planned verification family.
 - The later verification suite is explicitly separated from documentation completion.
 - No statement implies these contracts already exist in the prototype.
