@@ -4,7 +4,7 @@
 **Last reviewed:** 2026-11-04  
 **Source-tree observation:** `main` at commit `24b26b061574700d82fecd5c2a1485353333cef8` (same inspected source snapshot used by document 46)  
 **Scope:** Android repository layout, Kotlin package ownership, subsystem boundaries, Gradle module extraction, native/JNI boundary, resource and test placement, build configuration ownership and migration rules  
-**Dependencies:** Documents 01, 02, 15, 17–21, 23, 35, 36, 43, 44, 46 and 47  
+**Dependencies:** Documents 01, 02, 13, 15, 17–22, 23, 35, 36, 43, 44, 46, 47 and 48  
 **Boundary:** Structural design only. This document does not create folders, move or rename source files, add Gradle modules, select the neural architecture/tokenizer/backend, change build configuration or authorize implementation, builds, tests, workflows or device experiments.
 
 ## 1. Purpose
@@ -162,6 +162,7 @@ Document 36 remains authoritative for logical responsibilities and lifecycle gua
 | Learning coordinator | core/training, core/device, core/policy | application/learning; numerical updates in engine; OS scheduling in platform/android/lifecycle |
 | Training engine/backend | core/model, core/training, core/compute | engine/reference and later selected engine/model; Android runtime adapters in platform/android/compute |
 | Corpus and knowledge store | core/knowledge, core/acquisition, core/training | data/corpus, data/knowledge and data/model as appropriate |
+| Personal experience intake | core/policy and core/knowledge | application/knowledge owns intake, retention routing and review orchestration; platform/android/capture supplies observations; data/knowledge stores approved personal-experience records; data/policy stores consent/revocation/review evidence; application/learning independently validates training admission |
 | Acquisition/connectors | core/acquisition, core/policy | application/acquisition orchestrates; data/acquisition fetches/parses; platform connectivity is observed under platform/android/connectivity |
 | Evaluation/promotion | core/evaluation, core/model | application/evaluation; generation commit/promotion persistence in data/model |
 | Event/diagnostic contracts | core/events | Emission stays with owning workflow; data/audit persists sanitized records; no generic event-bus service is required |
@@ -170,7 +171,7 @@ The core packages contain contracts and domain invariants, not every workflow im
 
 application owns process-independent workflow lifecycle (for example, training-session pause/resume and Genesis readiness). platform/android/lifecycle owns Android process/service callbacks, WorkManager/foreground-service integration and OS scheduling constraints. These are related but not interchangeable responsibilities.
 
-platform/android/compute owns Android- and vendor-specific runtime/provider integration. core/compute owns provider-neutral capability/execution contracts. engine owns numerical model operations. HTTP acquisition connectors remain in data/acquisition; platform/android/connectivity reports Android connectivity rather than owning all network clients.
+platform/android/compute owns Android- and vendor-specific runtime/provider integration. core/compute owns provider-neutral capability/execution contracts. engine owns numerical model operations. HTTP acquisition connectors remain in data/acquisition; platform/android/connectivity reports Android connectivity rather than owning all network clients. Personal capture, intake, consent, review, retention and the memory–training handoff are specialized by [48 — Personal Capture and Experience Intake Contract](48_PERSONAL_CAPTURE_AND_EXPERIENCE_INTAKE_CONTRACT.md); this does not add a new package or authorize source movement.
 
 Do not add empty packages to match this tree. Add a package only when a real declaration has a clear owner, callers and tests. Subpackages such as internal, serialization or repository are introduced only when they represent an actual boundary.
 
@@ -479,7 +480,8 @@ These decisions depend on architecture, tokenizer, storage/security, backend and
 - **Gradle module extraction:** intentionally deferred until stable contracts and concrete dependency boundaries justify it.
 - **Native C++/JNI structure:** documented as a future isolated boundary; no native implementation exists in the inspected tree.
 - **File ownership/dependency audit:** recorded in [46 — Android Source-Tree Ownership and Dependency Audit](46_ANDROID_SOURCE_TREE_OWNERSHIP_AND_DEPENDENCY_AUDIT.md).
-- **Package/interface ownership and consumer/provider mapping:** proposed in [47 — Package Interface and Dependency Contract Matrix](47_PACKAGE_INTERFACE_AND_DEPENDENCY_CONTRACT_MATRIX.md); open capture-ingress and API bindings remain unresolved.
+- **Package/interface ownership and consumer/provider mapping:** proposed in [47 — Package Interface and Dependency Contract Matrix](47_PACKAGE_INTERFACE_AND_DEPENDENCY_CONTRACT_MATRIX.md).
+- **Personal capture and experience intake:** proposed in [48 — Personal Capture and Experience Intake Contract](48_PERSONAL_CAPTURE_AND_EXPERIENCE_INTAKE_CONTRACT.md); exact API, surface allowlist, retention and storage bindings remain open.
 - **Source movement, new packages/modules, build-configuration changes and code changes:** not authorized.
 - **Build, test, GitHub Actions, artifact upload and device execution:** not authorized by this document.
 
@@ -489,3 +491,4 @@ This document may be used to audit/classify current files and prepare a future s
 
 - 2026-11-04 — Initial Android project structure and file-placement contract prepared from the inspected `main` source tree. No application files or Gradle configuration were changed.
 - 2026-11-04 — Linked the package/interface contract crosswalk in document 47. Target ownership and dependency rules remain unchanged; no source or build files were changed.
+- 2026-11-05 — Added the document 48 personal-experience intake crosswalk to clarify application/knowledge ownership and the separate application/learning admission boundary. No package or source tree was created or moved.
