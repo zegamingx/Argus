@@ -4,7 +4,7 @@
 
 This directory is the engineering source of truth for Argus planning. It distinguishes accepted design direction, current repository facts, unresolved research and future implementation. A design document does not prove a capability exists in the application.
 
-The repository-wide authority and change-control rules are defined in [44 — Documentation Governance and Change Control](44_DOCUMENTATION_GOVERNANCE_AND_CHANGE_CONTROL.md). The numbered files remain physically flat and stable; the workstream grouping below is for navigation and ownership, not a directory migration.
+The repository-wide authority and change-control rules are defined in [44 — Documentation Governance and Change Control](44_DOCUMENTATION_GOVERNANCE_AND_CHANGE_CONTROL.md). The Android package hierarchy, Gradle module strategy and project file-placement rules are defined in [45 — Android Project Structure and File-Placement Rules](45_ANDROID_PROJECT_STRUCTURE_AND_FILE_PLACEMENT_RULES.md). The numbered files remain physically flat and stable; the workstream grouping below is for navigation and ownership, not a directory migration.
 
 ## Project vision
 
@@ -52,6 +52,7 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 | Feasibility and pre-implementation foundations | 33–37 | From-scratch feasibility, tokenizer, Android evidence, module/lifecycle contracts and optimizer research |
 | Architecture comparison and G4 preparation | 38–43 | Cross-family synthesis, component/init/state/tensor contracts and G4 framework |
 | Documentation governance | 44 | Document authority, evidence/status semantics and change control |
+| Android project structure | 45 | Kotlin package ownership, Gradle module strategy, native/JNI boundary and file-placement rules |
 
 The grouping is descriptive only. Each document retains its own declared scope and the authority rules in document 44.
 
@@ -103,6 +104,7 @@ The grouping is descriptive only. Each document retains its own declared scope a
 | [42 — Architecture-Family Tensor and Operator Inventory](42_ARCHITECTURE_TENSOR_AND_OPERATOR_INVENTORY.md) | Symbolic parameter shapes, forward/backward operators, vocabulary/logit and inference-state memory formulas for Transformer, Mamba-2, RWKV-7 and hybrid profiles |
 | [43 — G4 Architecture Decision and Device-Profile Contract](43_G4_ARCHITECTURE_DECISION_AND_PROFILE_CONTRACT.md) | Hard-gate/compare method, immutable model-profile schema, multi-profile portfolio decision and G4 ADR acceptance checklist |
 | [44 — Documentation Governance and Change Control](44_DOCUMENTATION_GOVERNANCE_AND_CHANGE_CONTROL.md) | Document authority, repository structure, evidence/status rules, ADR process and documentation-only change control |
+| [45 — Android Project Structure and File-Placement Rules](45_ANDROID_PROJECT_STRUCTURE_AND_FILE_PLACEMENT_RULES.md) | Target Kotlin package hierarchy, dependency direction, Gradle module extraction criteria, Android/native source boundaries, tests and resource placement |
 
 ## Status vocabulary
 
