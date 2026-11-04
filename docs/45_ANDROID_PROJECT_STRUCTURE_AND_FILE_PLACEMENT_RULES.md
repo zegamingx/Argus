@@ -51,7 +51,7 @@ Observed limitations after the initial path migration:
 8. Current tests do not represent model, tokenizer, data, policy, lifecycle or backend contracts.
 9. `public/assets/argus_icon.png` remains outside Android's resource path; its runtime/build consumer is unresolved.
 
-These are observations about the prototype, not instructions to copy its package structure. Existing paths remain intact until a separately approved migration. The detailed file-by-file ownership and dependency findings are recorded in [46 — Android Source-Tree Ownership and Dependency Audit](46_ANDROID_SOURCE_TREE_OWNERSHIP_AND_DEPENDENCY_AUDIT.md).
+These are observations about the prototype, not instructions to copy its package structure. The first bounded path migration is complete; the remaining prototype paths stay in place until their responsibilities and consuming contracts are separated. The detailed file-by-file ownership and dependency findings are recorded in [46 — Android Source-Tree Ownership and Dependency Audit](46_ANDROID_SOURCE_TREE_OWNERSHIP_AND_DEPENDENCY_AUDIT.md).
 
 ## 3. Structural principles
 

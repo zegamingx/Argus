@@ -36,7 +36,7 @@ The audit read package declarations/imports/top-level declarations, direct refer
 
 This is a static dependency audit. It identifies declared imports, direct references, manifest registrations and Gradle declarations. It does not prove every dynamic call path, reflection-based use or Android runtime behavior. No build or test result is claimed.
 
-## 3. Current physical project layout
+## 3. Pre-migration physical project layout (audit baseline)
 
 ```text
 Argus/
@@ -351,15 +351,15 @@ The target names below follow the revised package hierarchy and subsystem crossw
 
 The package crosswalk does not imply a global event bus, one module per subsystem, or a mandatory feature screen for every backend capability.
 
-## 9. Recommended migration order
+## 9. Remaining migration order
 
-When implementation and structural migration are separately authorized:
+The project owner has authorized bounded package/path relocation. The first physical move is complete as recorded in Section 11. The following items describe the remaining responsibility and dependency remediation; they are not implied to be complete by package movement:
 
-1. Define/verify core contracts and application-facing workflow ports for Genesis, inference, learning, acquisition, knowledge, evaluation, device/resource admission, capture ingress and session control. Preserve document 36 lifecycle/transaction invariants.
-2. Break the confirmed root ↔ UI ↔ service cycle: feature presentation must stop importing concrete service implementations; Android services must stop importing `MainActivity` and reading global `ArgusApp` objects. Separate `ArgusApp` composition wiring into `app/bootstrap` and Android entry hosting into `app/entry`.
-3. Split the broad ViewModel into feature-owned presentation state holders; use feature/learning for the current NeuralCore UI rather than retaining an implementation-oriented package name.
-4. Move Android service, permission, camera, PackageManager, battery, notification, connectivity, storage and runtime-provider operations behind platform/android adapters. Keep OS scheduling separate from application session ownership.
-5. Separate engine numerical execution from tokenizer identity, model-generation persistence, data ingestion and Android Context/file I/O. Do not create the selected family engine before G4 or the concrete tokenizer before G1-D.
+1. Define and verify the core contracts and application-facing workflow ports for Genesis, inference, learning, acquisition, knowledge, evaluation, device/resource admission, capture ingress and session control. Preserve document 36 lifecycle/transaction invariants.
+2. Break the remaining entry ↔ presentation ↔ platform cycle. Feature presentation must stop importing concrete Android service implementations; Android services must stop importing `MainActivity` or reading global `ArgusApp` objects. Move actual dependency construction into `app/bootstrap`; `ArgusApp` must remain an Android entry host.
+3. Split the cross-feature ViewModel into feature-owned presentation state holders that consume workflow snapshots and send commands through application APIs.
+4. Complete platform isolation. Accessibility/foreground service and device classes have been physically moved under `platform/android/*`, but their global app access remains. CameraX/permission actions in the perception screen and installed-app exclusion persistence also need controlled adapters/policy ownership.
+5. Separate neural numerical execution from tokenizer identity, training workflow, model-generation persistence, data ingestion and Android Context/file I/O. Do not create the selected family engine before G4 or the concrete tokenizer before G1-D.
 6. Isolate local persistence, checkpoint/generation transactions, policy/consent records, source manifests, audit events and knowledge repositories in their owning data domains.
 7. Add contract-mirrored unit and integration tests for each bounded change; establish forbidden-dependency checks before Gradle module extraction.
 8. Add a native module only after architecture/operator/ABI/memory contracts justify it and the required project-owner authorization is given.
@@ -370,7 +370,7 @@ Do not combine package moves with optimizer changes, tokenizer selection, archit
 
 ## 10. Open decisions and disposition
 
-Open: DI framework selection (with an explicit composition root required); final workflow API shapes; exact package/module granularity; persistence/encryption/schema; test framework/source-set split; benchmark module; tokenizer/runtime after G1-D; native engine after G4; supported ABIs/NDK/CMake/STL; consumer for `public/assets/argus_icon.png`; dependency removals after full usage review; disposition of the implicit APK copy task.
+Open: completion of the explicit `app/bootstrap` composition root and constructor-injection wiring; final workflow API shapes and remaining package/module granularity; persistence/encryption/schema; test framework/source-set split; benchmark module; tokenizer/runtime after G1-D; native engine after G4; supported ABIs/NDK/CMake/STL; consumer for `public/assets/argus_icon.png`; dependency removals after full usage review; disposition of the implicit APK copy task.
 
 | Area | Disposition |
 |---|---|
@@ -389,7 +389,7 @@ Open: DI framework selection (with an explicit composition root required); final
 
 This closes the pre-migration inventory and records a bounded structural follow-up. It does not close the remaining dependency remediation, G1-D, G4, P0 remediation, implementation readiness or device verification.
 
-## 12. Post-migration path checkpoint
+## 11. Post-migration path checkpoint
 
 The project-owner-authorized migration at commit [`b0441af8`](https://github.com/zegamingx/Argus/commit/b0441af8df127897f3ef579c22116d85337feea6) changed physical Kotlin paths/package declarations and the corresponding Android manifest class names. The current paths are:
 
@@ -410,7 +410,7 @@ The package migration also updated imports in ArgusApp, ArgusViewModel, Training
 
 No build, test, GitHub Actions run or device verification was performed for this checkpoint. Compilation and manifest resolution remain unverified.
 
-## 11. Change history
+## 12. Change history
 
 - 2026-11-04 — Static file-by-file ownership and dependency audit added against `main` at `24b26b061574700d82fecd5c2a1485353333cef8`. No source files or build configuration were changed.
 - 2026-11-04 — Target-owner references reconciled with the revised document 45 package hierarchy and the document 36 subsystem crosswalk. The observed source inventory and findings were not changed.
