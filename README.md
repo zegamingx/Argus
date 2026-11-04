@@ -167,10 +167,10 @@ The current application prototype must not be confused with the future Genesis f
 
 1. Complete the documentation and evidence audit, including the P0 remediation design and all cross-document dependencies.
 2. Establish from-scratch training feasibility targets and measurable device/resource constraints using [From-Scratch Training Feasibility](docs/33_FROM_SCRATCH_TRAINING_FEASIBILITY.md).
-3. Run [Tokenizer Evaluation and Decision Framework](docs/34_TOKENIZER_EVALUATION_AND_DECISION.md) in parallel with tokenizer-neutral component research in [35 — Android Architecture Evidence and Component Comparison Matrix](docs/35_ANDROID_ARCHITECTURE_EVIDENCE_AND_COMPONENT_MATRIX.md). G1 blocks token-sensitive choices until the tokenizer shortlist/contract is ready.
+3. Complete documentary tokenizer G1-D from existing research and rights evidence in [34 — Tokenizer Evaluation and Decision Framework](docs/34_TOKENIZER_EVALUATION_AND_DECISION.md) in parallel with tokenizer-neutral architecture research in [35 — Android Architecture Evidence and Component Comparison Matrix](docs/35_ANDROID_ARCHITECTURE_EVIDENCE_AND_COMPONENT_MATRIX.md). Exact Android conformance and downstream model-quality checks remain G1-V post-implementation verification.
 4. After G1, complete token-sensitive and architecture comparisons using the same versioned tokenizer, data, parameter/compute budgets and declared device constraints. Freeze only a pre-implementation design contract; physical feasibility/support remains subject to later E1–E7 verification.
 5. Finalize corpus provenance, item-level rights, preprocessing, packaging and general/personal data separation.
-6. Complete Genesis, model-state, checkpoint/recovery, lifecycle, security and verification contracts.
+6. Complete and reconcile the architecture-neutral module/API, lifecycle, state, event/error, concurrency, storage and verification contracts in [36 — Pre-Implementation Module and Lifecycle Contracts](docs/36_PRE_IMPLEMENTATION_MODULE_AND_LIFECYCLE_CONTRACTS.md), alongside Genesis, model-state, checkpoint/recovery and security requirements.
 7. Pass the implementation-readiness audit before preparing a dependency-ordered implementation plan.
 
 These are planning gates, not authorization to implement. The detailed phase and research register in [16](docs/16_ROADMAP_RESEARCH_REGISTER.md) is authoritative.
