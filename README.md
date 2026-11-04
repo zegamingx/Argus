@@ -1,5 +1,5 @@
 <div align="center">
-<img width="1200" height="475" src=public/assets/argus_icon.png />
+<img width="720" height="240" src=public/assets/argus_icon.png />
 </div>>
 # ARGUS
 
