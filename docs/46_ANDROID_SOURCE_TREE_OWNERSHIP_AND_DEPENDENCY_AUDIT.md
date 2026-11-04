@@ -250,7 +250,7 @@ feature presentation / navigation
 app composition root wires implementations to contracts.
 ```
 
-The graph does not imply one Gradle module for every box.
+The graph does not imply one Gradle module for every box. The contract-owner, permitted-consumer, adapter/provider and authoritative-state mapping for the proposed packages is recorded in [47 — Package Interface and Dependency Contract Matrix](47_PACKAGE_INTERFACE_AND_DEPENDENCY_CONTRACT_MATRIX.md). That mapping does not change the observed source facts below or authorize migration.
 
 | ID | Finding | Priority | Consequence | Required design correction |
 |---|---|---|---|---|
@@ -377,6 +377,7 @@ Open: DI framework selection (with an explicit composition root required); final
 | Explicit package dependency graph | Documented from production imports and direct references |
 | Root/UI/service package cycle | Confirmed; must be inverted before Gradle module extraction |
 | Target package ownership | Reworked in document 45 and reconciled here against the complete document 36 logical subsystem inventory |
+| Package/interface contract mapping | Proposed in document 47; exact Kotlin signatures and implementation bindings remain open |
 | Immediate Gradle module extraction | Not recommended |
 | Future extraction seams | Candidate sequence documented |
 | Source movement/build changes | Not performed or authorized |
@@ -390,3 +391,4 @@ This closes only the static file-ownership/dependency-inventory task for the ins
 - 2026-11-04 — Static file-by-file ownership and dependency audit added against `main` at `24b26b061574700d82fecd5c2a1485353333cef8`. No source files or build configuration were changed.
 - 2026-11-04 — Target-owner references reconciled with the revised document 45 package hierarchy and the document 36 subsystem crosswalk. The observed source inventory and findings were not changed.
 - 2026-11-04 — Re-audited `main` at `bd75ac1533e079bfca4d12e1af9ec3170d7187d9`; added an explicit cross-package dependency matrix and confirmed the `com.argus.agi` → `ui` → `service` → `com.argus.agi` cycle. The comparison with the earlier source snapshot found no intervening Kotlin, manifest, Gradle or Android-resource changes. No source/build files were changed.
+- 2026-11-04 — Added the package/interface cross-reference to document 47. This update changes audit navigation/disposition only; the inspected source baseline and dependency findings are unchanged.
