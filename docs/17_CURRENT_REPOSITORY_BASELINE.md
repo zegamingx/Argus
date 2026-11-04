@@ -1,11 +1,11 @@
 # Current Repository Baseline
 
 **Repository:** `zegamingx/Argus` · **Documentation branch:** `main`  
-**Repository HEAD cross-checked:** `ec67ac6dde0f2c49927e936da1a156c038679053`  
 **Source inspection baseline:** `4d8104d4400dcd858e648d7b08ac0718385733d3`  
+**Latest source-continuity cross-check:** `09c72df12371670fc0417d47f5a0e6644537aa60`  
 **Inspection date:** 2026-11-04
 
-A Git comparison from the source inspection baseline to the cross-checked `main` HEAD found no changed application-source paths in that interval; the intervening changes are documentation and repository guidance. The implementation facts below therefore describe the source snapshot at `4d8104d`, with `ec67ac6dde0f2c49927e936da1a156c038679053` recorded as the documentation/repository revision used for this cross-check.
+A Git comparison from the source inspection baseline to the documented main revision found 56 commits ahead, 0 behind and 34 changed paths. **No application-source, build-configuration or Gradle-wrapper paths changed** in that interval; the changed paths are documentation and repository guidance. The implementation facts below therefore still describe the source snapshot at `4d8104d`. Documentation-only commits may advance `main` after this cross-check without changing the inspected source baseline; any source/build change requires a fresh source audit.
 
 This record separates what was found in the inspected source snapshot from proposed architecture.
 
