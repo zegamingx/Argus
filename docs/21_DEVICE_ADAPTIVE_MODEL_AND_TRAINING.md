@@ -21,14 +21,14 @@ The profile should include evidence and confidence, not just device marketing me
 | CPU | ABI, supported ISA features, core topology where exposed, measured kernel/compute performance |
 | GPU | Device/driver, compute queue/features, storage formats, runtime availability, operator validation and benchmark |
 | NPU/DSP | Vendor/runtime/SDK availability, APK access rules, supported operators and precision, compile/load behavior |
-| Memory | Total and available memory, app memory class, observed pressure, expected tensor/activation/optimizer allocation |
-| Thermal | OS thermal status/headroom where available, sustained benchmark behavior, sensor availability |
-| Power | Battery level, charging state, power-saving mode and system policy |
-| Storage | Available app-private storage, dataset package size, model tensors, checkpoint and recovery reserve |
+| Memory | App memory class, process limits, measured allocation behavior and baseline headroom; current free memory/pressure belongs to the runtime-condition snapshot |
+| Thermal | Availability and semantics of OS thermal signals plus recorded sustained-behavior evidence; current thermal status belongs to the runtime-condition snapshot |
+| Power | Availability/semantics of battery and power-policy telemetry; current charge/charging/power-saver state belongs to the runtime-condition snapshot |
+| Storage | App-private storage limits and measured I/O behavior; current free space and checkpoint reserve belong to the runtime-condition snapshot |
 | Tokenizer preparation | CPU capability, available memory and storage, seed-corpus size, trainer/runtime availability, vocabulary/head cost and bounded preparation budget; accelerator support is UNKNOWN unless measured |
 | Platform | Android API level, lifecycle restrictions, ABI, driver/runtime versions and permission state |
 
-Unknown telemetry must remain unknown. Missing temperature or memory data is not a measured safe state.
+Unknown telemetry must remain unknown. Missing temperature or memory data is not a measured safe state. The versioned Device Capability Profile records stable hardware/runtime capability and measured baseline evidence; current thermal, battery, free-memory and storage-pressure values are short-lived Runtime Condition observations, not permanent device properties.
 
 ## 3. Configuration selection
 
@@ -63,7 +63,7 @@ A profile change caused by updated hardware/runtime capability may justify a new
 
 ## 4. Runtime training-condition profile
 
-While learning is active, monitor relevant OS signals and bounded measurements:
+While learning is active, monitor a timestamped Runtime Condition Profile using relevant OS signals and bounded measurements:
 - Available memory and memory-pressure events.
 - CPU load and sustainable thread capacity.
 - GPU/NPU availability, correctness and execution cost.
