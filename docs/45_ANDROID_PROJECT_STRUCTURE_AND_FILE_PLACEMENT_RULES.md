@@ -129,9 +129,9 @@ The tree deliberately does **not** include a generic application/usecase plus ap
 | Package root | Owns | Must not own |
 |---|---|---|
 | app/entry | Android Application and Activity entry points, process/window host and platform launchers | Dependency graph internals or business workflows |
-| app/bootstrap | Application composition root, dependency graph construction and startup wiring | Android component lifecycle, business policy, model math or repository internals |
-| app/navigation | Route definitions, navigation state and destination composition | Activity ownership, business rules or data access |
-| feature/*/presentation | Feature UI, immutable UI state, ViewModels and user intent mapping | Concrete repositories, engine classes, connector policy or JNI |
+| app/bootstrap | Application composition root, explicit manual dependency graph construction, constructor-injection factories and startup wiring | Android component lifecycle, business policy, model math or repository internals |
+| app/navigation | Stable route identity/encoding, navigation state and destination composition; internal learning-session route is `argus://app/learning/session/{sessionId}` | Activity ownership, business rules, data access or authoritative workflow/session state |
+| feature/*/presentation | Feature UI, immutable feature-specific UI state, ViewModels, lifecycle-aware observation and user intent mapping | Concrete repositories, engine classes, connector policy, JNI or authoritative workflow state |
 | `application/<workflow>` | Workflow-specific use cases, coordination, admission, cancellation, readiness and result mapping | Android framework implementation, tensor mathematics or direct file/database manipulation |
 | core/identity | Instance/generation/session IDs and identity invariants | Android Context, database entities or UI models |
 | core/model, core/tokenizer, core/inference, core/training | Architecture-neutral model/tokenizer/session contracts and invariants | Selected family implementation, persistence code or Android lifecycle |
@@ -215,6 +215,8 @@ Mandatory rules:
 13. Lifecycle status is owned by the workflow that owns the job/session; Android adapters observe/control it through narrow interfaces. Do not create a second state database in notifications or generic event streams.
 14. core/events defines typed event contracts only. Durable audit persistence belongs to data/audit; in-process state should use the owning workflow state/result API rather than a mandatory global event bus.
 15. Backend selection and fallback report the implementation that actually executed.
+16. The current single-module composition root uses explicit manual constructor injection and scoped factories by default; do not add a DI framework or static service locator without a separate evidence-backed decision.
+17. Notification routes are owned by app/navigation; platform notification adapters pass a stable session destination and never encode progress/state as an alternate source of truth.
 
 ## 6. Gradle module strategy
 
@@ -460,7 +462,7 @@ No such migration is part of the current documentation-only phase.
 ## 14. Unresolved structural decisions
 
 - exact Gradle module count, IDs and extraction order;
-- DI framework selection; an explicit application composition root is mandatory regardless of framework;
+- No DI framework is selected or required. Explicit manual constructor injection through `app/bootstrap` is the default for the current single-module topology; a future framework decision is optional and must be justified by measured graph complexity or a concrete module boundary;
 - whether core contracts share one module or several independently tested modules;
 - local persistence split, Room/DataStore/file formats and encryption boundary;
 - native engine module, C++ ABI, NDK/CMake/STL versions and supported ABIs;
@@ -477,6 +479,8 @@ These decisions depend on architecture, tokenizer, storage/security, backend and
 - **Current physical source layout:** one Android Gradle module, `:app`, with the legacy package structure in Section 2.
 - **Target logical package hierarchy:** revised in Section 4 and cross-mapped to every logical subsystem in document 36.
 - **Dependency direction:** defined in Section 5.
+- **Composition strategy:** explicit `app/bootstrap` composition root with manual constructor injection is the default; no DI framework is required.
+- **UI/notification boundary:** feature ViewModels observe immutable workflow snapshots; the internal learning-session route is owned by `app/navigation` and does not own session state.
 - **Gradle module extraction:** intentionally deferred until stable contracts and concrete dependency boundaries justify it.
 - **Native C++/JNI structure:** documented as a future isolated boundary; no native implementation exists in the inspected tree.
 - **File ownership/dependency audit:** recorded in [46 — Android Source-Tree Ownership and Dependency Audit](46_ANDROID_SOURCE_TREE_OWNERSHIP_AND_DEPENDENCY_AUDIT.md).
@@ -492,3 +496,4 @@ This document may be used to audit/classify current files and prepare a future s
 - 2026-11-04 — Initial Android project structure and file-placement contract prepared from the inspected `main` source tree. No application files or Gradle configuration were changed.
 - 2026-11-04 — Linked the package/interface contract crosswalk in document 47. Target ownership and dependency rules remain unchanged; no source or build files were changed.
 - 2026-11-05 — Added the document 48 personal-experience intake crosswalk to clarify application/knowledge ownership and the separate application/learning admission boundary. No package or source tree was created or moved.
+- 2026-11-05 — Closed the design-level UI state, notification route and manual composition contracts in alignment with documents 36 and 47. No package, source file or Gradle module was created or moved.
