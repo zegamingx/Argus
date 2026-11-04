@@ -104,7 +104,7 @@ The grouping is descriptive only. Each document retains its own declared scope a
 | [42 — Architecture-Family Tensor and Operator Inventory](42_ARCHITECTURE_TENSOR_AND_OPERATOR_INVENTORY.md) | Symbolic parameter shapes, forward/backward operators, vocabulary/logit and inference-state memory formulas for Transformer, Mamba-2, RWKV-7 and hybrid profiles |
 | [43 — G4 Architecture Decision and Device-Profile Contract](43_G4_ARCHITECTURE_DECISION_AND_PROFILE_CONTRACT.md) | Hard-gate/compare method, immutable model-profile schema, multi-profile portfolio decision and G4 ADR acceptance checklist |
 | [44 — Documentation Governance and Change Control](44_DOCUMENTATION_GOVERNANCE_AND_CHANGE_CONTROL.md) | Document authority, repository structure, evidence/status rules, ADR process and documentation-only change control |
-| [45 — Android Project Structure and File-Placement Rules](45_ANDROID_PROJECT_STRUCTURE_AND_FILE_PLACEMENT_RULES.md) | Target Kotlin package hierarchy, dependency direction, Gradle module extraction criteria, Android/native source boundaries, tests and resource placement |
+| [45 — Android Project Structure and File-Placement Rules](45_ANDROID_PROJECT_STRUCTURE_AND_FILE_PLACEMENT_RULES.md) | Proposed Kotlin package hierarchy, subsystem-to-package crosswalk, dependency direction, Gradle module extraction criteria, Android/native source boundaries, tests and resource placement |
 | [46 — Android Source-Tree Ownership and Dependency Audit](46_ANDROID_SOURCE_TREE_OWNERSHIP_AND_DEPENDENCY_AUDIT.md) | File-by-file prototype ownership, dependency-direction findings, build configuration observations and migration priority |
 
 ## Status vocabulary
