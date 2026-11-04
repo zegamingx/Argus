@@ -75,7 +75,7 @@ Universal tokens/sec, memory, temperature and battery limits are intentionally T
 **Status:** Proposed. Forward inference does not prove support for gradients, backward ops or optimizer state.
 
 ### ADR-005 — NNAPI is not the long-term Android foundation
-**Status:** Proposed. Prioritize current LiteRT APIs and validated vendor routes; retain NNAPI only as justified legacy compatibility. NNAPI was deprecated in Android 15; recheck upstream lifecycle before coding.
+**Status:** Proposed. Do not make NNAPI the foundation for new integrations; retain it only as justified legacy compatibility. For inference, assess the current standalone LiteRT CompiledModel API and the separate LiteRT in Google Play services CPU/GPU path, with exact package, release, operator, provider and device constraints. Treat NPU support as provider- and distribution-specific; standalone LiteRT and Play services do not currently expose identical NPU maturity. CompiledModel inference support does not establish training/backward support. Evaluate third-party telemetry, terms and offline behavior before selecting Play services. NNAPI was deprecated in Android 15, and Google announced removal beginning in 2027; recheck upstream lifecycle before coding.
 
 ### ADR-006 — Explicit network exceptions
 **Status:** Proposed. Local operation is default; web fetch/model download are distinct user-controlled network actions. Product wording must accurately explain this.
