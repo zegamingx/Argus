@@ -2,7 +2,7 @@
 
 **Status:** Proposed design contract — documentation only  
 **Review date:** 2026-11-05  
-**Repository baseline:** \`main\` at \`fab7da5a0ce86d7265a7be152f550a4b524741cd\`  
+**Repository baseline:** `main` at `fab7da5a0ce86d7265a7be152f550a4b524741cd`  
 **Scope:** Ownership, surface registration, routing, consent, review, retention, revocation, deletion and the memory–personal-training boundary for personal-capture inputs  
 **Upstream authority:** [01 — System Requirements and Decisions](01_SYSTEM_REQUIREMENTS_AND_DECISIONS.md), [13 — Security and Data Governance](13_SECURITY_PRIVACY_DATA_GOVERNANCE.md), [22 — General Corpus and Personal Learning](22_GENERAL_CORPUS_AND_PERSONAL_LEARNING.md), [36 — Pre-Implementation Module and Lifecycle Contracts](36_PRE_IMPLEMENTATION_MODULE_AND_LIFECYCLE_CONTRACTS.md), [45 — Android Project Structure and File-Placement Rules](45_ANDROID_PROJECT_STRUCTURE_AND_FILE_PLACEMENT_RULES.md), and [47 — Package Interface and Dependency Contract Matrix](47_PACKAGE_INTERFACE_AND_DEPENDENCY_CONTRACT_MATRIX.md)  
 **Boundary:** This contract defines obligations for every current or future capture surface, including a replacement for the current AccessibilityService path. It creates no Kotlin interface/class, chooses no DI framework or storage engine, creates no Gradle module, changes no source/build configuration, and authorizes no implementation, build, test, workflow or device experiment.
@@ -29,16 +29,16 @@ The governing principle is: **access to a device surface is not consent to retai
 
 ### 2.1 Accountable contract owner
 
-The proposed accountable workflow owner is **\`application/knowledge\`**, which owns personal-experience intake orchestration and the memory-facing path. It is responsible for:
+The proposed accountable workflow owner is **`application/knowledge`**, which owns personal-experience intake orchestration and the memory-facing path. It is responsible for:
 
 - Registering and validating the declared capture surface and its requested purpose.
 - Coordinating purpose-specific consent and policy checks before accepting an input.
 - Owning the intake-session state, classification, retention assignment and provenance handoff.
 - Owning the review workflow that determines whether a retained personal experience record may be proposed for personal-training use.
-- Maintaining the permitted-surface registry in coordination with \`core/policy\` and the durable policy records.
+- Maintaining the permitted-surface registry in coordination with `core/policy` and the durable policy records.
 - Ensuring that any new capture surface is registered with a reviewed consent boundary before it can write to the personal-experience store.
 
-This is an accountable logical owner under the existing package hierarchy, not a claim that an \`application/knowledge\` package or API already exists. No new \`application/experience\` package is created or authorized by this document. If later implementation evidence shows that intake needs a distinct workflow package, that change must be reviewed against document 45 rather than introduced speculatively.
+This is an accountable logical owner under the existing package hierarchy, not a claim that an `application/knowledge` package or API already exists. No new `application/experience` package is created or authorized by this document. If later implementation evidence shows that intake needs a distinct workflow package, that change must be reviewed against document 45 rather than introduced speculatively.
 
 ### 2.2 Current provisional capture path
 
@@ -58,15 +58,15 @@ A replacement capture path inherits these obligations. It does not become an aut
 
 | Responsibility | Owner | Boundary |
 |---|---|---|
-| Personal-experience intake and memory-routing contract | \`application/knowledge\` | Owns intake workflow, classification, retention assignment and review orchestration; cannot grant consent to itself |
-| Purpose/consent rules and fail-closed decisions | \`core/policy\` | Owns policy semantics and decision contracts, not Android capture or data persistence |
-| Durable consent grants, revocations, review evidence and exclusions | \`data/policy\` | Persists versioned records; does not independently authorize an operation |
-| Android capture surfaces and OS integration | \`platform/android/capture\` | Produces bounded observations and platform evidence; does not decide retention or training permission |
-| Personal experience and inspectable-memory records | \`core/knowledge\` contracts and \`data/knowledge\` | Owns record identity, provenance, retention state and durable content where permitted |
-| Personal-training admission and session lifecycle | \`application/learning\` | Revalidates approved candidate records and owns training-session admission; cannot bypass intake review |
-| Immutable personal dataset/candidate manifest | \`data/corpus\` under \`core/training\` / \`core/policy\` contracts | Contains only explicitly approved record revisions and permission lineage |
-| User-facing consent/review controls | Owning feature presentation packages under \`feature/*/presentation\` | Renders state and submits user intent; does not own policy or authoritative review state |
-| Composition and dependency wiring | \`app/bootstrap\` | Wires implementations to contracts; does not own intake decisions or mutable workflow state |
+| Personal-experience intake and memory-routing contract | `application/knowledge` | Owns intake workflow, classification, retention assignment and review orchestration; cannot grant consent to itself |
+| Purpose/consent rules and fail-closed decisions | `core/policy` | Owns policy semantics and decision contracts, not Android capture or data persistence |
+| Durable consent grants, revocations, review evidence and exclusions | `data/policy` | Persists versioned records; does not independently authorize an operation |
+| Android capture surfaces and OS integration | `platform/android/capture` | Produces bounded observations and platform evidence; does not decide retention or training permission |
+| Personal experience and inspectable-memory records | `core/knowledge` contracts and `data/knowledge` | Owns record identity, provenance, retention state and durable content where permitted |
+| Personal-training admission and session lifecycle | `application/learning` | Revalidates approved candidate records and owns training-session admission; cannot bypass intake review |
+| Immutable personal dataset/candidate manifest | `data/corpus` under `core/training` / `core/policy` contracts | Contains only explicitly approved record revisions and permission lineage |
+| User-facing consent/review controls | Owning feature presentation packages under `feature/*/presentation` | Renders state and submits user intent; does not own policy or authoritative review state |
+| Composition and dependency wiring | `app/bootstrap` | Wires implementations to contracts; does not own intake decisions or mutable workflow state |
 
 The application/knowledge workflow owns the intake review gate. The application/learning workflow owns the subsequent training-session admission and must independently validate the approval and authorization records before it accepts a candidate. A capture adapter cannot review or approve its own input.
 
@@ -85,7 +85,7 @@ Before a capture session begins, the adapter must declare a versioned surface id
 - Applicable OS permission/authorization observation.
 - Requested resource and content bounds.
 
-These are logical fields, not a finalized serialization schema or Kotlin data class. Android \`Context\`, \`Intent\`, \`Uri\`, \`Bitmap\`, CameraX objects, accessibility node objects and other framework objects do not cross into core/application domain contracts.
+These are logical fields, not a finalized serialization schema or Kotlin data class. Android `Context`, `Intent`, `Uri`, `Bitmap`, CameraX objects, accessibility node objects and other framework objects do not cross into core/application domain contracts.
 
 ### 3.2 Registration and allowlisting
 
@@ -122,8 +122,8 @@ Every input intended to become inspectable memory or a personal-training candida
 6. **Retention assignment:** before durable persistence, bind an explicit retention policy and its purpose scope. No durable personal record is written without one.
 7. **Personal-experience record:** where retention is authorized, create a versioned record in the controlled personal-experience/memory store. Its initial eligibility is memory-only unless a later review and separate training authorization pass.
 8. **Review gate:** a request to use the record for personal training is reviewed by the application/knowledge intake owner. The review confirms consent, source classification, retention, sensitivity, redaction, provenance and revocation state.
-9. **Training authorization and handoff:** only after an explicit authorization for a specific batch/session may the approved record revisions be assembled into an immutable personal-training candidate manifest and handed to \`application/learning\`.
-10. **Learning admission:** \`application/learning\` rechecks candidate identity, approval, consent/revocation state, dataset identity and session policy before a session can consume the manifest.
+9. **Training authorization and handoff:** only after an explicit authorization for a specific batch/session may the approved record revisions be assembled into an immutable personal-training candidate manifest and handed to `application/learning`.
+10. **Learning admission:** `application/learning` rechecks candidate identity, approval, consent/revocation state, dataset identity and session policy before a session can consume the manifest.
 
 The exact runtime state names and serialization are implementation bindings. The ordering and fail-closed guarantees are design requirements.
 
@@ -431,8 +431,8 @@ If this document conflicts with accepted product constraints in document 01 or t
 ## 13. Completion and disposition
 
 - Personal capture contract and ordered intake stages: **documented as a proposal**.
-- Accountable intake workflow owner: **proposed as \`application/knowledge\`**.
-- Training review orchestration: **owned by the intake workflow; training admission remains owned by \`application/learning\`**.
+- Accountable intake workflow owner: **proposed as `application/knowledge`**.
+- Training review orchestration: **owned by the intake workflow; training admission remains owned by `application/learning`**.
 - Current AccessibilityService: **provisional capture ingress only; not consent, retention or training authority**.
 - Memory/existing-record boundary: **mandatory intermediate provenance/custody boundary for retained training-intended records; retrieval remains a separate permission**.
 - Consent, review, retention, revocation and deletion obligations: **defined; concrete wording, durations and storage bindings remain open**.
@@ -445,4 +445,4 @@ If this document conflicts with accepted product constraints in document 01 or t
 
 ## 14. Change history
 
-- 2026-11-05 — Initial PC-OPEN-01 personal capture and experience intake contract prepared against \`main\` at \`fab7da5a0ce86d7265a7be152f550a4b524741cd\`. Reconciled with documents 01, 13, 21, 22, 36, 45 and 47. Documentation only; no source, build configuration, test, workflow or device experiment was changed.
+- 2026-11-05 — Initial PC-OPEN-01 personal capture and experience intake contract prepared against `main` at `fab7da5a0ce86d7265a7be152f550a4b524741cd`. Reconciled with documents 01, 13, 21, 22, 36, 45 and 47. Documentation only; no source, build configuration, test, workflow or device experiment was changed.
