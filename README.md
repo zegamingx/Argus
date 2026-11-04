@@ -120,6 +120,7 @@ The documents under [docs/](docs/README.md) are the planning source of truth. Th
 | [39 — Transformer Component Research and Pre-G4 Design Contracts](docs/39_TRANSFORMER_COMPONENT_RESEARCH_AND_DESIGN_CONTRACTS.md) | Evidence and matched-comparison contracts for attention, position, FFN, normalization/residuals and embeddings |
 | [40 — Initialization and Width-Scaling Research](docs/40_INITIALIZATION_AND_WIDTH_SCALING_RESEARCH.md) | Random initialization, residual/depth scaling, T-Fixup, DeepNorm and μP/μTransfer across model widths |
 | [41 — Recurrent State and Chunked-Training Lifecycle Contracts](docs/41_RECURRENT_STATE_AND_CHUNKED_TRAINING_CONTRACTS.md) | Mamba-2 conv/SSM state, RWKV-7 WKV/shift state, chunked BPTT, document resets and atomic resume contracts |
+| [42 — Architecture-Family Tensor and Operator Inventory](docs/42_ARCHITECTURE_TENSOR_AND_OPERATOR_INVENTORY.md) | Parameter shapes, training operators, vocabulary/logit and recurrent/KV state accounting across the four G2 families |
 
 ## Current implementation status
 
