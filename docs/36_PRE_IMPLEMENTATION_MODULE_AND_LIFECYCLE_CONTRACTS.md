@@ -545,7 +545,7 @@ The following are deliberately later tests. Their methods and acceptance criteri
 | Contract/schema | Serialization round-trip, version migration, unknown field handling, malformed manifest rejection | Sections 4 and 8 |
 | Genesis transaction | Crash at every stage, corrupt/truncated tensors, checksum mismatch, no partial active generation | Sections 5.2 and 6.1 |
 | Instance isolation | Repeated independent installs/IDs; no cross-instance paths, state or gradient exchange | Sections 2 and 4 |
-| Tokenizer conformance | Full reference/Android token-ID parity, Unicode, byte fallback, offsets, control-token injection | Section 5.3 and G1-V in document 34 |
+| Tokenizer/profile conformance | Profile selection and fallback before model tensor allocation; local tokenizer-training determinism/resource bounds where enabled; full reference/Android token-ID parity, Unicode, byte fallback, offsets and control-token injection | Section 5.3 and G1-V in document 34 |
 | Inference isolation | Read snapshot remains stable during candidate training and promotion; memory admission under overlap | Sections 5.4 and 9 |
 | Training correctness | Forward/loss/backward/optimizer reference parity, finite-difference checks, finite updates and exact update sequence | Section 5.5 and document 19 |
 | Checkpoint recovery | Crash/corruption/low-storage injection; exact model/optimizer/RNG/sampler/cursor/idempotency resume | Sections 5.2, 5.5, 9 and E6 |
