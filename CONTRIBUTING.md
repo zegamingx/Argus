@@ -14,10 +14,10 @@ Argus is an experimental local-first Android AI research project. The current re
 
 ## Documentation and decision authority
 
-Follow [44 — Documentation Governance and Change Control](docs/44_DOCUMENTATION_GOVERNANCE_AND_CHANGE_CONTROL.md) for documentation authority and change control, and [45 — Android Project Structure and File-Placement Rules](docs/45_ANDROID_PROJECT_STRUCTURE_AND_FILE_PLACEMENT_RULES.md) for Kotlin package ownership, dependency direction, Gradle boundaries and source/resource/test placement.
+Follow [44 — Documentation Governance and Change Control](docs/44_DOCUMENTATION_GOVERNANCE_AND_CHANGE_CONTROL.md) for documentation authority and change control, and [45 — Android Project Structure and File-Placement Rules](docs/45_ANDROID_PROJECT_STRUCTURE_AND_FILE_PLACEMENT_RULES.md) plus [46 — Android Source-Tree Ownership and Dependency Audit](docs/46_ANDROID_SOURCE_TREE_OWNERSHIP_AND_DEPENDENCY_AUDIT.md) for package ownership, file mapping, dependency direction, Gradle boundaries and source/resource/test placement.
 
 - Keep the numbered documents in docs/ at their current paths. Do not rename, renumber or move them without an approved link-migration plan.
-- Keep application source within approved package ownership boundaries. Do not create a Gradle module, native source tree or cross-layer dependency without the review required by document 45.
+- Keep application source within approved package ownership boundaries. Do not create a Gradle module, native source tree or cross-layer dependency without the review required by document 45 and the current audit findings in document 46.
 - Record accepted product and cross-system decisions in document 01. A proposal, paper result, research synthesis or topic-specific recommendation is not an accepted decision by itself.
 - Keep unresolved questions and phase/gate status in document 16; keep observed implementation facts and audit findings in documents 17–19.
 - Update the canonical owner first, then only its affected dependents and indexes. Avoid contradictory copies and broad edits that merely repeat existing text.
