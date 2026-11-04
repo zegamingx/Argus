@@ -14,7 +14,7 @@ The initial four-family shortlist remains appropriate for the first Argus model-
 |---|---|---|---|
 | Decoder-only Transformer | Mature causal-LM formulation and the strongest directly relevant sub-billion/mobile deployment and mobile fine-tuning ecosystem | Attention compute grows quadratically with sequence length; inference KV cache grows with retained context; Android from-scratch training remains unproven | Mandatory reference/control and serious candidate |
 | Selective SSM / Mamba-2 SSD | Structured state-space duality permits parallel scan/chunk training while maintaining bounded recurrent inference state | Specialized selective-scan/backward kernels, numerical parity and Android operator coverage are not established | Serious research candidate |
-| Recurrent delta-rule / RWKV-7 | Dynamic matrix-valued recurrent state with parallelizable training and constant history-dependent inference-state footprint | Recurrent-state update/backward kernels, state precision, chunk-boundary semantics and Android runtime maturity need independent audit | Serious research candidate |
+| Recurrent delta-rule / RWKV-7 | Dynamic matrix-valued recurrent state with parallelizable training and constant history-dependent inference-state footprint | Recurrent-state update/backward kernels, WKV + token-shift state precision, chunk-boundary semantics and Android runtime maturity need independent audit; complete carry/reset/checkpoint contract is documented in [41 — Recurrent State and Chunked-Training Lifecycle Contracts](41_RECURRENT_STATE_AND_CHUNKED_TRAINING_CONTRACTS.md) | Serious research candidate |
 | Attention–SSM/recurrent hybrid | Can combine direct attention paths with recurrent state; large-scale published Mamba-2 hybrid results are promising on the studied tasks | Carries both operator/state families, more complex checkpointing and fallback; published layer composition is not transferable to Argus | Secondary composition candidate |
 
 The next decision must not be framed as “which architecture is fastest?” It is a multi-objective decision across from-scratch trainability, model quality, training/inference memory, sustained compute, kernel maturity, data semantics, exact recovery, maintainability and the number of device profiles the project can support.
@@ -85,7 +85,7 @@ The 8B comparison is **approximately parameter-matched, not tensor- or topology-
 
 ### 3.3 Recurrent delta-rule / RWKV-7
 
-**Core mechanism.** RWKV-7 generalizes a delta-rule-style recurrent update with dynamic state evolution and vector-valued gating. It is recurrent during inference but its training formulation remains parallelizable.
+**Core mechanism.** RWKV-7 generalizes a delta-rule-style recurrent update with dynamic state evolution and vector-valued gating. It is recurrent during inference but its training formulation remains parallelizable. A continuation state is not only its WKV matrix: the COLM reference loop also carries TimeMix WKV/shift state and ChannelMix shift state. Document 41 defines their reset and recovery contract.
 
 **Sequence and state implications.**
 
