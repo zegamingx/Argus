@@ -45,7 +45,7 @@ Emulator-only testing cannot complete a hardware tier.
 
 ## 5. Requirements traceability
 
-For each requirement in [01 — System Requirements](01_SYSTEM_REQUIREMENTS_AND_DECISIONS.md), track design section, test ID, environment, result, evidence, defect and status. A MUST requirement is not complete without test evidence or a formally accepted waiver.
+For each requirement in [01 — System Requirements](01_SYSTEM_REQUIREMENTS_AND_DECISIONS.md), track design section, test ID, environment, result, evidence, defect and status. During the documentation phase, the requirement is design-complete when its intended behavior, rationale, measurable acceptance criteria and verification method are specified; do not claim it is implemented or verified. Once implementation begins, a MUST requirement is not implementation-complete without test evidence on its declared target environment or a formally accepted waiver.
 
 ## 6. Documentation completion gate
 
@@ -61,7 +61,7 @@ Before implementation planning:
 - ADRs and cross-document consistency are reviewed;
 - links, source versions and review dates are checked.
 
-Passing the gate authorizes an implementation-plan review only, not automatic coding or production readiness.
+Passing the gate authorizes an implementation-plan review only, not automatic coding or production readiness. The documentation gate reviews completeness of specifications and planned verification; it does not require implementation test results. Implementation verification remains a distinct later gate.
 
 
 ## 7. Build execution control
