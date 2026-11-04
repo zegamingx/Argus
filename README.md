@@ -1,3 +1,4 @@
+<img content=public/assets/argus_icon.png/>
 # ARGUS
 
 ### One Origin. Independent Evolution.
