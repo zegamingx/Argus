@@ -150,7 +150,7 @@ The shortlist deliberately does not advance mixture-of-experts, multimodal fusio
 
 **Common admission rule:** every retained family must expose a complete random-initialization path and a mathematically correct forward/loss/backward/update definition, support a CPU correctness reference, and provide an auditable model/optimizer/RNG/cursor checkpoint contract before it can proceed to G4. A paper's inference or fine-tuning result cannot satisfy these requirements by itself. Candidate comparisons must pin the same tokenizer profile/fingerprint once G1-D is approved; before then, token-neutral operator proxies may proceed, but no token-sensitive winner may be frozen.
 
-**G2 disposition:** **CLOSED — FAMILY SHORTLIST ESTABLISHED FOR DESIGN COMPARISON ONLY.** The four families above are the complete initial comparison set. No family is selected for product implementation. G3 dispositions are recorded separately under ADR-026; G4 architecture design freeze remains open.
+**G2 disposition:** **CLOSED — FAMILY SHORTLIST ESTABLISHED FOR DESIGN COMPARISON ONLY.** The four families above are the complete initial comparison set. No family is selected for product implementation. G3 dispositions are recorded separately under ADR-026; G4 architecture design freeze remains open. The cross-family trade-off synthesis, matched-comparison rules and G4 output requirements are maintained in [38 — G2 Architecture Comparative Synthesis](38_G2_ARCHITECTURE_COMPARATIVE_SYNTHESIS.md).
 
 ## 5. Tokenizer dependency map
 
