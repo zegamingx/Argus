@@ -88,11 +88,13 @@ The target architecture requires additional verification before it can be descri
 | Random initialization | Architecture-specific initializer tests, valid distributions/ranges, independent instance outputs and deterministic test fixtures |
 | Model identity | Unique instance/generation IDs, architecture/tokenizer fingerprints and exact tensor manifest |
 | Full-state persistence | Every model tensor and required optimizer/scheduler/RNG state round-trips; corruption and partial writes are rejected |
-| Device profile | Actual memory headroom, supported runtime/operators, thermal and benchmark inputs are recorded with source and confidence |
+| Device profile | Stable hardware/runtime capability evidence and live Runtime Condition snapshots are recorded separately with source, timestamp and confidence; unknown values remain unknown |
+| Adaptive configuration selection | The chosen model/tokenizer profile is reproducible from the versioned capability evidence, language/rights policy and resource budget; unsupported candidates and fallback reasons are explicit |
 | Adaptive training | Workload responds to memory/thermal/power conditions without corrupting optimizer semantics or model structure |
 | Background lifecycle | Pause, process death, Android reclaim, resume, notification and foreground-service policy are tested on named OS versions |
 | Corpus | Source revision, provenance, license notices, split integrity, tokenizer token count, deduplication and checksum are reproducible |
-| Tokenizer | Exact tokenizer artifact/config fingerprint, Unicode and whitespace round-trip behavior, offset semantics, byte-fallback/unknown handling, special-token separation and reference/Android conformance are verified |
+| Tokenizer | Exact per-generation tokenizer profile/artifact fingerprint, Unicode and whitespace round-trip behavior, offset semantics, byte-fallback/unknown handling, special-token separation and reference/Android conformance are verified |
+| Tokenizer preparation | Precomputed-profile selection or local-training reproducibility, bounded CPU/memory/storage/energy behavior, rights-cleared seed-corpus binding and pre-allocation fallback are verified; no token-ID changes occur after model tensor initialization |
 | Architecture component comparisons | Evidence source, tokenizer sensitivity, disposition, matched budget, numerical checks and unresolved assumptions are recorded per component; no whole-model result is misattributed |
 | Framework reuse | Exact source/license, Android API exposure, random-init support, operator/backward coverage, optimizer state, data-loop/checkpoint lifecycle and device-specific limitations are audited before integration |
 | Personal learning | Unapproved/revoked candidates cannot update weights; general and personal data lineage remain separate |
