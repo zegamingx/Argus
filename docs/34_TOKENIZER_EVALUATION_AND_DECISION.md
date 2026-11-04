@@ -228,6 +228,17 @@ The input embedding matrix contains approximately (V 	imes d) parameters. If the
 
 A vocabulary that shortens every sequence may still be a poor device choice if it makes embeddings, optimizer state or the output head too large. Compare vocabulary sizes with both token-sequence costs and model-state costs, not token fertility alone.
 
+Illustrative parameter-cost table for **one** embedding or untied output matrix (decimal MB, FP32 weight storage only):
+
+| Vocabulary (V) | Hidden size 64 | Hidden size 128 | Hidden size 256 |
+|---:|---:|---:|---:|
+| 8,192 | 0.52M params / 2.10 MB | 1.05M / 4.19 MB | 2.10M / 8.39 MB |
+| 16,384 | 1.05M / 4.19 MB | 2.10M / 8.39 MB | 4.19M / 16.78 MB |
+| 32,768 | 2.10M / 8.39 MB | 4.19M / 16.78 MB | 8.39M / 33.55 MB |
+| 65,536 | 4.19M / 16.78 MB | 8.39M / 33.55 MB | 16.78M / 67.11 MB |
+| 90,000 | 5.76M / 23.04 MB | 11.52M / 46.08 MB | 23.04M / 92.16 MB |
+
+These are analytical illustrations, not selected Argus dimensions or vocabulary budgets. An untied output projection adds a second matrix of the same shape. Gradients, optimizer moments, temporary logits/workspaces and allocator overhead are additional. Consequently, the 90K vocabulary used in some 1B–1.5B research models cannot be transferred to a compact Genesis configuration by analogy. Vocabulary budget, hidden size, embedding tying, training-state memory and output-logit compute must be selected together.
 ### Tied versus untied embeddings and output projection
 
 For each vocabulary budget and hidden dimension, report both:
@@ -260,11 +271,13 @@ The official [Swiss AI parity-aware-bpe implementation](https://github.com/swiss
 
 **Language allocation and screening.** [Meister, Altıntaş and Bosselut, *Language-Specific Effects of Tokenizer Choice in Multilingual Language Models* (2026 preprint)](https://arxiv.org/abs/2610.12144) train 123 models across 54 tokenizer variants. In the main controlled comparison, decoder-only architecture, corpus, training-token budget and optimization are held fixed; the model is 1.27B parameters with a roughly 128K vocabulary and is trained on four GH200 GPUs. Tokenizer sensitivity is larger for languages receiving a smaller share of language-model training data. Excluding a language from tokenizer training raises its held-out bits-per-byte in the studied set. Importantly, simply upweighting low-resource languages in tokenizer-training data does not reliably help and can worsen results when the language model later repeats data. Their per-language intrinsic metrics can screen candidate BPB rankings, but these are learned correlations for the reported languages/configuration, not a substitute for Argus task-quality verification.
 
+[Won et al., *TReX: Tokenizer Regression for Optimal Data Mixture* (EACL 2026)](https://aclanthology.org/2026.eacl-long.298/) use small proxy tokenizers and regression to predict multilingual tokenizer-training mixtures; their reported mixtures improve compression efficiency by up to 12% over LLaMA3-derived and uniform baselines in their evaluation. This supports a data-driven mixture strategy instead of choosing language weights by intuition. It does not imply that Argus needs to reproduce the TReX model or its training setup; the paper's target is tokenizer compression, and any transferred mixture still needs to match Argus's intended language/domain product scope and corpus rights.
+
 **Controlled-comparison method.** [Altıntaş et al., *TokSuite* (ICML 2026)](https://proceedings.mlr.press/v306/altintas26a.html) release fourteen models differing in tokenizer while sharing architecture, data, training budget and initialization, plus a multilingual robustness benchmark with orthographic and surface-form perturbations. Their benchmark covers English, Chinese, Farsi, Italian and Turkish, not Indonesian. It is useful evidence for how to isolate tokenizer effects and test perturbation robustness, not a directly transferable tokenizer winner for Argus.
 
 **Evaluation-data restriction.** The [FLORES+ dataset card](https://huggingface.co/datasets/openlanguagedata/flores_plus) identifies CC BY-SA 4.0, requires acceptance of access terms, and explicitly says FLORES+ is an evaluation benchmark and should not be used as training data. Because Parity-aware BPE uses aligned development examples to guide merge selection, Argus must not reuse FLORES+ as a tokenizer-development/merge-selection corpus merely because a research paper used it. Treat it as held-out evaluation only unless the dataset owner provides explicit permission for the intended tokenizer-development use. A separate rights-cleared parallel development source is required for the base PA-BPE path; if unavailable, document and compare the authors' hybrid/no-dev alternatives, with the measured parity limitations stated.
 
-**Evidence conclusion.** For a product scope that explicitly prioritizes Indonesian and Southeast Asian languages, Parity-aware BPE is the strongest current primary *research candidate* for cross-language cost parity. It is not a final Argus decision: the exact product-language mix, rights-cleared language-labelled corpus, aligned development data, domain composition, vocabulary/model-state budget and runtime path remain open. Standard byte-level BPE remains the necessary baseline; SentencePiece BPE/Unigram remain relevant alternatives for a simpler established artifact/runtime route; raw bytes remain a coverage/sequence-cost control. The evidence does not justify choosing a large vocabulary simply because a 1.5B or 1.27B paper used 90K/128K vocabularies.
+**Evidence conclusion.** For a product scope that explicitly prioritizes Indonesian and Southeast Asian languages, Parity-aware BPE is the strongest current primary *research candidate* for cross-language token-cost parity. Its aligned development-set requirement can be met by a small licensed parallel source, while the frequency corpus can remain language-labelled rather than parallel; if no suitable aligned source is cleared, compare its hybrid and no-dev variants and disclose the parity loss. Standard byte-level BPE remains the necessary baseline; SentencePiece BPE/Unigram remain implementation/runtime alternatives; raw bytes remain a coverage/sequence-cost control. Vocabulary size cannot be borrowed from 1B–1.5B research models; the analytical table above shows why compact Argus configurations need joint vocabulary/hidden-size budgeting. No final Argus algorithm or vocabulary is selected until product languages, actual candidate data rights and G4 architecture/resource envelope are documented.
 
 ## 7. Controlled comparison protocol
 
@@ -276,6 +289,7 @@ The initial required comparison is:
 |---|---|---|---|---|
 | T0 Raw UTF-8 bytes | UTF-8 bytes | No; fixed 256 byte IDs | All byte values representable | Universal-coverage/sequence-cost control |
 | T1 Byte-level BPE | Byte alphabet | BPE merges | Byte representation | Main byte-first subword candidate |
+| T1-P Parity-aware BPE | Same byte-level BPE inference; fair-max vocabulary learning | BPE merges selected using per-language development-set compression | Byte representation | Primary research candidate for an explicitly Indonesian/SEA-first multilingual profile; requires a suitable aligned development set |
 | T2 SentencePiece BPE | Raw Unicode characters | BPE pieces | Unknown token or byte-fallback variant | Main Unicode-subword candidate |
 | T3 SentencePiece Unigram | Raw Unicode characters | Unigram pieces | Unknown token or byte-fallback variant | Main probabilistic-subword candidate; deterministic inference evaluation |
 | T4 WordPiece | Implementation-specific character/subword base | WordPiece vocabulary | Depends on exact configuration | Secondary reference if reproducible |
@@ -375,7 +389,9 @@ Risks/open questions:
 - A merge vocabulary is still a learned data-derived artifact and requires provenance.
 - Runtime, context and training-cost results must be measured on Argus's target devices.
 
-None of these options is selected. A tokenizer artifact, whether bundled or per-installation, must not be confused with pretrained neural model weights. The final packaging and ownership policy belongs in a reviewed ADR after tokenizer and corpus evidence are available.
+**Provisional lifecycle recommendation:** prefer **Option A — a precomputed, versioned tokenizer artifact** for the first implementation, subject to the rights/runtime review below. One immutable vocabulary can be shared as a deterministic representation contract without sharing any installation's neural weights, memory, optimizer state or model identity; every local Genesis generation still has its own instance/generation IDs and independently initialized parameters. This avoids adding vocabulary training to the first-launch critical path and avoids per-installation token-ID divergence. Use Option B only if a documented product requirement genuinely needs per-installation vocabularies and the resulting per-device tokenizer build, compatibility, migration and corpus-rights burden is accepted. Option C raw bytes remains an evaluation control, not the default deployment choice, because its sequence expansion may consume context and training compute.
+
+This is a design recommendation, not an accepted ADR. The exact algorithm, vocabulary size, artifact source/license and Android runtime must still pass G1-D/G4.
 
 ## 10. Versioning, identity, checkpoints and migration
 
@@ -455,7 +471,7 @@ Open decisions:
 9. Android tokenizer implementation/runtime and dependency/license choice.
 10. Migration policy for tokenizer revisions and vocabulary changes.
 
-The **documentary shortlist** can close without Argus downstream-training or Android-device results. The **final design ADR** remains open only for explicit product-language scope, rights-cleared tokenizer-training/development data, analytical vocabulary/model cost, artifact policy and runtime/source review. Downstream quality and exact Android conformance are recorded under G1-V for post-implementation verification; they must not be used to keep G1-D or the overall documentation phase pending.
+The **documentary shortlist (G1-D)** can close using existing literature and analytical resource accounting without Argus downstream-training or Android-device results. The **final tokenizer design ADR at G4** remains open for the explicit product-language scope, rights-cleared tokenizer-training/development data, vocabulary/model cost under the chosen model profile, artifact policy and static runtime/source/license review. Downstream quality and exact Android conformance are recorded under G1-V for post-implementation verification; they must not be used to keep G1-D or the overall documentation phase pending.
 
 ## 12. Relationship to the wider Argus research plan
 
@@ -488,6 +504,7 @@ The **documentary shortlist** can close without Argus downstream-training or And
 | E-029 | [Language-Specific Effects of Tokenizer Choice in Multilingual Language Models](https://arxiv.org/abs/2610.12144), Meister et al., 2026 preprint | 123 controlled models/54 tokenizers; sensitivity differs by language/training share; naive tokenizer-data upweighting is not a universal fix; metric screening is promising but not a causal quality guarantee |
 | E-030 | [TokSuite](https://proceedings.mlr.press/v306/altintas26a.html), Altıntaş et al., ICML 2026 | Fourteen controlled tokenizer variants with same model/data/budget/initialization and perturbation benchmark; methodological reference, but language coverage does not include Indonesian |
 | E-031 | [FLORES+ dataset card](https://huggingface.co/datasets/openlanguagedata/flores_plus), current v5.0 | CC BY-SA 4.0 and gated terms; intended for evaluation and explicitly not training data. Do not use as PA-BPE merge-selection/development data without permission for that purpose |
+| E-032 | [TReX: Tokenizer Regression for Optimal Data Mixture](https://aclanthology.org/2026.eacl-long.298/), Won et al., EACL 2026 | Small proxy tokenizers plus regression can screen language-mixture choices; reported up to 12% compression-efficiency gain versus selected heuristic baselines. Compression-only result; not direct quality or Argus corpus evidence |
 
 
 **Current recommendation:** keep Parity-aware BPE as the primary research candidate for an Indonesian/SEA-first multilingual profile, standard byte-level BPE as the baseline, SentencePiece BPE/Unigram as implementation/runtime alternatives, and raw bytes as a coverage/sequence-cost control. This is a conditional shortlist, not an accepted tokenizer ADR. The product-language matrix and tokenizer-development corpus rights are still required before the documentary design choice can be closed. The Android conformance and downstream model-quality checks are G1-V obligations after implementation. Tokenizer evaluation proceeds in parallel with tokenizer-neutral architecture research; the eventual architecture ADR must bind to an exact tokenizer ID and fingerprint.
