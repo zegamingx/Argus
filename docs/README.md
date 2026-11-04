@@ -74,7 +74,7 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 | [31 — Indonesian-Language OER Source Expansion](31_INDONESIAN_LANGUAGE_OER_SOURCE_EXPANSION.md) | Indonesian OER candidates, item-level rights path and SPADA 2022 program boundary |
 | [32 — Device-Adaptive Knowledge Acquisition and Corpus Budgeting](32_DEVICE_ADAPTIVE_KNOWLEDGE_ACQUISITION.md) | Device capability profile, corpus/storage tiers, dynamic admission and verification |
 | [33 — From-Scratch Training Feasibility](33_FROM_SCRATCH_TRAINING_FEASIBILITY.md) | Evidence classification, Android resource model, sustained thermal/energy constraints and E1–E7 feasibility protocol |
-| [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md) | Candidate families, multilingual fixtures, Unicode/special-token conformance, vocabulary/runtime costs and decision gates |
+| [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md) | Device-conditioned tokenizer profile portfolio, multilingual fixtures, Unicode/special-token conformance, vocabulary/runtime costs and decision gates |
 | [35 — Android Architecture Evidence and Component Comparison Matrix](35_ANDROID_ARCHITECTURE_EVIDENCE_AND_COMPONENT_MATRIX.md) | Android prior art, Genesis constraints, component-level disposition, framework reuse and G0–G4 gates |
 | [36 — Pre-Implementation Module and Lifecycle Contracts](36_PRE_IMPLEMENTATION_MODULE_AND_LIFECYCLE_CONTRACTS.md) | Architecture-neutral module/API boundaries, data records, state machines, typed errors/events, concurrency, transactions and later verification obligations |
 
