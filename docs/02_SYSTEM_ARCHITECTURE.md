@@ -10,7 +10,7 @@ Separate product behavior from model implementation, hardware vendors and operat
 ## 2. Logical layers
 
 1. **Experience:** chat, settings, permissions, approvals and transparency dashboards.
-2. **Application orchestration:** use cases, lifecycle, scheduling, cancellation and workflow state.
+2. **Application orchestration:** process-independent use cases, Genesis/learning/acquisition workflows, resource admission, job/session lifecycle, cancellation and workflow state. Android process/service callbacks, WorkManager/foreground-service integration, permission APIs and OS scheduling constraints belong to platform adapters.
 3. **Agent/tool layer:** perception, reasoning, memory, action and learning as bounded roles using typed messages.
 4. **Cognition services:** context assembly, planning, retrieval, evaluation, policy checks and deterministic utilities.
 5. **Model services:** registry, tokenizer, inference sessions, embeddings, VLM/audio services and adapter lifecycle.
@@ -19,7 +19,7 @@ Separate product behavior from model implementation, hardware vendors and operat
 8. **Data layer:** encrypted metadata, conversation/memory stores, model files, checkpoints and audit records.
 9. **Trust/governance plane:** consent, permission state, network policy, approval, retention and kill switch.
 
-The trust plane is cross-cutting; capture, memory, network, training and action flows must consult it.
+The trust plane is cross-cutting; capture, memory, network, training and action flows must consult it. Application workflow ownership is distinct from Android platform lifecycle: application code owns the meaning/state of a job or session, while platform adapters translate OS callbacks and scheduling restrictions into that workflow's control interface.
 
 ## 3. Compute dispatch
 
