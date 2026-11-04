@@ -143,13 +143,12 @@ Architecture research may continue before G1, but comparisons that depend on tok
 | Parameter/depth/width device budget | Vocabulary/head contribution not yet fixed | Partially | Non-vocabulary lower/upper cost bounds with explicit excluded embedding/head term |
 | Vocabulary size and tokenizer preparation mode | Direct; budget and local-training feasibility depend on the selected device/resource envelope | No final selection | Profile-specific tokenizer comparison, rights-cleared seed policy, and vocabulary/head/optimizer cost |
 | Device-profile tokenizer portfolio | Depends on product language scope, rights-cleared data and measured capability; no one vocabulary is universal | No final selection | A bounded profile registry and deterministic selection/fallback policy with exact fingerprint per generation |
-
 | Embedding dimension and embedding matrix size | Direct through vocabulary and model width | No final selection | Vocabulary-aware parameter/memory budget |
 | Tied vs untied embeddings/output head | Direct cost interaction with vocabulary; semantics need fixed token IDs | No final selection | Parameter/head compute comparison after tokenizer shortlist |
 | Special-token IDs and chat control inventory | Direct | No | Final serializer/tokenizer contract |
 | Effective context length and document coverage | Direct through tokens per byte and segmentation | No | Byte/document coverage per context window |
 | Final sequence packing and boundary masking | Direct through tokenized examples | No | Packing, EOS/document-boundary and loss-mask contract |
-| Final language-model ablation | Direct | No | Freeze tokenizer ID and exact tokenized fixture first |
+| Final language-model ablation | Direct | No | Freeze the exact tokenizer profile ID/fingerprint and tokenized fixture for the model configuration being compared |
 
 A tokenizer shortlist is sufficient to prepare the architecture matrix and estimate parameter/head costs, but G4 must approve the device-conditioned tokenizer profile portfolio, selection/fallback policy and exact contract/fingerprint for each retained profile. Each Genesis generation pins exactly one selected tokenizer manifest and fingerprint; no installation changes token IDs in place. A vocabulary revision after architecture freeze requires a new generation contract and migration review.
 
@@ -252,11 +251,11 @@ Use separate comparison modes; do not blend their conclusions:
 1. **Parameter-matched:** compare capability/cost at approximately equal total parameters. State whether embedding/output parameters are included.
 2. **Compute-matched:** compare under a fixed compute budget; token exposure may differ and must be reported.
 3. **Memory-matched:** compare under the same device/process memory ceiling and reserve.
-4. **Data-exposure-matched:** compare the same documents and target bytes/tokens under a fixed tokenizer.
+4. **Data-exposure-matched:** for tokenizer comparisons, use the same documents and target bytes while reporting each candidate's token count; for architecture comparisons, hold the exact tokenizer profile/fingerprint fixed.
 5. **Device-matched:** same physical device, OS, thermal start state, power/charging and runtime build.
 6. **Sustained-matched:** compare after the same plateau protocol, not one cold-start run.
 
-When tokenizer changes, a fixed token count does not represent equal raw-text exposure. Report bytes and tokens, and do not claim a tokenizer or architecture win from a mismatched data budget.
+When tokenizer changes, a fixed token count does not represent equal raw-text exposure. Report bytes and tokens. A tokenizer comparison must hold source documents/target bytes constant; an architecture comparison must hold the exact tokenizer profile/fingerprint constant. Do not claim a tokenizer or architecture win from a mismatched data budget.
 
 ### 7.3 Core metrics
 
