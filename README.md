@@ -121,6 +121,7 @@ The documents under [docs/](docs/README.md) are the planning source of truth. Th
 | [40 — Initialization and Width-Scaling Research](docs/40_INITIALIZATION_AND_WIDTH_SCALING_RESEARCH.md) | Random initialization, residual/depth scaling, T-Fixup, DeepNorm and μP/μTransfer across model widths |
 | [41 — Recurrent State and Chunked-Training Lifecycle Contracts](docs/41_RECURRENT_STATE_AND_CHUNKED_TRAINING_CONTRACTS.md) | Mamba-2 conv/SSM state, RWKV-7 WKV/shift state, chunked BPTT, document resets and atomic resume contracts |
 | [42 — Architecture-Family Tensor and Operator Inventory](docs/42_ARCHITECTURE_TENSOR_AND_OPERATOR_INVENTORY.md) | Parameter shapes, training operators, vocabulary/logit and recurrent/KV state accounting across the four G2 families |
+| [43 — G4 Architecture Decision and Device-Profile Contract](docs/43_G4_ARCHITECTURE_DECISION_AND_PROFILE_CONTRACT.md) | G4 hard-gate and matched-comparison process, immutable profile schema and ADR acceptance checklist |
 
 ## Current implementation status
 
