@@ -1,17 +1,17 @@
 # Indonesian-Language OER Source Expansion
 
-**Status:** Source-level shortlist researched; exact item activation and full-text review remain open  
-**Research date:** 2026-11-03  
+**Status:** Source-level shortlist researched; item-specific access and rights dispositions recorded; no corpus item is activated  
+**Research date:** 2026-11-05  
 **Purpose:** Expand the Indonesian-language public learning source set beyond the first three ITATS technical modules
 
 ## 1. Current gap
 
-The current curated Indonesian seed sample contains three ITATS materials:
-- Pemrograman Internet of Things.
-- Transformasi Digital.
-- Pemrograman Berorientasi Objek.
+The curated Indonesian seed register contains three ITATS records, but their effective status is not uniform:
+- **Pemrograman Internet of Things:** substantive 66-page preview PDF and item-page CC BY 4.0 declaration; separate package handout/material entries are dummy placeholders. Limited retrieval-pilot candidate; exact-file checksum and third-party/use-specific rights review remain open.
+- **Transformasi Digital:** item page/catalogue declare CC BY 4.0, while the preview PDF prohibits reproduction without written permission. **HOLD_RIGHTS_CONFLICT** pending written resolution; exclude from retrieval and all corpus manifests.
+- **Pemrograman Berorientasi Objek:** substantive 64-page preview and an actual main-PDF package item are listed with item-page CC BY 4.0. Exact downloadable bytes/checksum and complete third-party/use-specific rights review remain open.
 
-These demonstrate Indonesian PDF ingestion and item-level license metadata, but they are concentrated in information systems and software/technology. They do not create broad Indonesian-language coverage.
+These records are concentrated in information systems and software/technology. Even if individually cleared, they do not create broad Indonesian-language coverage. The per-item evidence and exact operational dispositions are maintained in [29 — Curated Initial Text Seed Set](29_CURATED_INITIAL_TEXT_SEED_SET.md).
 
 The ITATS Program Studi Sistem Informasi OER archive currently lists thirteen materials. Its catalog rows display CC BY 4.0 for each listed item. This is useful evidence for discovery and candidate selection, but each item must still be opened and its rights page captured as the source-of-record before a connector fetches it. The catalog page is not a substitute for item-specific provenance, file checksum and third-party-content review.
 
@@ -131,14 +131,14 @@ The archive lists this module under CC BY 4.0, but its search-indexed descriptio
 
 ## 4. Existing ITATS seed records
 
-The first three records already included in [29 — Curated Initial Text Seed Set](29_CURATED_INITIAL_TEXT_SEED_SET.md) remain:
-- Pemrograman Internet of Things.
-- Transformasi Digital.
-- Pemrograman Berorientasi Objek.
+The three original records remain in document 29, with item-specific dispositions:
+- SEED-ID-001 — IoT preview PDF: limited retrieval-pilot candidate; dummy add-on package assets excluded; checksum, third-party and use-specific rights review pending.
+- SEED-ID-002 — Transformasi Digital: HOLD_RIGHTS_CONFLICT; do not ingest or reproduce until the PDF restriction and landing-page CC BY 4.0 declaration are reconciled in writing.
+- SEED-ID-003 — Pemrograman Berorientasi Objek: substantive preview and actual main-PDF package item located; exact downloaded bytes/checksum and complete rights/asset review pending.
 
-Together with entries ID-ITATS-004 through ID-ITATS-012, they form a candidate institutional collection spanning thirteen archive entries. The Business Intelligence entry remains held pending authenticity review.
+Together with entries ID-ITATS-004 through ID-ITATS-012, they form a discovery shortlist spanning thirteen archive entries, not an approved corpus. The Business Intelligence entry remains held pending authenticity review.
 
-The archive currently reports thirteen entries across its two pages. Page-level license labels are discovery evidence; before fetching, the individual item page must be stored as the rights record and the PDF's checksum, attribution and third-party-content audit must be captured.
+The archive's catalogue-level license labels are discovery evidence only. Each item's file, author attribution, embedded third-party material and permitted operations must be checked independently; a CC BY label does not override a conflicting restriction embedded in the corresponding PDF.
 
 ## 5. SPADA Indonesia: program-scoped CC BY discovery path
 
