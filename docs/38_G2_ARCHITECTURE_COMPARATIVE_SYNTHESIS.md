@@ -1,0 +1,209 @@
+# G2 Architecture Comparative Synthesis
+
+**Status:** Comparative design synthesis; no Argus backbone selected  
+**Last reviewed:** 2026-11-04  
+**Research gate:** G2 family shortlist established; detailed synthesis feeds G4  
+**Scope:** Decoder-only Transformer, selective SSM/Mamba-2 SSD, recurrent delta-rule/RWKV-7, and attention–SSM/recurrent hybrid  
+**Boundary:** Published/reference evidence and analytical comparison only. No Argus implementation, build, workflow, or physical-device experiment is authorized or claimed.
+
+## 1. Executive synthesis
+
+The initial four-family shortlist remains appropriate for the first Argus model-design decision. The current evidence does not justify deleting any of the four, nor does it justify selecting one solely from inference complexity or a large server-scale result.
+
+| Family | Strongest current reason to retain | Main unresolved cost/risk for Argus | Current position |
+|---|---|---|---|
+| Decoder-only Transformer | Mature causal-LM formulation and the strongest directly relevant sub-billion/mobile deployment and mobile fine-tuning ecosystem | Attention compute grows quadratically with sequence length; inference KV cache grows with retained context; Android from-scratch training remains unproven | Mandatory reference/control and serious candidate |
+| Selective SSM / Mamba-2 SSD | Structured state-space duality permits parallel scan/chunk training while maintaining bounded recurrent inference state | Specialized selective-scan/backward kernels, numerical parity and Android operator coverage are not established | Serious research candidate |
+| Recurrent delta-rule / RWKV-7 | Dynamic matrix-valued recurrent state with parallelizable training and constant history-dependent inference-state footprint | Recurrent-state update/backward kernels, state precision, chunk-boundary semantics and Android runtime maturity need independent audit | Serious research candidate |
+| Attention–SSM/recurrent hybrid | Can combine direct attention paths with recurrent state; large-scale published Mamba-2 hybrid results are promising on the studied tasks | Carries both operator/state families, more complex checkpointing and fallback; published layer composition is not transferable to Argus | Secondary composition candidate |
+
+The next decision must not be framed as “which architecture is fastest?” It is a multi-objective decision across from-scratch trainability, model quality, training/inference memory, sustained compute, kernel maturity, data semantics, exact recovery, maintainability and the number of device profiles the project can support.
+
+**No G4 selection is made here.** The purpose is to expose the trade-offs and required comparisons before freezing a design.
+
+## 2. Evidence categories and transfer limits
+
+The reviewed evidence falls into different categories that must not be combined as if they measured the same thing:
+
+- **Mobile deployment/model design:** MobileLLM studies sub-billion model design and reports deep/thin blocks, embedding sharing and grouped-query attention. It is relevant to parameter allocation and on-device inference, but does not establish that the training run itself occurred on a phone.
+- **Mobile LLM fine-tuning/runtime:** MobileFineTuner and FBLayout show selected Android phone fine-tuning and memory/layout techniques. They do not prove from-random-initialization foundation training or select a backbone family.
+- **Server-scale controlled architecture comparison:** Mamba/Mamba-2/Transformer/Hybrid studies compare common data and large token budgets at multi-billion scale. They provide stronger evidence about architectural behavior than isolated deployment claims, but their GPU kernels, batch sizes and training infrastructure are not Android measurements.
+- **Architecture-specific papers and released implementations:** Mamba-2 SSD and RWKV-7 define useful mathematical and kernel references. A paper or CUDA implementation is not evidence of Kotlin, NDK, Vulkan, CPU or Android accelerator availability.
+- **Argus evidence:** No reviewed source establishes successful broad general-language pretraining from random initialization on a single Argus Android device. That claim remains reserved for post-implementation E1–E7 verification.
+
+This synthesis therefore uses papers to compare mechanisms and trade-offs, not to import their reported throughput or quality gains as Argus estimates.
+
+## 3. Per-family technical comparison
+
+### 3.1 Decoder-only Transformer
+
+**Core mechanism.** Causal self-attention allows each position to attend to preceding positions, followed by feed-forward and residual/normalization blocks. Training parallelizes across token positions within a sequence; autoregressive inference maintains keys and values for prior context.
+
+**Sequence and state implications.**
+
+- Dense attention compute grows approximately quadratically with sequence length \(L\) for a fixed attention width/head layout.
+- A naive training implementation may materialize large attention intermediates. Memory-efficient/tiled attention can reduce the stored intermediate footprint, but does not remove the fundamental attention interaction cost.
+- Autoregressive inference KV memory grows with retained sequence length, layer count and KV width. Grouped-query attention and cache precision can reduce this term.
+- Training activation memory is separate from inference KV memory; checkpointing/recomputation and microbatching target training activations, not the model's parameter/optimizer state.
+
+**Evidence.** MobileLLM provides strong design evidence for sub-billion models through deep-and-thin configurations, embedding sharing and grouped-query attention. MobileFineTuner/FBLayout provide selected physical-phone fine-tuning/layout evidence. None proves a complete random-initialization Argus training graph on Android.
+
+**Argus risks and design questions.**
+
+- Attention kernel availability and backward precision must be proven for every supported backend.
+- Vocabulary/head parameters can be a large share of a small model; tokenizer profile and embedding tying therefore strongly affect total model and optimizer state.
+- Long context may be expensive even when inference cache is compressed.
+- Exact causal mask, sequence packing, document-boundary masking, normalization, positional encoding and output projection contracts must be frozen.
+
+**Required comparison.** Use a correctness-first causal-attention CPU reference; compare tiled/memory-efficient paths only after parity. Include deep/thin and embedding-sharing/GQA options as design variants, not as inherited defaults. Compare equal parameter, token and compute budgets separately.
+
+### 3.2 Selective SSM / Mamba-2 SSD
+
+**Core mechanism.** Selective state-space layers update a compact recurrent state from input-dependent parameters. Mamba-2 uses structured state-space duality (SSD) to connect SSM computation with attention-like matrix structure and to expose efficient chunk/scan algorithms.
+
+**Sequence and state implications.**
+
+- The recurrent inference state is bounded by selected layer/state dimensions rather than storing a key/value vector for every previous token.
+- The SSD formulation enables parallel/chunk training instead of requiring a simple token-by-token training loop.
+- The fact that inference state does not grow with history does not imply zero state, negligible workspace, or lower peak training RAM in every configuration.
+- Training still needs activations/intermediates or recomputation across the sequence and correct gradients through the scan/recurrent formulation.
+
+**Evidence.** Dao and Gu's SSD paper introduces Mamba-2 and reports a 2–8× core-layer improvement over the compared Mamba formulation in its evaluated setups. The NVIDIA/collaborator empirical study trains 8B Transformer, Mamba, Mamba-2 and Mamba-2-Hybrid models on common data up to 3.5T tokens. It reports task-dependent outcomes: pure Mamba families lag the Transformer on selected copying, in-context-learning and long-context reasoning tasks, while the studied hybrid outperforms the Transformer on the twelve reported standard tasks. These are large-scale GPU findings, not Android measurements.
+
+**Argus risks and design questions.**
+
+- Selective scan, convolution/state projections and backward kernels need a complete CPU reference and a verified Android execution strategy.
+- Kernel implementations may rely on specialized CUDA primitives that do not map directly to NDK CPU, Vulkan or vendor NPU runtimes.
+- State layout, chunk boundaries, reset behavior and exact recomputation policy must be specified.
+- A backend that supports forward inference only is insufficient for Genesis training.
+
+**Required comparison.** Implement/reference the recurrence and scan mathematically, then compare full sequence versus chunked execution for forward, loss and gradients. Measure state/workspace separately from parameter and optimizer state. Verify exact state carry/reset across packed document boundaries and checkpoint/resume boundaries.
+
+### 3.3 Recurrent delta-rule / RWKV-7
+
+**Core mechanism.** RWKV-7 generalizes a delta-rule-style recurrent update with dynamic state evolution and vector-valued gating. It is recurrent during inference but its training formulation remains parallelizable.
+
+**Sequence and state implications.**
+
+- Inference retains a matrix-valued state per layer/head rather than a conventional Transformer KV entry for every prior token.
+- The state footprint depends on the model's recurrent dimensions and layer/head configuration; “constant with context length” does not mean free or independent of model size.
+- Training can use parallel/chunk formulations, but those introduce their own intermediate, scan and state-boundary requirements.
+- A streaming training implementation must define when state is reset, carried between chunks, or detached. These choices change the objective and must not be hidden inside data-loader behavior.
+
+**Evidence.** The RWKV-7 paper describes constant memory usage and constant inference time per token with respect to prior history, while retaining parallelizable training. It reports models from 0.19B to 2.9B parameters trained on a large multilingual corpus and releases Apache-2.0 code/model resources. This is evidence for the architecture's training/inference formulation, not phone training feasibility.
+
+**Argus risks and design questions.**
+
+- Matrix-valued recurrence and dynamic state evolution need explicit tensor shapes, dtypes, numerical stability and state serialization.
+- Fused training kernels may have a narrower runtime/precision surface than ordinary dense matrix operations.
+- Recurrent state must be associated with exact document/sequence/chunk identity; accidental cross-document state leakage is a correctness and privacy risk.
+- The recurrent state must be restored or deterministically recomputed at a committed checkpoint boundary.
+
+**Required comparison.** Build a small correctness reference for the generalized delta update, run finite-value/gradient checks, and compare full-sequence versus chunked/parallel formulations. Measure persistent inference state, training activations and scan scratch separately. Define state-reset and checkpoint semantics before using packed corpus sequences.
+
+### 3.4 Attention–SSM/recurrent hybrid
+
+**Core mechanism.** A hybrid composes attention and recurrent/state-space blocks so that selected layers retain direct token-to-token attention while other layers use bounded recurrent state.
+
+**Sequence and state implications.**
+
+- Inference memory includes both the attention KV cache for attention layers and recurrent/SSM state for recurrent layers.
+- Training requires both attention and recurrent/scan backward implementations, plus consistent boundaries between block families.
+- A hybrid can trade some attention layers for recurrent layers, but no universal optimal ratio follows from one published 8B experiment.
+- Backend fallback becomes more complex: one unsupported operator can force a larger graph partition or CPU fallback, changing memory and runtime behavior.
+
+**Evidence.** The NVIDIA/collaborator Mamba-2-Hybrid study uses an 8B model with 43% Mamba-2, 7% self-attention and 50% MLP layers in the reported configuration. It reports strong aggregate performance on that evaluated workload. The published composition is a study configuration, not an Argus recommendation or a mobile-verified ratio.
+
+**Argus risks and design questions.**
+
+- More module types increase code, test, checkpoint and migration surface.
+- The model can inherit the worst execution constraint of either subsystem if the backend cannot fuse or efficiently schedule both.
+- Recurrent state and attention cache lifecycles must be unified in inference request identity and session recovery.
+- It is not justified as the first implementation merely because it combines two families.
+
+**Required comparison.** Keep hybrid as a secondary candidate. Compare only a small number of transparent compositions against their pure-family controls, with matched parameter/token/compute budgets and identical data. Report each block type's memory, latency, backward coverage and fallback cost separately.
+
+## 4. Cross-family system matrix
+
+| Axis | Transformer | Mamba-2 SSD | RWKV-7 | Hybrid |
+|---|---|---|---|---|
+| Training parallelism | Strong token-position parallelism through attention | Parallel scan/chunk formulation | Parallelizable recurrent training formulation | Both attention and scan/recurrent paths |
+| History-dependent inference state | KV cache grows with retained context | Recurrent state bounded by layer/state dimensions | Matrix-valued recurrent state bounded by model dimensions | Both KV cache and recurrent state |
+| Sequence-length compute pressure | Dense attention has quadratic sequence interaction | Linear/scan-style sequence structure, with dimension-dependent scan work | Recurrent/chunk formulation, with matrix-state update cost | Mixed; attention layers retain quadratic interaction |
+| Training activation/workspace | Attention and FFN activations; tiled attention can reduce intermediate storage | Scan/convolution/state intermediates; exact kernel policy matters | Recurrent/chunk intermediates and state | Combined attention and recurrent/scan workspaces |
+| Android CPU reference | Feasible in principle with standard tensor ops; must be implemented and validated | Requires selective-scan reference and gradient validation | Requires delta-state reference and gradient validation | Requires both references and cross-block validation |
+| Android GPU/NPU backward maturity | Best adjacent mobile fine-tuning/layout evidence, still not complete Argus support | No general Android full-backward guarantee | No general Android full-backward guarantee | Highest combined operator coverage burden |
+| Checkpoint-specific state | Model/optimizer/RNG/data cursor; inference KV per active session | Model/optimizer/RNG/data cursor plus recurrent/chunk state at defined resume boundary | Model/optimizer/RNG/data cursor plus matrix recurrent state and chunk boundary | Both recurrent and attention session state |
+| Migration complexity | Established family, but dimensions/tokenizer/head changes still require new generation | Specialized graph/state format | Specialized state/update format | Highest combined schema and backend migration surface |
+| Current evidence transfer | Sub-billion deployment and mobile fine-tuning are adjacent evidence, not phone pretraining | Server-scale language-model comparison and SSD algorithm evidence | Published recurrent LM training and model evidence, not phone training | Server-scale hybrid evidence; no mobile random-init result |
+
+This is a qualitative evidence matrix, not a performance ranking. Terms such as “linear” or “constant state” describe scaling against sequence history for the stated mechanism; they are not claims that actual runtime is faster or uses less total memory on every phone.
+
+## 5. What the device-adaptive requirement actually changes
+
+Argus must support different Android devices without turning every SoC into a separate model implementation.
+
+The system needs two distinct decisions:
+
+1. **Genesis configuration decision:** select a compatible architecture/profile bundle before allocating model tensors. This bundle includes architecture version, dimensions, tokenizer profile/fingerprint, precision, context and initialization policy.
+2. **Runtime workload decision:** adapt microbatch, accumulation, sequence length within the approved contract, recomputation, scheduling and pause/resume to current memory, thermal, battery and OS conditions.
+
+The runtime controller must not alter architecture, token IDs, parameter inventory or optimizer semantics in the middle of a training session. If a device cannot safely run the selected bundle, reject it or select another approved bundle before Genesis commit. Do not partially construct one architecture and silently fall back to another.
+
+A small, maintainable profile portfolio is preferable to an unbounded architecture-per-chipset matrix. Whether the first release should use one backbone family with multiple model-size/resource profiles or a small portfolio of different families remains an explicit G4 decision. It must be resolved using implementation complexity, runtime coverage, quality evidence and device-resource estimates—not by assuming a newer architecture is automatically better.
+
+## 6. Matched comparison rules for G4
+
+The final design synthesis must compare candidates under controlled, reconstructable conditions:
+
+### 6.1 Common model/data controls
+
+- Use one exact tokenizer profile and fingerprint per compared configuration; G1-D must close before token-sensitive comparisons are frozen.
+- Use the same immutable corpus revision, language/domain sampling manifest, train/validation/test split and document deduplication.
+- Use the same causal objective and correctly token-weighted loss; record special-token and document-boundary behavior.
+- Compare parameter-matched, token-matched and compute-matched views separately. No single matching rule is sufficient.
+- Account for vocabulary embedding/output-head parameters as part of total model size and optimizer state.
+
+### 6.2 Common runtime/resource controls
+
+- Define one architecture-neutral tensor/state interface and a CPU correctness reference for each retained candidate.
+- Record forward, loss, backward and optimizer operator coverage separately.
+- Account for persistent model parameters, gradients, optimizer state, activations, logits, recurrent state, KV cache, scratch/workspaces, data staging, allocator overhead and checkpoint publication overlap.
+- Keep inference memory and training memory separate; do not use KV-cache estimates as a proxy for training activation memory.
+- Compare effective tokens per optimizer update and microbatch separately, with identical gradient accumulation/loss-weighting semantics.
+- Use the same optimizer comparison set and optimizer-specific tuning budget. Lion is a candidate, not a prior winner; see [37 — Optimizer Research and Lion Assessment](37_OPTIMIZER_RESEARCH_AND_LION_ASSESSMENT.md).
+- Separate published measurements, analytical estimates, reference implementation behavior and unverified Argus assumptions in every table.
+
+### 6.3 Required synthesis outputs
+
+For each architecture candidate, G4 must publish:
+
+1. A versioned module/graph definition and exact tensor inventory.
+2. Initialization, normalization, positional/state and residual semantics.
+3. Training objective, backward contract, optimizer/parameter groups and precision policy.
+4. Tokenizer/profile binding, context/packing policy and special-token boundary.
+5. Analytical per-profile parameter, optimizer, activation, recurrent/KV, workspace and checkpoint memory envelope.
+6. CPU reference and candidate backend/operator coverage table, including known unsupported operations.
+7. Model/optimizer/RNG/sampler/cursor checkpoint and exact-resume contract.
+8. Migration, generation isolation, rollback and model-quality evaluation plan.
+9. An explicit list of assumptions to verify in E1–E7 after implementation.
+
+A candidate may be selected as a design to implement while its Android physical support remains unverified. That uncertainty must be explicit and cannot be converted into a support claim.
+
+## 7. Current G2/G3/G4 position
+
+- **G2:** CLOSED only for the initial four-family comparison shortlist. This document expands the comparative synthesis and does not add or remove a family.
+- **G3:** CLOSED only for the one-primary-disposition planning baseline. Architecture-dependent and tokenizer-sensitive components remain DEFER where marked.
+- **Optimizer:** DEFER; AdamW remains the reference/control, Lion is admitted as a memory-sensitive candidate, and no optimizer is selected.
+- **G4:** OPEN/BLOCKED until G1-D closes, the controlled design comparison is complete, each candidate's full random-init/backward/optimizer/checkpoint contract is documented, and a reviewed architecture ADR is issued.
+- **Physical Android verification:** E1–E7 remains a later implementation-verification gate. It is not required to finish this documentary synthesis.
+
+## 8. Primary references
+
+1. Liu et al., ICML 2024, [MobileLLM: Optimizing Sub-billion Parameter Language Models for On-Device Use Cases](https://proceedings.mlr.press/v235/liu24ce.html). Sub-billion architecture design, deep/thin blocks, embedding sharing and grouped-query attention.
+2. Dao and Gu, ICML 2024, [Transformers are SSMs: Generalized Models and Efficient Algorithms Through Structured State Space Duality](https://proceedings.mlr.press/v235/dao24a.html). Mamba-2/SSD mathematical formulation and scan-oriented efficiency.
+3. Waleffe et al., 2024, [An Empirical Study of Mamba-based Language Models](https://arxiv.org/abs/2406.07887). Controlled large-scale Transformer, Mamba, Mamba-2 and hybrid comparison; 8B models and up to 3.5T tokens.
+4. Peng et al., COLM 2025, [RWKV-7 Goose with Expressive Dynamic State Evolution](https://arxiv.org/abs/2503.14456). Dynamic recurrent state, parallelizable training and published 0.19B–2.9B model experiments.
+5. [RWKV-7 architecture and implementation documentation](https://github.com/RWKV/RWKV-wiki/blob/main/docs/basic/architecture.md). Architecture/version details; community documentation, not Android runtime evidence.
+6. [MobileFineTuner Android SDK documentation](https://github.com/Edge-Intelligence-Lab/MobileFineTuner/blob/main/docs/ANDROID_SDK.md) and [FBLayout paper](https://arxiv.org/abs/2607.21624). Mobile training-step, memory-layout and fine-tuning evidence; not a from-scratch architecture winner.
+
