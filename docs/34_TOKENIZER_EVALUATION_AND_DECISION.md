@@ -1,6 +1,6 @@
 # Tokenizer Evaluation and Decision Framework
 
-**Status:** Evidence synthesis with provisional device-conditioned tokenizer portfolio; final tokenizer profile policy and ADR remain OPEN  
+**Status:** Evidence synthesis with provisional device-conditioned tokenizer portfolio; user-imported local corpus is the primary frequency-data path; final tokenizer profile policy and ADR remain OPEN  
 **Last reviewed:** 2026-11-05  
 **Research stage:** Stage 4.1–4.2 — Tokenizer evaluation and comparative research  
 **Authority:** Candidate definitions, evaluation controls and decision gates. No tokenizer, vocabulary size, normalization profile, packaging policy or runtime is selected by this document.
@@ -11,7 +11,7 @@ Argus must choose a tokenizer before its model generation is initialized because
 
 This document establishes a controlled method to compare tokenizer candidates. It does not select a universal winner or require one vocabulary shared by every installation.
 
-Argus is device-adaptive. The product language/domain policy and rights-cleared source inventory define the eligible tokenizer scope; each installation's measured capability profile determines which reviewed tokenizer configuration and preparation mode is feasible. The resulting tokenizer may be a shared precomputed artifact selected from a profile portfolio or a locally trained, versioned artifact. Either way, its exact fingerprint is fixed before model tensors are initialized and remains immutable for that model generation.
+Argus is device-adaptive. The product language/domain policy and the corpus selected by the user define the tokenizer data scope; each installation's measured capability profile determines which tokenizer configuration and preparation mode is feasible. A local import must include an explicit user declaration for tokenizer frequency fitting and, separately, aligned development if an algorithm requires it. The resulting tokenizer may be a shared precomputed artifact selected from a profile portfolio or a locally trained, versioned artifact. Either way, its exact fingerprint is fixed before model tensors are initialized and remains immutable for that model generation.
 
 The current evidence supports four cautions:
 
@@ -32,7 +32,7 @@ The accepted Genesis rule remains:
 - Model parameters are initialized locally for each Argus instance.
 - No externally pretrained neural weights are used as the foundation.
 - Tokenizer assets and model weights are separate artifacts with separate provenance.
-- The use of a precomputed vocabulary does not, by itself, introduce pretrained neural weights. It is nevertheless a data-derived asset whose training corpus, license, provenance, reproducibility and distribution terms must be reviewed.
+- The use of a precomputed vocabulary does not, by itself, introduce pretrained neural weights. A locally derived vocabulary is bound to the user-imported corpus revision and the user's tokenizer-fitting declaration. Redistribution or bundling of that artifact is a separate operation and is not implied by local import.
 - If Argus trains a tokenizer locally, that tokenizer-training operation is distinct from neural pretraining and must not be presented as model learning.
 
 The tokenizer must be finalized before the initial model's embedding/output dimensions are allocated. Its ID and cryptographic fingerprint become part of the model generation identity and training/checkpoint compatibility contract. A vocabulary or token-ID mapping change is a generation migration, not an ordinary settings change. See [20 — Argus Genesis Engine](20_ARGUS_GENESIS_ENGINE.md) and [19 — P0 Remediation Design](19_P0_REMEDIATION_DESIGN.md).
@@ -110,15 +110,16 @@ Indonesian and English are the mandatory initial comparison languages because th
 
 ### 4.2 Source eligibility
 
-- Use only exact, versioned samples with documented permission for the intended evaluation.
-- The final representative fixture must be derived from source records accepted through the corpus/provenance process in [22 — General Corpus and Personal Learning](22_GENERAL_CORPUS_AND_PERSONAL_LEARNING.md) and documents 27–32.
-- Tokenizer evaluation has its own narrow rights boundary: encoding/decoding diagnostics need permission for the relevant text processing; training a learned tokenizer/vocabulary additionally requires documented permission for that processing and the derived tokenizer artifact. This permission is **not** neural-model training approval and does not activate a source for the general corpus.
-- A source listed as a discovery or retrieval candidate is not automatically approved for tokenizer training, redistribution or neural-model training.
+- Use an exact, versioned fixture. The primary source is a user-imported local dataset under document 22, not an Argus-curated public-source catalog.
+- The user must explicitly declare the imported corpus for **tokenizer frequency fitting**. A separate declaration is required if the same data is also selected for neural-model training.
+- If the selected tokenizer algorithm uses aligned development data, the user must import an exact aligned dataset and separately declare its use for merge/development selection. A no-development-data algorithm variant may be compared when no aligned set is supplied; the evidence must not pretend that aligned data exists.
+- Record file/content digests, importer/parser version, user-provided provenance fields, operation declaration and split membership. Argus does not perform item-by-item external license research for a user-selected local import; missing license metadata remains unknown and is not asserted to be public-domain permission.
+- A later redistribution or bundled-artifact operation is separate from local tokenizer fitting and requires a separate decision. Local import does not authorize publishing source files or derived artifacts.
 - Synthetic Unicode and format test cases may be generated for deterministic correctness tests; they must be labeled synthetic and must not be counted as natural-language training data.
-- Do not include personal conversations, private files or user-specific content in tokenizer training or evaluation without the separate consent and data-governance contract.
-- Keep the tokenizer-training sample, intrinsic evaluation sample and any downstream model evaluation split separate. Avoid exact-text and near-duplicate leakage.
+- Do not include personal conversations, private files or user-specific experience in tokenizer training or evaluation through the general-corpus path. Those inputs remain under document 48.
+- Keep tokenizer-training, intrinsic evaluation and downstream model evaluation splits separate. Avoid exact-text and near-duplicate leakage.
 
-The corpus phase has not yet finalized all source rights or composition. Therefore any early fixture is provisional and may support technical diagnostics only. Final language/domain weighting and vocabulary selection must be revisited after corpus provenance and composition are approved.
+The local-import contract is now the primary data path. A fixture remains provisional until an exact user-selected corpus revision, operation declaration, parser/preprocessing identity and split manifest are committed. Final language/domain weighting and vocabulary selection are revisited against that actual imported composition. Optional public-source candidates in documents 27–32 are not prerequisites.
 
 ### 4.3 Balancing and sampling
 
@@ -332,7 +333,10 @@ The permission record must answer separate yes/no/conditional questions for: (a)
 
 **Product-language proposal — not an accepted decision:** use Indonesian and English as the initial core language tier, with additional language groups admitted through explicit evidence/rights review rather than implied by the corpus catalogue. Preserve deterministic UTF-8 byte coverage as a representation fallback where the selected tokenizer family supports it, but do not equate encodability with model competence. The product owner must still accept or replace the language tiers, priority weights and unsupported-language behavior. Device capability may select an affordable approved profile; it must never silently remove a product-required language.
 
-## 6.3 Product-language scope and source eligibility baseline
+## 6.3
+
+**Source-candidate disposition:** the named external datasets, books and OER records in this section are optional public-source research. Their specific rights/status findings remain valid if those exact sources are later used, but they are not prerequisites for user-imported tokenizer or model-training data under ADR-027/document 22.
+ Product-language scope and source eligibility baseline
 
 The current repository does **not** contain an accepted product-language priority matrix. The following distinctions are binding for this research pass:
 
@@ -367,7 +371,7 @@ The rights boundary is also operation-specific:
 - **BAHANA:** remain HOLD unless access, no-redistribution restrictions, ShareAlike and intended tokenizer-artifact use are cleared in writing where required.
 - **FLORES+:** evaluation-only by the current dataset card; do not use as a tokenizer-development/merge-selection corpus without explicit permission.
 
-**Current frequency-corpus conclusion (2026-11-05):** no exact, version-pinned frequency corpus is approved for Argus tokenizer fitting. The English OTL titles, Indonesian ITATS preview files and repository-provided `SEED-ID-004` bundle are separate evidence-backed review leads only; exact source bytes, complete provenance/content audit and operation-specific tokenizer/artifact permissions remain unresolved:
+**Historical external-source conclusion (2026-11-05):** none of the external frequency-corpus candidates below was approved for default Argus use. This no longer blocks local tokenizer fitting: the primary path is an exact user-imported corpus with an explicit tokenizer-fit declaration under document 22. The English OTL titles, Indonesian ITATS preview files and repository-provided `SEED-ID-004` bundle are separate evidence-backed review leads only; exact source bytes, complete provenance/content audit and operation-specific tokenizer/artifact permissions remain unresolved:
 
 - English: `SEED-OTL-001` — Springer publisher chapter pages explicitly state CC BY 4.0; third-party exceptions may be separately credited and must be checked across the downloaded edition. [Publisher rights example](https://link.springer.com/chapter/10.1007/978-3-030-16877-3_4).
 - English: `SEED-OTL-002` — UQ Press confirms CC BY 4.0 **except where otherwise noted**; the book includes text, video and online materials, so every exception/embedded asset must be inventoried. [Publisher title page](https://uq.pressbooks.pub/introduction-social-sciences/).
@@ -376,7 +380,7 @@ The rights boundary is also operation-specific:
 - Indonesian repository asset: `SEED-ID-004 DigiTransID.zip` — 16 text files, 258,654 expanded bytes. It has no explicit author/license/bibliography metadata in the extracted text and contains unresolved citation markers in part 6. It is a separate monolingual candidate, subject to an explicit origin/rights declaration and source repair; it is not treated as ITATS OER or as the same work as the held PDF.
 - Indonesian: `SEED-ID-002` — **HOLD_RIGHTS_CONFLICT**. Its landing page declares CC BY 4.0, but the preview PDF includes a written-permission requirement for reproducing part or all of the work. The two statements are inconsistent; obtain written clarification before any copying, storage, indexing, retrieval or corpus use. [Transformasi Digital item](https://itats.ac.id/sisteminformasi/oer/transformasi-digital/).
 
-For the English OTL titles and retained Indonesian candidates, the exact original-file edition/bytes, SHA-256, complete page-level/embedded-content exclusions, attribution and use-specific tokenizer-fit/derived-artifact decisions remain pending. Their records remain `TRAINING_REVIEW_PENDING`; none is approved or activated. `SEED-ID-002` remains excluded on rights hold and must not be counted as an eligible source. TALPCo is a separate, small aligned-development candidate and is also not use-cleared for Argus. License declarations, permission to fit tokenizer frequencies, permission to generate/distribute a derived vocabulary/tokenizer artifact, raw-source redistribution and neural-model training are distinct issues and must not be conflated.
+For the optional English OTL titles and retained Indonesian public-source candidates, exact original-file edition/bytes, SHA-256, embedded-content exclusions, attribution and source-specific rights remain pending. They remain optional candidates and are not required for the user-imported corpus path. `SEED-ID-002` remains excluded on rights hold and must not be counted as an eligible source. TALPCo is a separate, small aligned-development candidate and is also not use-cleared for Argus. License declarations, permission to fit tokenizer frequencies, permission to generate/distribute a derived vocabulary/tokenizer artifact, raw-source redistribution and neural-model training are distinct issues and must not be conflated.
 
 ## 6.4 Device-conditioned vocabulary and preparation-cost method
 
@@ -389,7 +393,7 @@ For each candidate profile, record:
 - Weight, gradient, optimizer-moment and temporary-output precision/storage rules from the actual candidate training core.
 - p50/p90/p99 bytes and Unicode scalars represented per context window, token utilization, truncation and output-logit cost.
 - Tokenizer artifact size, load/encode memory, and optional local-training peak memory, wall time, energy and cancellation boundary.
-- Rights-cleared tokenizer seed and (for base PA-BPE) aligned development manifests, each pinned by revision and checksum.
+- User-imported tokenizer-frequency manifest with an explicit tokenizer-fit declaration; if the retained PA-BPE variant requires aligned development, a separate user-imported aligned manifest, each pinned by revision and checksum.
 
 The minimum weight-only storage estimate remains (V \times d \times b) per embedding/output matrix. An untied output matrix adds a second (V \times d) matrix. This is only the weight term: gradient storage, optimizer moments, master weights, logits/workspaces, allocator overhead and runtime memory must be derived from the selected core and precision, not hidden behind a universal multiplier. The full output-logit working set depends on microbatch, sequence length, vocabulary and loss-kernel implementation; record whether the core materializes logits or uses a fused/recomputed path.
 
@@ -401,7 +405,7 @@ The vocabulary sweep should use at least three points **per architecture/resourc
 
 Use a staged eligibility-and-fit procedure rather than a single weighted score or chipset lookup:
 
-1. **Apply product and rights eligibility first.** Reject any candidate whose language coverage conflicts with the owner-approved language contract, whose source manifest lacks the necessary tokenizer-fit/development permissions, or whose artifact distribution obligations cannot be met.
+1. **Apply product-language and user-declared operation eligibility first.** Require the imported corpus manifest to record explicit tokenizer-fit permission and, only where needed, a separate aligned-development declaration. Do not make an Argus-performed source-by-source license investigation a prerequisite for local import. Any later public redistribution/bundling of a derived artifact is a separate gate.
 2. **Apply runtime/format eligibility.** Require an available, version-pinned runtime candidate for the exact artifact format, declared pre-tokenizer/normalizer/decoder, special-token inventory and offset contract. Do not choose a different tokenizer family merely because one library is already packaged.
 3. **Construct the full candidate bundle.** Bind tokenizer ID/fingerprint, vocabulary budget, model hidden dimension, tied/untied output head, precision, context/packing profile, model architecture and supported execution backends. A tokenizer profile cannot be evaluated independently of its model/head dimensions.
 4. **Evaluate Genesis preparation fit.** Calculate tokenizer artifact storage, tokenizer load memory, optional local-training peak memory/time/storage/energy budget, and the memory/storage reserve required for atomic model generation publication. A candidate that exceeds the declared startup-preparation envelope is ineligible.
@@ -605,7 +609,7 @@ Changing algorithm, vocabulary, ID assignment, special-token mapping, normalizat
 G1-D may be completed from published research, official documentation, audited source/API/license evidence and analytical accounting. It does **not** require Argus application tests, physical Android benchmarks, or new downstream model training. It may close when:
 
 1. The initial product-language scope and explicit unsupported-language/fallback policy are documented.
-2. An exact, revision-pinned tokenizer-frequency corpus is approved for tokenizer training and derived-vocabulary creation, and (if base PA-BPE is retained) a separately approved aligned development corpus is identified; any evaluation-only source is excluded from frequency fitting, `--dev` merge selection and ratio calibration. The current CC BY textbook/OER and TALPCo records are candidates only; none is yet fully approved for Argus use.
+2. An exact, revision-pinned user-imported tokenizer-frequency corpus is available with an explicit tokenizer-fit declaration. If the retained PA-BPE variant uses aligned development, a separate user-imported aligned manifest is available with its own declaration; otherwise compare a valid no-development-data variant. Evaluation-only records are excluded from frequency fitting, `--dev` merge selection and ratio calibration.
 3. The evidence matrix compares raw-byte, standard byte-level BPE, PA-BPE (including hybrid/no-dev variants where relevant), SentencePiece BPE and SentencePiece Unigram within their actual evaluation scope.
 4. The provisional candidate shortlist and rationale account for per-language/domain quality evidence, compression, vocabulary/model-state costs and data availability.
 5. A device-conditioned tokenizer profile policy is documented: profile selection inputs, candidate vocabulary budgets, precomputed versus local-training modes, bounded preparation/fallback behavior, and the rule that the chosen fingerprint is fixed before model tensor allocation.
@@ -642,7 +646,7 @@ Use a Pareto comparison rather than an opaque one-number weighted score. Hard co
 
 Open decisions:
 1. Required product languages and relative language/domain sampling weights.
-2. Exact rights-cleared tokenizer-training corpus and its revision.
+2. Exact user-imported tokenizer-training corpus revision and its explicit tokenizer-fit declaration; aligned development input only if required by the selected algorithm.
 3. The bounded device-conditioned policy for selecting among precomputed tokenizer profiles and optional per-installation local training.
 4. Whether raw bytes remain only a control or are viable as a deployment path.
 5. Which subword families and vocabulary budget points remain in the final sweep.
@@ -652,14 +656,14 @@ Open decisions:
 9. Android tokenizer implementation/runtime and dependency/license choice.
 10. Migration policy for tokenizer revisions and vocabulary changes.
 
-The **documentary shortlist (G1-D)** can close using published research, official documentation, exact source/API/license audits and analytical accounting without Argus downstream-training or Android-device results. As of 2026-11-05, G1-D remains open for three documentary/owner decisions: (a) acceptance of the product-language priority matrix; (b) approval of exact, immutable tokenizer-frequency and (where selected) aligned-development manifests with operation-specific permissions; and (c) selection of a format-matched runtime/API/ABI path for each retained artifact family. TALPCo's 1,372 shared EN/ID/JA sentence IDs and Tatoeba's Indonesian–English link export are conditional aligned-development candidates, not frequency corpora or approved Argus assets; Tatoeba additionally requires contributor attribution and CC0-original-versus-translation filtering. HPLT v3 `ind_Latn` is a large provenance-rich frequency-source lead, but its CC0 grant covers packaging rather than extracted text, and its PII annotations do not redact source content; it remains subject to source-level rights and privacy review. HPLT v4 is a raw pool, not a ready-to-use language-engineering corpus. English OTL titles remain candidates pending exact bytes, exceptions and artifact permissions. Indonesian IoT and OOP modules are candidates pending full file/asset/use review; Transformasi Digital is held for a written-permission conflict and is excluded. The separate repository-provided `SEED-ID-004 DigiTransID.zip` bundle has 16 text files and 258,654 expanded bytes, but lacks an explicit author/license/bibliography record and contains unresolved citations; keep it `PROVENANCE_REVIEW_PENDING` until the owner confirms origin/authority and repairs the source trail. SentencePiece v0.2.2 remains stable while v0.2.3pre3 Lite is pre-release; Hugging Face Tokenizers Rust v0.23.2 is the stable HF-format inference candidate, while v1.0.0-rc.3 remains pre-release. The RC3 output fix is specific to Hugging Face's built-in `ParityBpeTrainer`, not the separate Swiss-AI Python implementation. The latter's unpinned `tokenizers` dependency, undeclared `transformers` import and implicit decoder configuration require exact artifact/export validation; do not conflate the two trainers. No physical-device or downstream-quality result is required to close G1-D; exact Android conformance and downstream model quality remain G1-V obligations after implementation. G4 still requires its own profile/resource and architecture ADR; it must not be conflated with documentary G1-D closure.
+The **documentary shortlist (G1-D)** can close using published research, official documentation, audited runtime/API evidence and analytical accounting without downstream model training or Android-device results. The product-language matrix and format-matched runtime/API/ABI contract remain owner/design decisions. The exact tokenizer-frequency input will be supplied through the user-controlled local import path in document 22, with a separate declaration for tokenizer fitting; an aligned development manifest is needed only if the retained algorithm variant requires it. The external-source candidates and detailed source reviews below remain optional references, not blockers for a user-provided local corpus. Missing license metadata is recorded as unknown, not as public-domain permission; local import does not authorize external redistribution. Android conformance and downstream model-quality checks remain G1-V obligations after implementation. G4 still requires its own profile/resource and architecture ADR.
 
 ## 12. Relationship to the wider Argus research plan
 
 - [33 — From-Scratch Training Feasibility](33_FROM_SCRATCH_TRAINING_FEASIBILITY.md) defines the device/resource and E1–E7 gates. Tokenizer work does not establish broad from-scratch feasibility.
 - [23 — Neural Architecture Research Plan](23_NEURAL_ARCHITECTURE_RESEARCH_PLAN.md) uses the exact tokenizer profile selected for each model configuration as a versioned input contract for controlled architecture comparisons.
 - [35 — Android Architecture Evidence and Component Comparison Matrix](35_ANDROID_ARCHITECTURE_EVIDENCE_AND_COMPONENT_MATRIX.md) defines component-level research and identifies decisions blocked by tokenizer G1.
-- [22 — General Corpus and Personal Learning](22_GENERAL_CORPUS_AND_PERSONAL_LEARNING.md), documents 27–32, and the corpus phase define source rights, language/domain distribution and tokenizer-training data eligibility.
+- [22 — General Corpus and Personal Learning](22_GENERAL_CORPUS_AND_PERSONAL_LEARNING.md) defines user-imported local corpus input and operation declarations. Documents 27–32 contain optional public-source research and do not gate the primary tokenizer-data path.
 - [20 — Argus Genesis Engine](20_ARGUS_GENESIS_ENGINE.md) requires the tokenizer identity before the initial model generation is committed.
 - [19 — P0 Remediation Design](19_P0_REMEDIATION_DESIGN.md) binds checkpoints and candidates to exact tokenizer fingerprints.
 - [14 — Performance, Power and Thermal Engineering](14_PERFORMANCE_POWER_THERMAL.md) and [15 — Verification and Compatibility](15_VERIFICATION_COMPATIBILITY.md) define device measurement and verification.

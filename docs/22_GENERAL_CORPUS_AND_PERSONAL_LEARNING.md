@@ -21,7 +21,7 @@ The initial general-corpus intake is a user-initiated local import.
 ### 2.1 User flow
 
 1. The user opens the dataset-import action and selects one or more local files or a supported archive using Android's system document picker.
-2. The user declares that the selected material is a **general dataset**, not personal experience, and confirms that they have authority to use it for the stated local processing/training purpose.
+2. The user declares that the selected material is a **general dataset**, not personal experience, then selects its local purposes independently: neural-model training, tokenizer frequency fitting, aligned tokenizer development, or a chosen combination. The user confirms that they have authority for each selected purpose.
 3. Argus parses and validates the selected files locally. It does not fetch linked articles, crawl source websites, upload content or silently add the data to a training queue.
 4. Argus presents an import summary: files/records discovered, accepted, skipped/rejected, detected structure/languages, duplicate counts, approximate text volume and validation warnings.
 5. The user confirms corpus preparation. Argus creates a versioned local corpus manifest and deterministic split plan.
@@ -40,7 +40,7 @@ The exact supported MIME types, file-size limits, archive limits and parser impl
 
 ### 2.3 User declaration and rights metadata
 
-Argus does not need to perform source-by-source web research or an external license investigation before accepting a user-directed local import. At import time, the user confirms that they have the authority to use the selected material for the declared local purpose. The system records that declaration with the import identity and timestamp.
+Argus does not need to perform source-by-source web research or an external license investigation before accepting a user-directed local import. At import time, the user confirms authority separately for each selected local operation: general model training, tokenizer frequency fitting, and/or aligned tokenizer development. The system records those operation-specific declarations with the import identity and timestamp.
 
 The declaration is not a legal determination by Argus. Missing license metadata is recorded as unknown; it is not silently converted to public-domain status. Imported material is kept local and is not automatically bundled into Argus, published, redistributed, synced or sent to another service. Any future redistribution or Argus-operated public-source acquisition is a separate operation with its own requirements.
 
@@ -84,7 +84,7 @@ Validation should identify malformed encodings, empty/duplicate records, broken 
 
 Train, validation and test partitions are deterministic and disjoint at the record/document level. A record must never appear in more than one split after deduplication. Validation and test partitions are never passed to the optimizer. Split policy and seed are included in the manifest so a corpus revision can be reproduced.
 
-Tokenizer-dependent token counts and tokenized shards are finalized against the exact tokenizer fingerprint selected by the active model generation. Until G1-D is closed, the importer may preserve validated raw text and record-based split membership, but it must not invent a tokenizer identity or claim final token counts.
+Tokenizer-dependent token counts and tokenized shards are finalized against the exact tokenizer fingerprint selected for the model generation. An imported corpus may also be selected as tokenizer-frequency input only when the user explicitly declared that operation. An aligned development split is required only for tokenizer algorithms/configurations that use it; if the user does not import an appropriate aligned set, Argus must use a valid no-development-data variant or exclude that candidate. Until G1-D is closed, the importer preserves validated raw text and record-based split membership without inventing tokenizer identity or final token counts.
 
 ### 3.1 Minimum corpus manifest
 
@@ -94,7 +94,7 @@ Record at least:
 - Import timestamp and importer/parser version.
 - Each input file's name, size, media type, SHA-256 digest and import outcome.
 - User-supplied source label/URL or publisher when provided.
-- User declaration: intended general-corpus purpose, authority confirmation, declaration version and timestamp.
+- User declaration: selected operation scopes (neural-model training, tokenizer frequency fitting, aligned tokenizer development), authority confirmation for each scope, declaration version and timestamp.
 - Record IDs/digests, duplicate and rejected-record summaries.
 - Language/quality/safety diagnostic versions and outcomes.
 - Normalization and deduplication version/configuration.
@@ -148,7 +148,7 @@ Track both after any personal update to detect catastrophic forgetting. The cand
 
 - Small C4 is not a required, bundled or default bootstrap dataset.
 - Argus does not need to curate or download public articles before the user can import a local dataset.
-- User import is not permission for Argus to publish, redistribute, sync or upload the files.
+- User import is not permission for Argus to publish, redistribute, sync or upload the files. Model-training and tokenizer-fitting purposes are separately declared.
 - Missing license metadata is not described as public-domain status or as proof of permission.
 - A dataset import does not itself start a training worker or change model weights.
 - User conversations, file attachments and screen observations are not automatically general-training data.

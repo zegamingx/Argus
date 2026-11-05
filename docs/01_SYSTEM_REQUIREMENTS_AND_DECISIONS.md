@@ -202,9 +202,9 @@ The initial general-corpus intake is a user-initiated import of locally selected
 The import workflow is local-first and explicit:
 
 1. The user selects local files or a supported archive through Android's system document picker. Argus does not crawl, fetch or upload the selected content.
-2. The user declares that the selected data is intended for the general corpus and that they have authority to use it for the declared local processing/training purpose. A file intended as personal experience follows the separate personal-learning intake in document 48.
+2. The user selects the intended local operation(s): general-corpus model training, tokenizer frequency fitting, aligned tokenizer development, or a chosen combination. The user declares that they have authority to use the selected data for each checked purpose. A file intended as personal experience follows the separate personal-learning intake in document 48.
 3. Argus validates supported formats, archive boundaries, decoding, record structure, content size and integrity; it reports rejected or skipped records rather than silently dropping them.
-4. Argus records import identity, file/content digests, timestamps, user-provided source labels and the user's declaration. It does not perform an external legal investigation for each article and does not infer that missing license metadata means public-domain material.
+4. Argus records import identity, file/content digests, timestamps, user-provided source labels and a separate user declaration for each selected purpose, including tokenizer fitting when selected. It does not perform an external legal investigation for each article and does not infer that missing license metadata means public-domain material.
 5. The user reviews the import summary and explicitly confirms corpus preparation. Argus creates a deterministic, immutable dataset manifest with split membership and preprocessing identity. Token counts/shards that depend on the selected tokenizer are finalized only after G1-D.
 6. Importing a corpus does not itself start model training. A later Learning session may consume only the exact committed manifest after Genesis, architecture/tokenizer, resource admission, checkpoint/recovery and training-workflow gates are satisfied.
 
