@@ -79,6 +79,15 @@ class LocalDatasetImporter(context: Context) {
         return stageSources(sources, purposes)
     }
 
+    fun stageBundledArgusId(purposes: Set<DatasetPurpose>): CorpusImportPreview {
+        val source = ImportSource(
+            displayName = "ArgusID.txt",
+            mimeType = "text/plain",
+            openStream = { appContext.assets.open(BUNDLED_ARGUS_ID_ASSET) }
+        )
+        return stageSources(listOf(source), purposes)
+    }
+
     fun stageBundledDigiTransId(purposes: Set<DatasetPurpose>): CorpusImportPreview {
         val source = ImportSource(
             displayName = "DigiTransID.zip",
@@ -753,6 +762,7 @@ class LocalDatasetImporter(context: Context) {
     )
 
     companion object {
+        private const val BUNDLED_ARGUS_ID_ASSET = "corpus/ArgusID.txt"
         private const val BUNDLED_DIGITRANSID_ASSET = "corpus/DigiTransID.zip"
         private const val STAGING_DIRECTORY = "corpus-staging"
         private const val CORPORA_DIRECTORY = "corpora"

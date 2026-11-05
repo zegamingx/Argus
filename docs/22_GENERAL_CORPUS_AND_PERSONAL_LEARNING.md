@@ -1,6 +1,6 @@
 # General Corpus and Personal Learning
 
-**Status:** Accepted general/personal learning split; local corpus importer and bundled DigiTransID intake implemented; training implementation remains open  
+**Status:** Accepted general/personal learning split; local corpus importer and bundled ArgusID/DigiTransID intake implemented; training implementation remains open  
 **Last reviewed:** 2026-11-05
 
 ## 1. Purpose
@@ -20,7 +20,7 @@ The initial general-corpus intake is a user-initiated local import.
 
 ### 2.1 User flow
 
-1. The user opens the dataset-import action and selects one or more local files or a supported archive using Android's system document picker.
+1. The user opens the dataset-import action and selects one of the bundled local corpora (ArgusID TXT or DigiTransID ZIP), or selects other files using Android's system document picker.
 2. The user selects the intended local purposes: neural-model training, tokenizer frequency fitting, aligned tokenizer development, or a chosen combination. General-corpus files remain separate from personal experience; no source-by-source license investigation or per-record rights declaration is part of this local import flow.
 3. Argus parses and validates the selected files locally. It does not fetch linked articles, crawl source websites, upload content or silently add the data to a training queue.
 4. Argus presents an import summary: files/records discovered, accepted, skipped/rejected, detected structure/languages, duplicate counts, approximate text volume and validation warnings.

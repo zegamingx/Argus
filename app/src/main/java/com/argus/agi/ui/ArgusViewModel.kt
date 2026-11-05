@@ -151,6 +151,12 @@ class ArgusViewModel(
         }
     }
 
+    fun stageBundledArgusId() {
+        stageDataset { purposes ->
+            localDatasetImporter.stageBundledArgusId(purposes)
+        }
+    }
+
     fun stageBundledDigiTransId() {
         stageDataset { purposes ->
             localDatasetImporter.stageBundledDigiTransId(purposes)

@@ -96,6 +96,14 @@ fun LocalDatasetImporterCard(viewModel: ArgusViewModel) {
             }
 
             Button(
+                onClick = viewModel::stageBundledArgusId,
+                enabled = !importState.isBusy && importState.selectedPurposes.isNotEmpty(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Import ArgusID corpus (Indonesian TXT)")
+            }
+
+            Button(
                 onClick = viewModel::stageBundledDigiTransId,
                 enabled = !importState.isBusy && importState.selectedPurposes.isNotEmpty(),
                 modifier = Modifier.fillMaxWidth()
