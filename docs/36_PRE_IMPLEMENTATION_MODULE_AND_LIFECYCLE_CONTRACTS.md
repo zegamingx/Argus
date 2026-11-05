@@ -126,7 +126,17 @@ The following are minimum logical records. A concrete serialization (Proto, Data
 | ModelGenerationManifest | instance ID, generation ID, parent generation, ModelConfig fingerprint, TokenizerManifest digest, initialization policy/version/seed metadata, tensor inventory, optional evolution-transition and sparse-topology digests, checksums, schema/storage versions | Immutable after commit; complete tensor inventory and digest verified before ACTIVE |
 | ArchitectureEvolutionManifest | transition ID, parent generation ID/digest, child ModelConfig fingerprint, mutation class, reason/evidence window, inherited/transformed/new tensor mapping, initialization and optimizer-state migration policy, resource envelope, validation policy and rollback parent | Immutable for one transition; child cannot be promoted without validating the exact transition and parent |
 | SparseTopologyState | candidate generation/session, parameter-group IDs, logical tensor shapes, sparse format/pattern, capacity and active count, mask/index payload digest, topology revision/update sequence, growth-prune schedule, RNG and active-parameter optimizer-state identity | Checkpointed atomically with model/optimizer/cursor state; absent for dense profiles; a density/topology change cannot be inferred from zero-valued dense tensors |
-| TrainingSessionManifest | session ID, target candidate generation, parent digest, objective/loss version, trainable parameter groups, optimizer/schedule, precision, dataset manifest digest, sampler/cursor policy, accumulation/update semantics, RNG policy, sequence/document reset and recurrent-state carry policy, chunk size and BPTT mode where applicable, resource profile | Immutable session definition; changes to mathematical semantics require a new session/revision |
+| DatasetManifest | dataset ID/revision, schema version, source-artifact references and SHA-256 digests, canonical normalized-dataset SHA-256 digest, parser/normalization/preprocessing/deduplication versions, record/document counts, provenance and rights references, tokenization state, split-manifest digest | Immutable content identity; canonical digest covers the exact versioned canonical representation consumed by readers; source digest and canonical dataset digest are distinct |
+| DatasetSplitManifest | parent dataset digest, split-policy/version, deterministic seed where applicable, grouping boundary (document/conversation/source), per-split membership reference, count and SHA-256 digest for train/validation/test, leakage-check result | Immutable split identity; no record/group may cross incompatible splits; final test data is not used for gradient updates or training-time selection |
+| DatasetAdmissionDecision | decision ID, dataset manifest digest, validator/policy version, checks and evidence references, decision (PENDING/APPROVED/REJECTED), reasons, reviewer/automated actor and timestamp | Append-only decision bound to one immutable manifest digest; a changed dataset requires a new manifest and decision; revocation/withdrawal is a separate policy event |
+| TrainingSessionManifest | session ID, target candidate generation, parent digest, objective/loss version, trainable parameter groups, optimizer/schedule, precision, dataset manifest digest, admission-decision digest, split-manifest digest and train-split identity, sampler/cursor policy, accumulation/update semantics, RNG policy, sequence/document reset and recurrent-state carry policy, chunk size and BPTT mode where applicable, resource profile, engine/runtime compatibility identity | Immutable session definition; changes to mathematical semantics or any pinned dataset/split/tokenizer/model identity require a new session/revision |
+| ModelCandidateManifest | candidate ID, instance ID, candidate generation ID/digest, parent active generation ID/digest, source session ID, dataset/admission digests, training-result digest, architecture/tokenizer/runtime fingerprints | Immutable candidate identity and lineage; candidate assessment and promotion transaction are separate records, not mutable flags on this manifest |
+| EvaluationProtocolManifest | protocol ID/version, evaluation dataset and test-split digests, tokenizer/model compatibility fingerprints, metric definitions/implementation versions, prompt/template revision, decoding/sampling parameters and seeds where generation is evaluated, scoring configuration, runtime/backend/precision requirements and reproducibility classification | Immutable evaluation recipe; each report pins the exact protocol and all data/model identities |
+| CandidateVerificationRecord | candidate digest, evaluation-report digest, verification-policy/version, baseline active-generation ID/digest captured at evaluation start, pass/fail and reason set, verifier version and timestamp | Immutable decision for the exact candidate/report/baseline tuple; metrics alone do not confer verification |
+| PromotionTransaction | transaction ID, idempotency key, candidate generation/digest, verification-record digest, expected active-pointer revision and parent digest, prior/new pointer values, transaction state and audit metadata | Idempotent compare-and-swap publication; retry with same key and same payload returns the original result; key reuse with different payload is rejected |
+| ActiveGenerationPointer | instance ID, active generation ID/digest, monotonically increasing pointer revision, last promotion/rollback transaction ID | Single authoritative active-generation reference; pointer changes only through repository transaction; prior generations remain immutable for rollback |
+| CheckpointManifest | checkpoint ID, session ID, candidate generation, parent digest, model/optimizer/scheduler/scaler/RNG state, data cursor/sampler, committed update sequence, optional recurrent-state and sparse-topology manifests/payload digests, dataset/admission/split digests, tokenizer/configuration/engine/runtime fingerprints, checksum and storage version | Immutable checkpoint snapshot; all payloads and cursors represent one safe boundary; exact-resume validation before use |
+| CheckpointValidationRecord | checkpoint ID/digest, validator version, payload-integrity result, session/model/tokenizer/dataset/optimizer/runtime compatibility checks, validation state (UNVALIDATED/VALID/CORRUPT/INCOMPATIBLE), reasons and timestamp | Per-checkpoint immutable validation result; restorable eligibility is derived from VALID plus current policy/resource admission, never from a session or candidate status |
 | RecurrentStateManifest | exact model/candidate generation and training-session identity, architecture/state-layout fingerprint, state component IDs, sequence/document identity, chunk cursor, tensor shapes/dtypes/layouts/checksums, reset/carry policy, state-production optimizer-update index | Conditional record for stateful Mamba-2/RWKV-style streams; absent only when the declared training mode resets at independent-sequence boundaries; never store a partial set of required state components |
 | CheckpointManifest | checkpoint ID, session ID, candidate generation, parent digest, model/optimizer/scheduler/scaler/RNG state, data cursor/sampler, committed update sequence, optional recurrent-state and sparse-topology manifests/payload digests, checksum and storage version | Atomic transaction; model, optimizer, topology, data cursor and any required recurrent carry must refer to one consistent commit boundary; exact-resume validation before use |
 | SourceRegistryEntry | source ID/version, endpoint/connector type, jurisdiction/region, source owner, terms/license evidence, allowed operation scopes, rate limits, review date and status | Default NOT-ACTIVATED; operation-specific permission |
@@ -187,18 +197,30 @@ ModelGenerationRepository.createCandidate(parentGeneration, sessionManifest)
 ModelGenerationRepository.commitCandidate(candidate, checkpoint)
     -> CommittedCandidate
 
-ModelGenerationRepository.promote(candidate, evaluationReport)
-    -> PromotionResult
+ModelGenerationRepository.promote(
+    candidateDigest,
+    verificationRecordDigest,
+    expectedActivePointerRevision,
+    idempotencyKey
+) -> PromotionResult
 
-ModelGenerationRepository.rollbackTo(generationId, reason)
-    -> ActiveGeneration
+ModelGenerationRepository.rollbackTo(
+    generationId,
+    expectedActivePointerRevision,
+    reason,
+    idempotencyKey
+) -> ActiveGeneration
 ~~~
 
 Requirements:
 - A temporary/staged generation is not visible as active.
 - Initial commit and candidate commit validate every required file/tensor, manifest digest and schema.
 - Commit uses an atomic publication boundary or a recoverable journaled equivalent.
-- Promotion is a separate operation from checkpoint commit.
+- Promotion is separate from checkpoint commit, candidate evaluation and candidate verification.
+- The repository verifies the exact candidate digest and verification-record digest, then compares the current active-pointer revision/parent digest with the expected values before publication. A changed pointer produces a typed conflict; the system must not promote against a stale baseline.
+- Promotion is idempotent. Repeating an identical request with the same idempotency key returns the original committed result. Reusing the key with different transaction content is rejected.
+- The repository atomically publishes a new ActiveGenerationPointer revision and a durable PromotionTransaction record. The prior pointer and generation remain available until rollback/retention policy explicitly permits removal.
+- Rollback is a new audited pointer transaction to an existing validated generation; it does not rewrite or delete model tensors and does not mutate inference snapshots already opened.
 - A failed candidate never damages the active generation or last-known-good generation.
 - Read snapshots remain stable for their lifetime; promotion changes the active pointer, not an existing inference snapshot.
 - Instance ID and generation ID are verified on every read/write.
@@ -334,12 +356,15 @@ LearningCoordinator.status(sessionId) -> SessionStatus
 ~~~
 
 Requirements:
-- Session admission verifies Genesis readiness, active parent digest, immutable tokenizer, approved immutable dataset manifest, configuration and resource envelope.
-- Training engine receives a declared model configuration, immutable training data iterator and candidate-only mutable state.
+- Session admission verifies Genesis readiness, the expected active parent digest, immutable tokenizer/configuration identities, the exact immutable DatasetManifest digest, an APPROVED DatasetAdmissionDecision for that same digest, the exact DatasetSplitManifest digest, required provenance/rights and consent, and the full resource envelope.
+- The DatasetManifest is the content identity; DatasetAdmissionDecision is a separate append-only decision. Approval of one digest never authorizes changed bytes, a new parser/preprocessing revision or a different split.
+- Training engine receives a declared model configuration, a streaming reader bound to the approved manifest/train split and candidate-only mutable state. It does not receive an unbounded in-memory list as the authoritative dataset identity.
 - A training step returns a typed numerical result (finite/invalid), gradient norm/status, optimizer update sequence and resource telemetry; a UI event is not the source of truth for committed progress.
 - The optimizer update sequence is monotonic and committed exactly once.
-- Pause is acknowledged only at a declared safe boundary. Stop is distinct from pause.
-- Resume verifies the exact parent/candidate/session/dataset/tokenizer/optimizer/RNG/cursor identity before applying another update.
+- **Safe optimizer-update boundary:** update N has completed all declared gradient-accumulation microsteps; the optimizer has applied the update; gradient buffers are empty (or an exact pending accumulation state is explicitly serialized by a versioned session contract); scheduler/scaler state reflects update N; RNG state reflects all random draws consumed through N; and the sampler/data cursor identifies the first not-yet-committed work unit. All model, optimizer, scheduler/scaler, RNG, cursor, recurrent carry and sparse-topology values must describe this same logical point.
+- **Pause semantics:** pause requests a cooperative stop at the next safe update boundary, then commits a complete checkpoint before publishing PAUSED. The request has a policy-defined wait bound. If that bound expires before a safe boundary, return a typed pending/deadline-exceeded result and keep the state truthful; never interrupt an in-flight numerical update and label it PAUSED.
+- **Stop/cancel semantics:** stop is terminal for that session and distinct from pause. It requests a cooperative safe-boundary stop, then applies the session's declared final-checkpoint policy before publishing STOPPED. A stopped session is not resumed under the same session ID; continuing from its checkpoint, where policy permits, creates a new session with explicit lineage. Coroutine cancellation is a control signal, not permission to serialize arbitrary mid-update tensors.
+- **Resume** verifies the exact parent/candidate/session/dataset/admission/split/tokenizer/model/optimizer/scheduler/RNG/cursor/backend-compatibility identity before applying another update. Current policy and resource admission are rechecked.
 - For recurrent/SSM families, resume also verifies the complete recurrent carry set (notably Mamba-2 convolution + SSM state, or RWKV WKV + TimeMix/ChannelMix shift state), its sequence/chunk identity, and the optimizer update that produced it. See [41 — Recurrent State and Chunked-Training Lifecycle Contracts](41_RECURRENT_STATE_AND_CHUNKED_TRAINING_CONTRACTS.md).
 - A change to optimizer, precision, packing, gradient reduction, objective, chunk-carry/reset policy or full-vs-truncated BPTT creates a new session configuration; it is not a silent adaptive-workload adjustment.
 - A chunk boundary is not automatically an independent document boundary or an optimizer-update boundary. The declared semantics determine whether recurrent state carries, resets, or carries gradients across that boundary.
@@ -429,56 +454,57 @@ Failure at any pre-commit state transitions to GENESIS_RECOVERY_REQUIRED or a ty
 ### 6.2 Training session
 
 ~~~text
-CREATED -> POLICY_CHECK -> RESOURCE_ADMISSION -> QUEUED -> RUNNING
+CREATED -> POLICY_CHECK -> DATASET_ADMISSION_CHECK -> RESOURCE_ADMISSION -> PREPARING -> QUEUED -> RUNNING
 
-RUNNING -> PAUSE_REQUESTED -> PAUSE_CHECKPOINT_COMMIT -> PAUSED
-PAUSED -> RESUME_CHECK -> QUEUED
+RUNNING -> PAUSE_REQUESTED -> SAFE_BOUNDARY_REACHED -> PAUSE_CHECKPOINT_COMMIT -> PAUSED
+PAUSED -> RESUME_CHECK -> RESOURCE_ADMISSION -> QUEUED
 
 RUNNING -> CHECKPOINTING -> RUNNING
 
-RUNNING -> STOP_REQUESTED -> STOP_AT_SAFE_BOUNDARY -> STOPPED
+RUNNING -> STOP_REQUESTED -> SAFE_BOUNDARY_REACHED -> FINAL_CHECKPOINT_COMMIT -> STOPPED
 
 RUNNING -> INTERRUPTED
-INTERRUPTED -> RECOVERY_VALIDATING -> RECOVERY_READY -> RESUME_CHECK -> QUEUED
+INTERRUPTED -> RECOVERY_VALIDATING -> RECOVERY_READY -> RESUME_CHECK -> RESOURCE_ADMISSION -> QUEUED
 RECOVERY_VALIDATING -> RECOVERY_REJECTED -> FAILED
 
-RUNNING -> FINALIZING -> FINAL_CHECKPOINT_COMMIT -> COMPLETED -> CANDIDATE_EVALUATION
-CANDIDATE_EVALUATION -> VERIFIED -> PROMOTION_PENDING -> PROMOTED
-CANDIDATE_EVALUATION -> REJECTED
-
+RUNNING -> FINALIZING -> FINAL_CHECKPOINT_COMMIT -> COMPLETED
 RUNNING -> FAILED
 ~~~
 
-- **PAUSED** is acknowledged only after a complete resumable checkpoint is durably committed and no update is in flight. A pause request is not yet a pause acknowledgement.
-- **STOPPED** is an explicit user/owner-requested terminal state, distinct from PAUSED and FAILED. It cannot be resumed as the same session. STOP is honored at a safe boundary; any final checkpoint is committed before STOPPED is published when the selected stop policy requires one.
+The training session state machine ends at COMPLETED, STOPPED or FAILED. Candidate assessment, checkpoint validation and active-generation publication are independent records/state axes; they are not additional training-session states.
+
+- **Safe optimizer-update boundary** is defined in section 5.5. A chunk, batch or epoch boundary is not automatically safe unless it satisfies the full optimizer/cursor/RNG/state consistency contract.
+- **PAUSED** is acknowledged only after the next safe boundary has been reached and a complete resumable checkpoint has been committed. A pause request or an in-flight checkpoint is not yet a pause acknowledgement.
+- Pause requests have a policy-defined wait bound. If the bound expires before a safe boundary, the workflow reports a typed pending/deadline-exceeded result; it does not force-cancel the numerical update or publish PAUSED falsely.
+- **STOPPED** is an explicit terminal user/owner-requested outcome, distinct from PAUSED, INTERRUPTED and FAILED. It cannot be resumed under the same session ID. A continuation, when permitted, is a new session with explicit parent-checkpoint lineage.
 - **INTERRUPTED** records that normal session ownership ended without a terminal commit, such as process reclamation, device restart or an unrecoverable backend interruption. It is not equivalent to a user-requested STOP.
-- **RECOVERY_VALIDATING** checks the latest durable checkpoint before any training update is allowed. **RECOVERY_READY** means the checkpoint is intact and its session, candidate/parent, model, tokenizer, dataset, optimizer, RNG, sampler/cursor and any required recurrent or sparse state identities match the session contract. A missing, partial or mismatched required component transitions to RECOVERY_REJECTED; the system must not guess a cursor or silently restart from initialization.
-- **RESUME_CHECK** revalidates current policy and resource admission as well as the durable training identity. **RUNNING** is published only after the training engine has actually resumed from the validated committed state.
-- **COMPLETED** is reached only after the declared training schedule has finished and its final checkpoint transaction has committed. It describes that bounded training run, not a permanently finished or universally capable model.
-- **VERIFIED** means the exact immutable candidate digest passed its declared evaluation gates. **PROMOTED** means the repository atomically published that verified candidate as the active generation. A candidate can be COMPLETED but rejected, or VERIFIED but not yet promoted.
-- **FAILED** carries a typed cause and recovery disposition. A failed final-checkpoint commit cannot be presented as a completed run; recovery starts from the last known durable checkpoint.
+- **RECOVERY_VALIDATING** checks a specific durable checkpoint before any training update is allowed. **RECOVERY_READY** means its integrity and exact session, candidate/parent, model, tokenizer, dataset/admission/split, optimizer/scheduler/scaler, RNG, sampler/cursor and required recurrent/sparse state identities match. A missing, partial or mismatched required component transitions to RECOVERY_REJECTED; the system must not guess a cursor or silently restart from initialization.
+- **RESUME_CHECK** revalidates current policy, backend compatibility and resource admission. **RUNNING** is published only after the engine has actually resumed from the validated committed state.
+- **COMPLETED** means the declared training schedule finished and its final checkpoint transaction committed. It describes that bounded run, not a permanently finished or universally capable model.
+- **FAILED** carries a typed cause and recovery disposition. A failed final-checkpoint commit cannot be presented as completed; recovery starts from the last known durable checkpoint.
 
-### 6.2.1 Recovery and user-visible status semantics
+### 6.2.1 Independent candidate, checkpoint and active-generation states
 
-Session lifecycle, checkpoint recoverability and candidate evaluation are related but separate facts. The UI must not collapse them into one success label.
+The following are orthogonal facts with separate authoritative records. They must not be collapsed into one status field.
 
-| User-visible fact | Required meaning and evidence | Must not be interpreted as |
+| Axis | Authoritative record/state | Allowed lifecycle or interpretation |
 |---|---|---|
-| Training running | The owning learning workflow reports RUNNING and the engine is executing the declared session | A background service merely exists |
-| Paused | A pause-safe boundary was reached and a complete resumable checkpoint was committed | STOPPED, process interruption or an uncommitted pause request |
-| Interrupted | The previous run lost normal ownership before a terminal commit; recovery is required | A user explicitly stopped training |
-| Restorable | A specific durable checkpoint passed integrity and exact-identity validation and is eligible for restoration under current policy/resource checks | Training completed, candidate evaluated, or candidate promoted |
-| Trained / run completed | The declared schedule completed and its final checkpoint committed | The model is finished learning, useful, verified or active |
-| Verified | The exact candidate digest passed its declared evaluation gates | The candidate is already the active generation |
-| Promoted | The verified candidate became the active generation through the repository transaction | A checkpoint was merely written |
+| Training session | application/learning session state | CREATED, policy/admission/preparation, QUEUED, RUNNING, PAUSED, INTERRUPTED, RECOVERY_VALIDATING/READY/REJECTED, COMPLETED, STOPPED or FAILED |
+| Candidate assessment | Immutable ModelCandidateManifest plus append-only assessment records | STAGED -> TRAINED -> EVALUATED -> VERIFIED, or EVALUATED -> REJECTED. A verified candidate is not necessarily active. |
+| Checkpoint validation | One CheckpointValidationRecord per checkpoint | UNVALIDATED -> VALID, CORRUPT or INCOMPATIBLE. Validation is checkpoint-specific, not candidate-wide. |
+| Checkpoint restorability | Derived capability for a particular checkpoint | RESTORABLE only when the checkpoint is VALID, exact identities are compatible, required policy remains valid and current resource admission permits restoration. It is not a session or candidate lifecycle state. |
+| Promotion transaction | PromotionTransaction | PREPARED -> COMMITTED, or ABORTED/CONFLICT. The transaction is idempotent and compares the expected active-pointer revision. |
+| Active model | One ActiveGenerationPointer per local instance | The pointer alone determines the generation used for new inference snapshots. Existing immutable snapshots remain bound to their original generation. |
 
-- **RESTORABLE is a checkpoint capability/result, not a training-session state.** It is scoped to a particular checkpoint ID and the identities it validates. A checkpoint may be restorable while its session is paused or interrupted; a checkpoint-save message alone does not establish restorability.
+- The product may display **PROMOTED** only as a derived fact: the active-generation pointer currently references the candidate generation and its committed promotion transaction. PROMOTED is not a mutable candidate approval status.
+- A checkpoint may be VALID but not currently RESTORABLE because current runtime conditions, policy or storage/resource admission do not permit restoration. A saved file alone proves neither.
+- **TRAINED** does not mean EVALUATED; **VERIFIED** does not mean PROMOTED; checkpoint validity does not imply candidate quality.
 - Training progress and recovery progress are independent measurements. Training progress uses committed optimizer updates or another declared work unit with an explicit numerator, denominator and unit. Recovery progress describes checkpoint discovery, integrity/identity validation or restore work. They must never share a counter, denominator or label.
-- A percentage is shown only when its denominator is known and meaningful. For open-ended background learning, show committed units/rate or session-local work rather than inventing a percentage or implying that the model is globally complete.
-- A recovery screen may retain the last committed training position (for example, 64% of a declared session) while showing a separate checkpoint-validation/restore operation. The recovery bar reaching 100% does not mean the training session reached 100%.
+- A percentage is shown only when its denominator is known and meaningful. For open-ended background learning, show committed units/rate or session-local work rather than inventing a percentage or implying the model is globally complete.
+- A recovery screen may retain the last committed training position (for example, 64% of a declared session) while showing separate checkpoint-validation/restore work. Recovery reaching 100% does not mean the training session reached 100%.
 - Status changes are rendered from the owning workflow snapshot and committed repository facts. UI animation, notification delivery, a local timer or a backend process callback cannot advance authoritative progress or lifecycle state.
 - Backend and precision labels are evidence-bound. Show CPU/NEON, Vulkan GPU or NPU only when the selected training execution report confirms that provider for the relevant operators. Report training precision separately from inference precision; an INT8 inference path is not evidence of INT8 training.
-- A “resumed” message is emitted only after RECOVERY_READY, RESUME_CHECK and the engine's transition to RUNNING. A “checkpoint saved” message is emitted only after the checkpoint transaction commits and must not be used as a synonym for COMPLETED or VERIFIED.
+- A “resumed” message is emitted only after RECOVERY_READY, RESUME_CHECK and the engine's transition to RUNNING. A “checkpoint saved” message is emitted only after its transaction commits and must not be used as a synonym for COMPLETED, VERIFIED or PROMOTED.
 
 ### 6.3 Knowledge item and training-candidate lifecycle
 
@@ -498,6 +524,19 @@ CAPTURED -> SENSITIVITY_CLASSIFIED -> REDACTED -> USER_REVIEW
 ~~~
 
 Revocation/deletion must invalidate pending candidate membership and follow the documented model-lineage policy if already trained.
+
+### 5.8 Dataset admission, candidate evaluation and promotion evidence
+
+- The source artifact digest identifies imported bytes. The canonical dataset digest identifies the exact versioned normalized records exposed to the training reader. Both use a declared cryptographic digest (SHA-256 in the initial contract) over a canonical byte representation; hashCode(), filenames, row counts and display labels are not integrity fingerprints.
+- Dataset admission is an immutable decision record bound to one DatasetManifest digest and validator/policy version. It records schema/integrity, parser/preprocessing, deduplication, source provenance/rights, consent where relevant, tokenizer compatibility, data-quality and leakage evidence. PENDING/APPROVED/REJECTED are decision outcomes, not mutable fields on the immutable dataset identity.
+- Admission rules are task- and corpus-specific. Classification label counts/balance checks may be appropriate for a classifier but are not universal foundation-language-model requirements. Do not hardcode arbitrary minimum row counts, label counts, balance percentages or quality thresholds without evidence for the selected objective and corpus.
+- Training, validation and test membership must be pinned by a DatasetSplitManifest with a digest for each split. Split at a semantically appropriate boundary (for example, document or conversation/source group) and record leakage checks. Validation may support explicitly declared model selection/early stopping; the final test split must not enter gradient updates or training-time selection.
+- Candidate evaluation is a separate operation over an immutable candidate digest and pinned EvaluationProtocolManifest. For language-model objectives, select metrics appropriate to the objective (for example held-out NLL/perplexity and task-specific quality/regression checks); classification accuracy/F1 is not a universal gate. Do not adopt illustrative numeric thresholds as product policy without measured evidence and an approved verification policy.
+- Reproducibility metadata includes evaluation dataset/test-split digests, tokenizer and model/configuration fingerprints, metric implementation versions, prompt/template revision, generation parameters and seeds where applicable, and runtime/backend/precision evidence. Each metric declares whether deterministic reproduction is expected and its accepted tolerance.
+- The comparison baseline is the Active Generation captured at evaluation start, identified by generation ID and digest. Do not compare against an unpromoted candidate merely because it was trained immediately before the current candidate.
+- Candidate verification creates a CandidateVerificationRecord bound to the exact candidate digest, evaluation report, policy version and pinned baseline. A passing decision establishes local policy eligibility; it is not remote attestation or a cryptographic proof of model quality, data rights or authorship.
+- Promotion is a separate idempotent compare-and-swap transaction. It must fail with CONFLICT if the active pointer no longer matches the expected revision/parent used for verification; the candidate must be re-evaluated against the new active baseline or explicitly re-approved under a versioned policy.
+- The active pointer is the authority for inference. A candidate, checkpoint or export artifact is not automatically eligible for inference merely because training finished, its dataset was approved or a checkpoint is restorable. Export is a separately authorized operation with its own policy and artifact identity.
 
 ## 7. Typed errors and recovery policy
 
@@ -555,12 +594,13 @@ Requirements:
 4. **Checkpoint boundary:** checkpoint publication is coordinated with optimizer-update sequence and dataset cursor in one logical transaction. The checkpoint must not point beyond committed parameter state.
 5. **Exactly-once commit:** replay after crash may repeat uncommitted compute, but no committed optimizer update may be duplicated or skipped.
 6. **Idempotent acquisition:** each fetch/ingest operation has a stable request/content identity; retries cannot duplicate accepted records or lose provenance.
-7. **Cancellation:** cancellation is cooperative and reaches a safe boundary. Storage transactions either commit completely or leave a recoverable uncommitted state.
-8. **Bounded locks:** no network, parsing or long model computation runs while holding global model/store locks.
-9. **Resource reservation:** inference, training, acquisition, indexing and checkpoint operations use separately accounted budgets. A controller cannot allocate memory already reserved for recovery or user data.
-10. **Promotion isolation:** evaluation reads a fixed candidate digest; promotion rejects a candidate whose digest changed after evaluation.
-11. **Consent revocation race:** a candidate cannot enter an optimizer update if its authorization is revoked before the training admission/update boundary. Revocation during a running session stops future use at the next safe update boundary and invalidates pending candidate membership.
-12. **No hidden concurrent optimizer:** inference/training weight sharing, if ever allowed, requires an explicit snapshot/copy-on-write contract and measured memory admission. It is not the default.
+7. **Safe-boundary cancellation:** user pause/stop and cooperative cancellation are commands to the session owner, not immediate coroutine/job destruction. They are applied at the next declared safe optimizer-update boundary. A process kill may bypass all cleanup, so recovery depends on prior durable checkpoints.
+8. **Bounded finalization:** a process-scoped application workflow/session owner, not a ViewModel, owns training control. A short already-prepared commit may use a bounded non-cancellable section, but long serialization, tensor computation or checkpoint creation must not be made non-cancellable. Such finalization is best-effort only and never substitutes for periodic durable checkpoints.
+9. **Bounded locks:** no network, parsing or long model computation runs while holding global model/store locks.
+10. **Resource reservation:** inference, training, acquisition, indexing, dataset shards and checkpoint operations use separately accounted budgets. Admission includes peak candidate/optimizer/activation/workspace memory, current RAM headroom, thermal/battery/power constraints, dataset I/O, staged checkpoint size, retained previous checkpoint and storage reserve. A controller cannot allocate memory or storage already reserved for recovery or user data.
+11. **Promotion isolation:** evaluation reads fixed candidate and baseline-active-generation digests; promotion rejects a candidate whose digest changed or whose expected active-pointer revision is stale.
+12. **Consent revocation race:** a candidate cannot enter an optimizer update if its authorization is revoked before the training admission/update boundary. Revocation during a running session stops future use at the next safe update boundary and invalidates pending candidate membership.
+13. **No hidden concurrent optimizer:** inference/training weight sharing, if ever allowed, requires an explicit snapshot/copy-on-write contract and measured memory admission. It is not the default.
 
 ## 10. Storage and transaction boundaries
 
@@ -580,7 +620,9 @@ Minimum logical storage partitions:
 
 These names are logical namespaces, not committed filesystem paths.
 
-A durable publication uses: (1) write to an isolated temporary location; (2) flush/close; (3) verify size, checksum and manifest; (4) commit a journal/manifest marker; (5) atomically publish a pointer or recoverable transaction record; (6) garbage-collect unreferenced temporary data only after recovery confirms it is not needed. Same-filesystem atomic rename may be used where the selected storage layer guarantees it; otherwise use a journaled equivalent. Do not claim ACID semantics without validating the chosen storage engine and crash behavior.
+A durable publication uses: (1) write to an immutable/isolated temporary object; (2) flush and sync file contents; (3) close; (4) verify size, schema, identity and cryptographic checksum by read-back; (5) commit a journal/manifest marker; (6) atomically publish a small pointer or recoverable transaction record; (7) retain the previous committed object until recovery confirms the new transaction; and (8) garbage-collect unreferenced temporary data only after recovery confirms it is not needed. Prefer immutable checkpoint IDs plus an atomic latest-committed-checkpoint reference so a failed replacement cannot destroy the last known-good checkpoint.
+
+AndroidX AtomicFile.finishWrite() documents a file sync followed by rename/commit and explicitly provides no file-locking semantics; all concurrent access must be serialized by the caller. It does not document a parent-directory fsync guarantee. Linux fsync(2) documentation distinguishes syncing file content/metadata from syncing the containing directory entry. Therefore, the selected Android storage adapter must state its directory-entry durability assumptions, use parent-directory sync only where the platform/filesystem API supports it, and verify the behavior on target filesystems before claiming power-loss durability stronger than the documented AtomicFile contract. Read-back checksum and exact-identity validation are required before a checkpoint is considered committed/valid.
 
 Deletion is a lineage operation: source record → parsed text → excerpts → summaries/embeddings/indexes → pending corpus candidates → training shards. If trained model weights contain influence from the deleted source, apply the separately approved model-retraining/rollback policy; do not assert exact machine unlearning.
 
@@ -594,6 +636,8 @@ The initial deployment target is one Android application and one local installat
 - CPU/GPU/NPU are execution backends selected by verified operator/runtime evidence. Device names or marketing TOPS do not create backend capability.
 - Android Context, permissions, WorkManager, foreground services, PowerManager, SAF and accessibility/media projection APIs remain in platform adapters.
 - No process priority, background execution or service restart policy may bypass Android platform restrictions.
+- The accepted product trust boundary is local: dataset admission, evaluation, verification and promotion are decisions made by the local installation using locally stored evidence. SHA-256 binds bytes/identity; it does not prove source ownership, legal rights, semantic quality, honest execution or remote attestation. Do not imply that local evaluation is remotely certified or cryptographically attested.
+- No central training service, remote weight exchange, gradient exchange or cross-instance promotion participates in the production learning path. Any future experimental remote adapter would require a separate explicit product/security decision and must not be wired into the accepted production composition graph.
 - Other platforms require independent packaging, runtime, permissions, storage, privacy and verification contracts. Android deployment does not imply portability.
 
 ## 12. Sequence diagrams
