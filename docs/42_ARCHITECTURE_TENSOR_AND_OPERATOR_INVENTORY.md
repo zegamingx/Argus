@@ -525,6 +525,21 @@ The device-side memory budget must be based on measured application/process limi
 **Current analytical output:** equations, live-memory categories, phase boundaries and the finite sweep procedure are now defined. Exact numerical profiles remain blocked by the unresolved tokenizer vocabulary/runtime contract, final graph dimensions, precision/update choices, and measured per-device process/storage/throughput evidence. This does not prevent continuing the documentary comparison; it prevents claiming a numeric device profile is already supported.
 
 
+### 7.2.7 Generation Repository and Genesis lifecycle binding
+
+The memory/storage worksheet must follow the actual generation transaction rather than treating every model-related file as one permanent allocation:
+
+1. **Initial Genesis generation:** account for tokenizer resolution, model weights/tensor initialization, immutable generation manifest, checksum verification and staged publication. The initial generation is not a trained session checkpoint; do not charge it for AdamW/Lion state, gradients, training activations or a data cursor that does not exist yet.
+2. **Background training candidate:** after APPLICATION_READY, the Learning Coordinator creates a child candidate bound to the exact active parent digest. The child training session owns optimizer/scheduler/scaler/RNG/cursor state. The active parent remains immutable. Include the child model's changed/new tensors and all required optimizer state.
+3. **Parent inference during child training:** if inference continues against the parent snapshot, its weights, KV cache, logits/workspaces and concurrency remain live alongside the candidate's training peak. This combined case is admitted only when the full overlap fits. Otherwise the scheduler must serialize or pause one workload; concurrent inference is not assumed.
+4. **Candidate publication and rollback:** parent generation, candidate generation and last-known-good checkpoint may coexist until the candidate passes evaluation and promotion. Count only the files/pages/buffers that the selected repository protocol actually retains. A digest reference to an immutable parent tensor avoids a duplicate payload only when the storage layer truly shares that payload and verifies it on restore.
+5. **Copy-on-write is not free:** if the candidate initially shares parent tensors, count cloned pages/tensors, copy-on-write metadata, write amplification and validation buffers at their actual peak. If it uses a full copy, count both parent and child model storage. Do not model the two policies as identical.
+6. **Checkpoint recovery:** the candidate checkpoint binds child tensors, optimizer/scheduler/scaler/RNG, data cursor, committed update and any required recurrent state to one transaction. It is distinct from the Genesis manifest. A chunk-streamed serializer may bound RAM, but the staged checkpoint, checksum/journal and retained last-known-good checkpoint still consume storage until publication/recovery rules release them.
+7. **Architecture/tokenizer migration:** a child with changed dimensions, tensor schema or tokenizer fingerprint is a migration candidate, not an in-place edit. Include parent + new candidate + conversion/initialization workspace + validation state + rollback reserve wherever they coexist.
+
+These rules align with documents 19 (Genesis-to-training and P0 checkpoint contract), 20 (initial generation commit and post-readiness learning) and 36 (ModelGenerationRepository, CheckpointManifest, immutable inference snapshots and storage transactions). The repository interface names in document 36 are logical contracts, not proof that full-copy or copy-on-write storage has been implemented.
+
+
 ## 8. G4 deliverables and current disposition
 
 G4 must produce one exact candidate bundle per supported profile, including:
