@@ -1,5 +1,5 @@
 <div align="center">
-<img width="720" height="240" src=public/assets/argus_icon.png />
+<video control src=public/assets/Reference_Booting.mp4 />
 </div>>
 # ARGUS
 
