@@ -1,5 +1,5 @@
 <div align="center">
-  <video controls width="80%" src="https://github.com/user-attachments/assets/24d629dd-9e55-4905-a12a-e16522189333"></video>
+  <video autoplay loop playsinline controls width="80%" src="https://github.com/user-attachments/assets/24d629dd-9e55-4905-a12a-e16522189333"></video>
 </div>
 # ARGUS
 
