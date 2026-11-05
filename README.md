@@ -1,5 +1,5 @@
 <div align="center">
-<video control src=public/assets/Reference_Booting.mp4 />
+<video control src="public/assets/Reference_Booting.mp4" />
 </div>>
 # ARGUS
 
