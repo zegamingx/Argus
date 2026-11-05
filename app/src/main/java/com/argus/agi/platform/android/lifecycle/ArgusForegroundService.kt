@@ -26,7 +26,6 @@ class ArgusForegroundService : Service() {
         const val NOTIFICATION_ID = 1001
         const val ACTION_START = "com.argus.agi.START_SERVICE"
         const val ACTION_STOP = "com.argus.agi.STOP_SERVICE"
-        const val ACTION_TOGGLE_PAUSE = "com.argus.agi.TOGGLE_PAUSE"
 
         fun startService(context: Context) {
             val intent = Intent(context, ArgusForegroundService::class.java).apply {
@@ -57,10 +56,6 @@ class ArgusForegroundService : Service() {
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
                 return START_NOT_STICKY
-            }
-            ACTION_TOGGLE_PAUSE -> {
-                runtimeOrNull()?.training?.togglePause()
-                updateNotification()
             }
             else -> {
                 startForegroundCompat()
@@ -117,22 +112,18 @@ class ArgusForegroundService : Service() {
         val safety = runtime?.device?.snapshot()
         val primaryAccelerator = runtime?.hardware?.primaryAcceleratorLabel() ?: "Unknown"
 
-        val isPaused = training?.isPaused ?: true
-        val isSafeToTrain = safety?.isSafeToTrain ?: false
+        val isWorkflowAvailable = training?.isWorkflowAvailable ?: false
+        val trainingStatus = training?.statusMessage
+            ?: "Learning workflow status is unavailable."
         val batteryPercent = safety?.batteryPercent ?: 0
         val temperatureCelsius = safety?.temperatureCelsius ?: 0f
-        val currentSource = training?.currentSource
-        val latestLoss = training?.latestLoss
 
-        val title = "A.R.G.U.S Core: " + when {
-            isPaused -> "Training paused"
-            !isSafeToTrain -> "Thermal and battery guard active"
-            currentSource != null -> "Learning from $currentSource"
-            else -> "Monitoring approved context sources"
+        val title = if (isWorkflowAvailable) {
+            "A.R.G.U.S Core: Learning workflow available"
+        } else {
+            "A.R.G.U.S Core: Learning workflow unavailable"
         }
-
-        val lossText = if (latestLoss != null) "Loss: ${String.format("%.4f", latestLoss)}" else "Loss: not available"
-        val content = "$lossText | $batteryPercent% (${String.format("%.1f", temperatureCelsius)}°C) | ${primaryAccelerator.substringBefore('+')}"
+        val content = "$trainingStatus | $batteryPercent% (${String.format("%.1f", temperatureCelsius)}°C) | ${primaryAccelerator.substringBefore('+')}"
 
         val openAppPendingIntent = packageManager
             .getLaunchIntentForPackage(packageName)
@@ -146,23 +137,12 @@ class ArgusForegroundService : Service() {
                 )
             }
 
-        val toggleIntent = Intent(this, ArgusForegroundService::class.java).apply {
-            action = ACTION_TOGGLE_PAUSE
-        }
-        val togglePendingIntent = PendingIntent.getService(
-            this, 1, toggleIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val pauseResumeLabel = if (isPaused) "Resume training" else "Pause training"
-
         return NotificationCompat.Builder(this, ARGUS_CORE_NOTIFICATION_CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(content)
             .setSmallIcon(R.drawable.ic_argus_logo)
             .apply { if (openAppPendingIntent != null) setContentIntent(openAppPendingIntent) }
             .setOngoing(true)
-            .addAction(0, pauseResumeLabel, togglePendingIntent)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
     }

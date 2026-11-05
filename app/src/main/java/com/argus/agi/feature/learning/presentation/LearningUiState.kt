@@ -7,7 +7,8 @@ package com.argus.agi.feature.learning.presentation
  * manifests, candidate manifests or authoritative workflow state.
  */
 data class LearningUiState(
-    val isPaused: Boolean = false,
+    val isWorkflowAvailable: Boolean = false,
+    val workflowStatusMessage: String = "Learning is disabled until an approved candidate-manifest workflow is implemented.",
     val safetyState: LearningSafetyUiState = LearningSafetyUiState(),
     val currentTrainingItem: TrainingQueueItemUiState? = null,
     val nextQueue: List<TrainingQueueItemUiState> = emptyList(),

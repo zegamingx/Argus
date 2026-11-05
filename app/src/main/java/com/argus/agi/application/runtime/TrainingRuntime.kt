@@ -1,18 +1,16 @@
 package com.argus.agi.application.runtime
 
 /**
- * Read-only projection of the current prototype training status.
+ * Read-only availability projection for the Android foreground notification.
  */
 data class TrainingStatusSnapshot(
-    val isPaused: Boolean,
-    val currentSource: String?,
-    val latestLoss: Float?
+    val isWorkflowAvailable: Boolean,
+    val statusMessage: String
 )
 
 /**
- * Narrow control and observation port used by the Android foreground adapter.
+ * Read-only observation port used by the Android foreground adapter.
  */
 interface TrainingRuntime {
     fun snapshot(): TrainingStatusSnapshot
-    fun togglePause()
 }

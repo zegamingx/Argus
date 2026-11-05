@@ -31,8 +31,6 @@ import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Memory
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -82,7 +80,7 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
     val totalParams = viewModel.getTotalParameters()
     val adapterBytes = viewModel.getAdapterSizeBytes()
     val learningState by viewModel.learningState.collectAsState()
-    val isPaused = learningState.isPaused
+    val isWorkflowAvailable = learningState.isWorkflowAvailable
     val safetyState = learningState.safetyState
     val currentItem = learningState.currentTrainingItem
     val nextQueue = learningState.nextQueue
@@ -253,40 +251,30 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
                     ) {
                         Column {
                             Text(
-                                text = "Autonomous Training Loop",
+                                text = "Learning Workflow",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = ArgusTextPrimary,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Completed steps: $totalSteps",
+                                text = "Completed updates: $totalSteps",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = ArgusTextSecondary
+                            )
+                            Text(
+                                text = learningState.workflowStatusMessage,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = ArgusTextMuted
                             )
                         }
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Button(
-                                onClick = { viewModel.toggleTrainingPause() },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (isPaused) ArgusSuccess else ArgusWarning,
-                                    contentColor = ArgusDarkBg
-                                ),
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.testTag("toggle_training_button")
-                            ) {
-                                Icon(
-                                    imageVector = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = if (isPaused) "Resume" else "Pause",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp
-                                )
-                            }
+                            Text(
+                                text = if (isWorkflowAvailable) "AVAILABLE" else "UNAVAILABLE",
+                                color = if (isWorkflowAvailable) ArgusSuccess else ArgusWarning,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold
+                            )
                             Spacer(modifier = Modifier.width(6.dp))
                             Icon(
                                 imageVector = if (isTrainingExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
@@ -400,7 +388,7 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = "No loss history yet. Learning candidates are collected from approved inputs.",
+                                        text = "No training metrics are available because the approved-candidate workflow is not implemented.",
                                         style = MaterialTheme.typography.bodyMedium.copy(fontSize = 11.sp),
                                         color = ArgusTextMuted,
                                         fontFamily = FontFamily.Monospace
@@ -564,7 +552,7 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
                 if (currentItem != null) {
                     ActiveTrainingCard(currentItem)
                 } else {
-                    EmptyQueueCard("No active training item (idle; waiting for approved input).")
+                    EmptyQueueCard("No training session is active. The learning workflow is unavailable.")
                 }
             }
 
@@ -573,7 +561,6 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
                 QueueSectionHeader(
                     title = "2. Next in Queue",
                     count = nextQueue.size,
-                    onClear = { viewModel.clearTrainingQueue() }
                 )
                 Spacer(modifier = Modifier.height(6.dp))
 
@@ -584,7 +571,7 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
                         }
                     }
                 } else {
-                    EmptyQueueCard("The queue is empty. Use an approved screen-capture session or send a message/document in chat.")
+                    EmptyQueueCard("No approved candidate manifest is available. Chat, web retrieval, file/image selection and screen capture do not create training input.")
                 }
             }
 
@@ -593,7 +580,6 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
                 QueueSectionHeader(
                     title = "3. Completed Learning History",
                     count = completedQueue.size,
-                    onClear = { viewModel.clearCompletedTraining() }
                 )
                 Spacer(modifier = Modifier.height(6.dp))
 
@@ -604,7 +590,7 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
                         }
                     }
                 } else {
-                    EmptyQueueCard("No learning history yet.")
+                    EmptyQueueCard("No verified learning sessions have been completed.")
                 }
             }
         }

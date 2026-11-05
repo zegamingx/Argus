@@ -20,7 +20,6 @@ class ArgusViewModelFactory(
             application = application,
             neuralEngine = container.neuralEngine,
             worldModel = container.worldModel,
-            trainingManager = container.trainingManager,
             deviceGuard = container.deviceGuard,
             hardwareProfile = container.hardwareProfile,
             excludedAppsManager = container.excludedAppsManager,

@@ -10,7 +10,6 @@ import com.argus.agi.application.runtime.TrainingRuntime
 import com.argus.agi.application.runtime.TrainingStatusSnapshot
 import com.argus.agi.data.acquisition.WebSearchEngine
 import com.argus.agi.model.ArgusNeuralEngine
-import com.argus.agi.model.TrainingManager
 import com.argus.agi.model.WorldModel
 import com.argus.agi.platform.android.capture.AccessibilityActionRegistry
 import com.argus.agi.platform.android.capture.ExcludedAppsManager
@@ -41,10 +40,6 @@ class ArgusContainer(application: Application) : ArgusRuntime {
         HardwareProfile(application)
     }
 
-    val trainingManager: TrainingManager by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
-        TrainingManager(application, neuralEngine, deviceGuard, worldModel)
-    }
-
     val excludedAppsManager: ExcludedAppsManager by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         ExcludedAppsManager(application)
     }
@@ -57,18 +52,11 @@ class ArgusContainer(application: Application) : ArgusRuntime {
 
     override val training: TrainingRuntime = object : TrainingRuntime {
         override fun snapshot(): TrainingStatusSnapshot {
-            val current = trainingManager.currentTrainingItem.value
             return TrainingStatusSnapshot(
-                isPaused = trainingManager.isTrainingPaused.value,
-                currentSource = current?.source,
-                latestLoss = trainingManager.lossHistory.value.lastOrNull()
+                isWorkflowAvailable = false,
+                statusMessage = "Learning is disabled until approved candidate manifests and session admission are implemented."
             )
         }
-
-        override fun togglePause() {
-            trainingManager.togglePauseTraining()
-        }
-
     }
 
     override val device: DeviceRuntime = object : DeviceRuntime {

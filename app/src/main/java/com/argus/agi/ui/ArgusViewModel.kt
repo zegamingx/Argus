@@ -9,7 +9,6 @@ import com.argus.agi.feature.learning.presentation.LearningBenchmarkUiState
 import com.argus.agi.feature.learning.presentation.LearningHardwareUiState
 import com.argus.agi.feature.learning.presentation.LearningSafetyUiState
 import com.argus.agi.feature.learning.presentation.LearningUiState
-import com.argus.agi.feature.learning.presentation.TrainingQueueItemUiState
 import com.argus.agi.feature.perception.presentation.PerceptionHardwareUiState
 import com.argus.agi.feature.perception.presentation.PerceptionUiState
 import com.argus.agi.feature.settings.presentation.InstalledAppUiItem
@@ -17,7 +16,6 @@ import com.argus.agi.feature.settings.presentation.SearchResultUiItem
 import com.argus.agi.feature.settings.presentation.SettingsUiState
 import com.argus.agi.feature.settings.presentation.WorldEntityUiItem
 import com.argus.agi.model.ArgusNeuralEngine
-import com.argus.agi.model.TrainingManager
 import com.argus.agi.model.WorldModel
 import com.argus.agi.platform.android.device.DeviceGuard
 import com.argus.agi.platform.android.device.HardwareProfile
@@ -35,7 +33,6 @@ class ArgusViewModel(
     application: Application,
     private val neuralEngine: ArgusNeuralEngine,
     private val worldModel: WorldModel,
-    private val trainingManager: TrainingManager,
     private val deviceGuard: DeviceGuard,
     private val hardwareProfile: HardwareProfile,
     private val excludedAppsManager: ExcludedAppsManager,
@@ -92,17 +89,13 @@ class ArgusViewModel(
 
         loadInstalledApps()
         observeWorldEntities()
-        observeLearningSources()
+        observeLearningSafety()
         observePerceptionSources()
     }
 
     fun getTotalParameters(): Long = neuralEngine.countTotalParameters()
 
     fun getAdapterSizeBytes(): Long = neuralEngine.calculateAdapterSizeBytes()
-
-    fun toggleTrainingPause() {
-        trainingManager.togglePauseTraining()
-    }
 
     fun runBenchmark() {
         if (_learningState.value.isBenchmarking) return
@@ -248,14 +241,6 @@ class ArgusViewModel(
         )
     }
 
-    fun clearTrainingQueue() {
-        trainingManager.clearQueue()
-    }
-
-    fun clearCompletedTraining() {
-        trainingManager.clearCompleted()
-    }
-
     private fun loadInstalledApps() {
         viewModelScope.launch {
             val apps = excludedAppsManager.getInstalledApps()
@@ -287,37 +272,7 @@ class ArgusViewModel(
         }
     }
 
-    private fun observeLearningSources() {
-        viewModelScope.launch {
-            trainingManager.isTrainingPaused.collect { value ->
-                _learningState.update { it.copy(isPaused = value) }
-            }
-        }
-        viewModelScope.launch {
-            trainingManager.currentTrainingItem.collect { item ->
-                _learningState.update { it.copy(currentTrainingItem = item?.toLearningUiState()) }
-            }
-        }
-        viewModelScope.launch {
-            trainingManager.nextQueue.collect { items ->
-                _learningState.update { it.copy(nextQueue = items.map { item -> item.toLearningUiState() }) }
-            }
-        }
-        viewModelScope.launch {
-            trainingManager.completedQueue.collect { items ->
-                _learningState.update { it.copy(completedQueue = items.map { item -> item.toLearningUiState() }) }
-            }
-        }
-        viewModelScope.launch {
-            trainingManager.lossHistory.collect { values ->
-                _learningState.update { it.copy(lossHistory = values) }
-            }
-        }
-        viewModelScope.launch {
-            trainingManager.totalStepsExecuted.collect { value ->
-                _learningState.update { it.copy(totalStepsExecuted = value) }
-            }
-        }
+    private fun observeLearningSafety() {
         viewModelScope.launch {
             deviceGuard.safetyState.collect { value ->
                 _learningState.update { it.copy(safetyState = value.toLearningUiState()) }
@@ -357,17 +312,6 @@ class ArgusViewModel(
         }
         return "Mathematical reasoning result: $n1 $op $n2 = $res"
     }
-}
-
-private fun com.argus.agi.model.TrainingData.toLearningUiState(): TrainingQueueItemUiState {
-    return TrainingQueueItemUiState(
-        id = id,
-        source = source,
-        title = title,
-        content = content,
-        finalLoss = finalLoss,
-        stepDurationMs = stepDurationMs
-    )
 }
 
 private fun com.argus.agi.platform.android.device.DeviceSafetyState.toLearningUiState(): LearningSafetyUiState {
