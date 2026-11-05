@@ -23,7 +23,7 @@ The current structural findings are:
 - `ArgusNeuralEngine` combines numerical execution, tokenizer mutation, benchmark reporting and Android checkpoint file I/O.
 - Android service and device classes now reside under `platform/android/*` and access the process runtime through narrow interfaces; feature presentation still performs some direct CameraX, Settings and permission operations.
 - `ExcludedAppsManager` remains a mixed Android installed-app discovery/exclusion-state prototype.
-- The chat-only `ChatMessage` presentation model has been separated into `feature/chat/presentation`. Settings, Learning and Perception now receive their own immutable feature UI-state projections; the cross-feature ViewModel and command ownership remain transitional.
+- Chat now owns both `ChatMessage` and immutable `ChatUiState`; Settings, Learning and Perception also receive their own feature UI-state projections. The cross-feature ViewModel and command ownership remain transitional.
 - The single test file does not represent most documented subsystem boundaries.
 
 **Recommendation:** retain one Gradle application module while package ownership, workflow contracts and dependency direction are stabilized. Extract Gradle modules only after stable APIs and concrete build/test/ABI boundaries exist. Creating many empty modules now would add complexity without proving the boundaries are correct.
@@ -453,3 +453,5 @@ This removes those Android/data/model record types from the Settings screen's pu
 The Learning feature now owns `feature/learning/presentation/LearningUiState.kt`, including display-only queue item, safety, hardware-label and benchmark records. The Perception feature owns `feature/perception/presentation/PerceptionUiState.kt`, including descriptive hardware and current-context/capture values. The shared ViewModel maps legacy model/platform values into these projections, and each screen collects its own immutable feature state.
 
 The projections are deliberately not domain/session manifests and do not establish workflow authority. The shared ViewModel still calls concrete model/data/platform classes; feature commands have not yet moved to application workflows. No backend behavior, algorithms, storage or permission behavior was changed. No build/test result is claimed.
+
+- 2026-11-05 — ChatScreen now collects a feature-owned `ChatUiState` containing the displayed messages and generation flag. The shared ViewModel remains transitional; message/inference commands have not yet moved into `application/inference`. No build/test result is claimed.

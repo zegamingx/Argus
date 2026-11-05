@@ -36,7 +36,8 @@ Argus/
 │       │       ├── feature/
 │       │       │   ├── chat/presentation/
 │       │       │   │   ├── ChatMessage.kt
-│       │       │   │   └── ChatScreen.kt
+│       │       │   │   ├── ChatScreen.kt
+│       │       │   │   └── ChatUiState.kt
 │       │       │   ├── learning/presentation/
 │       │       │   │   ├── LearningUiState.kt
 │       │       │   │   └── NeuralCoreScreen.kt
@@ -102,7 +103,7 @@ The repository has moved beyond the first package relocation:
 - `app/bootstrap` owns the process-scoped composition root and ViewModel factory.
 - `app/entry` contains the Android Application and Activity.
 - `app/navigation` contains the current app shell and destination switching.
-- Feature screens and presentation-owned immutable state types live under their respective `feature/*/presentation` packages. Chat owns `ChatMessage`; Settings owns `SettingsUiState`; Learning owns `LearningUiState`; Perception owns `PerceptionUiState`.
+- Feature screens and presentation-owned immutable state types live under their respective `feature/*/presentation` packages. Chat owns `ChatMessage` and `ChatUiState`; Settings owns `SettingsUiState`; Learning owns `LearningUiState`; Perception owns `PerceptionUiState`.
 - `application/runtime` keeps the transitional aggregate entry contract in `ArgusRuntime.kt` and separates training, device, hardware, capture and accessibility ports into focused files. It is not yet the final workflow-specific application API layout.
 - Android capture, device, foreground lifecycle and notification adapters live under `platform/android/*`.
 - The concrete web-search connector lives under `data/acquisition`.

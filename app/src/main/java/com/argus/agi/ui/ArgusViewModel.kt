@@ -50,11 +50,8 @@ class ArgusViewModel(
 ) : AndroidViewModel(application) {
 
     // UI States
-    private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
-    val messages: StateFlow<List<ChatMessage>> = _messages.asStateFlow()
-
-    private val _isGenerating = MutableStateFlow(false)
-    val isGenerating: StateFlow<Boolean> = _isGenerating.asStateFlow()
+    private val _chatState = MutableStateFlow(ChatUiState())
+    val chatState: StateFlow<ChatUiState> = _chatState.asStateFlow()
 
     private val initialHardwareInfo = hardwareProfile.getHardwareInfo()
 
@@ -91,13 +88,13 @@ class ArgusViewModel(
 
     init {
         // Seed initial greeting message
-        _messages.value = listOf(
+        _chatState.value = ChatUiState(messages = listOf(
             ChatMessage(
                 isUser = false,
                 text = "A.R.G.U.S Neural Core is active. Inference and model updates run locally on this device without a remote AI API.",
                 thinkReasoning = "Model initialization: d_model=${neuralEngine.dModel}, heads=${neuralEngine.nHeads}, LoRA rank=${neuralEngine.loraRank}. Parameter count is derived from the active weight matrices."
             )
-        )
+        ))
 
         loadInstalledApps()
         observeWorldEntities()
@@ -151,9 +148,9 @@ class ArgusViewModel(
             attachedFileName = attachedFileName,
             attachedImageUri = attachedImage
         )
-        _messages.value = _messages.value + userMsg
+        _chatState.value = _chatState.value.copy(messages = _chatState.value.messages + userMsg)
 
-        _isGenerating.value = true
+        _chatState.value = _chatState.value.copy(isGenerating = true)
         viewModelScope.launch {
             // Context injection from World Model
             val worldSummary = worldModel.currentContextSummary.value
@@ -211,8 +208,8 @@ class ArgusViewModel(
                 text = finalAnswer,
                 thinkReasoning = thinkingSb.toString()
             )
-            _messages.value = _messages.value + assistantMsg
-            _isGenerating.value = false
+            _chatState.value = _chatState.value.copy(messages = _chatState.value.messages + assistantMsg)
+            _chatState.value = _chatState.value.copy(isGenerating = false)
         }
     }
 
@@ -304,11 +301,13 @@ class ArgusViewModel(
     }
 
     fun clearChat() {
-        _messages.value = listOf(
-            ChatMessage(
-                isUser = false,
-                text = "Conversation history cleared. Episodic memory and model weights remain stored on this device.",
-                thinkReasoning = "Message history reset. The on-device model retains its current learned parameters."
+        _chatState.value = ChatUiState(
+            messages = listOf(
+                ChatMessage(
+                    isUser = false,
+                    text = "Conversation history cleared. Episodic memory and model weights remain stored on this device.",
+                    thinkReasoning = "Message history reset. The on-device model retains its current learned parameters."
+                )
             )
         )
     }

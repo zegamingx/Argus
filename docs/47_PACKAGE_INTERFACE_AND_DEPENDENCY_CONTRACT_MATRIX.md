@@ -384,3 +384,5 @@ The package-interface mapping is complete enough for a bounded contract review w
 - 2026-11-05 — Reconciled the existing-prototype matrix with the current `ArgusContainer`/`ArgusRuntimeOwner` source and the new Settings-owned immutable UI projection. No new API or workflow contract was claimed; application command ownership and full ViewModel decomposition remain open.
 
 - 2026-11-05 — Updated the prototype map for feature-owned Learning and Perception UI-state projections. This is presentation-boundary progress only; application workflow command ownership and per-feature ViewModels remain open.
+
+- 2026-11-05 — Updated the existing-prototype mapping to record the Chat feature's immutable `ChatUiState` projection. Application inference workflow ownership remains open.

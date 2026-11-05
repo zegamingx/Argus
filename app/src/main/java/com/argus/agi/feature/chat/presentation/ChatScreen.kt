@@ -98,8 +98,9 @@ fun ChatScreen(viewModel: ArgusViewModel) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
 
-    val messages by viewModel.messages.collectAsState()
-    val isGenerating by viewModel.isGenerating.collectAsState()
+    val chatState by viewModel.chatState.collectAsState()
+    val messages = chatState.messages
+    val isGenerating = chatState.isGenerating
     val totalParams = viewModel.getTotalParameters()
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
