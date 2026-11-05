@@ -484,9 +484,29 @@ Use liveness by phase. The profile worksheet must show separate rows for:
 | Checkpoint publication/recovery | Model + optimizer + RNG/scheduler/cursor state, serialization buffers, staged new checkpoint, retained prior checkpoint and journal; include only copies that the actual atomic protocol keeps live |
 | Generation migration | Parent generation, candidate child generation, validation/evaluation state and rollback reserve when they genuinely coexist |
 
-The process peak is the maximum live allocation over each phase, including actual cross-workload overlap, plus the declared runtime/application reserve. It is not the sum of every row above. For example, a chunk-streamed Genesis path may avoid holding a second complete model copy, while a child-generation migration may genuinely need parent and candidate storage at the same time.
+For a phase \(p\), calculate the peak from the tensors that are simultaneously live at time \(t\):
 
-Storage admission is separate from RAM admission. Record the tokenizer artifact, model weights, resumable optimizer/checkpoint state, active generation, staged generation, retained rollback checkpoint, journals and temporary files independently. Corpus storage is governed by the corpus/acquisition budget and must not be silently charged to model in-memory staging or omitted from free-storage checks.
+\[
+M_{live}(p,t)=\sum_{i\in Live(p,t)}\operatorname{numel}(i)s_i+M_{workspace}(p,t)
+\]
+
+\[
+M_{workload,peak}=\max_p\max_t M_{live}(p,t)
+\]
+
+\[
+M_{baseline}+M_{workload,peak}+M_{safety}\le M_{app/process\ limit}
+\]
+
+The final inequality is the RAM admission condition. \(M_{baseline}\) is the measured Argus/app resident footprint before the candidate workload; \(M_{safety}\) is a declared reserve, not an unexplained multiplier. Include actual cross-workload overlap, such as foreground inference while background training is live. Do not add unrelated phase peaks together. For example, a chunk-streamed Genesis path may avoid holding a second complete model copy, while a child-generation migration may genuinely need parent and candidate storage at the same time.
+
+Storage admission is separate from RAM admission. Calculate its own simultaneous-file peak:
+
+\[
+S_{peak}=\max_t\sum_{j\in RetainedOrStagedFiles(t)}Size(j)
+\]
+
+The storage set must include only files that coexist under the actual checkpoint/rollback protocol, plus the declared free-space reserve. Record the tokenizer artifact, model weights, resumable optimizer/checkpoint state, active generation, staged generation, retained rollback checkpoint, journals and temporary files independently. Corpus storage is governed by the corpus/acquisition budget and must not be silently charged to model in-memory staging or omitted from free-storage checks.
 
 ### 7.2.6 Bounded profile sweep and admission order
 
