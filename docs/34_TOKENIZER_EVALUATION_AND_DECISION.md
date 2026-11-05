@@ -97,7 +97,7 @@ At minimum, separate these fixture strata:
 
 | Stratum | Required content |
 |---|---|
-| Initial corpus language | Indonesian text from the owner-provided local corpus, with exact source/sample records; additional product languages only when their exact fixture content and scope are approved |
+| Initial corpus language | Indonesian and English text from the owner-provided local corpus, with exact source/sample records and separate per-language reporting; additional product languages only when their exact fixture content and scope are approved |
 | Additional language/script stress | Selected Latin and non-Latin scripts that expose Unicode, combining-mark and script-boundary behavior; these tests do not automatically create product-language support commitments |
 | General knowledge domains | Representative samples from the approved knowledge taxonomy, including explanatory prose and domain vocabulary |
 | Technical text | Code, identifiers, package names, paths, API symbols, URLs, markup and mixed alphanumeric strings |
@@ -106,7 +106,7 @@ At minimum, separate these fixture strata:
 | Noisy/unusual text | Typographical noise, rare names, mixed scripts, emoji sequences, combining marks and otherwise valid uncommon Unicode |
 | Special-token adversarial cases | Literal strings that resemble reserved tokens, embedded role markers, escaped markers and user text that must not become control tokens |
 
-Indonesian is the mandatory initial corpus-comparison language: ADR-022 requires deliberate Indonesian source diversity, and both bundled owner-created starter corpora are Indonesian. English appears in historical research and aligned-source leads, but no bundled owner-created English frequency corpus is identified in the current repository snapshot. English is therefore a conditional comparison stratum, not an approved product-language commitment or a result that may be claimed from the Indonesian-only fixture. Additional language/script strata remain robustness diagnostics until the product-language contract and exact source fixtures are approved.
+Indonesian and English are both represented in the current bundled owner-provided starter corpus and must be measured as separate initial tokenizer-comparison strata. This changes corpus availability, not product-language policy: it does not by itself approve English as a supported product language, establish balanced bilingual coverage, or define language weighting. ADR-022 still requires deliberate Indonesian source diversity. Additional language/script strata remain robustness diagnostics until the product-language contract and exact source fixtures are approved.
 
 ### 4.2 Source eligibility
 
@@ -135,12 +135,13 @@ No fixed language proportions, corpus token quota or universal corpus size is ap
 
 ### 4.4 Owner-created starter corpus fixture
 
-The repository already contains two owner-created Indonesian corpus assets. They are the primary starting frequency-corpus candidates for the initial Indonesian tokenizer comparison; they do not establish product-wide language coverage by themselves.
+The repository now contains three owner-provided starter corpus assets: two Indonesian sources and one English source. They are initial frequency-corpus candidates and must remain separately identifiable by language and source; their presence does not establish product-wide language coverage or an approved bilingual product-language policy.
 
 | Asset | Immutable repository identity in the reviewed `main` snapshot | Content/role | Current readiness |
 |---|---|---|---|
 | `app/src/main/assets/corpus/ArgusID.txt` | 13,182,863 bytes; Git blob `4afef2b74e1b9745d361e96d574ca0103771246f` | Owner-authored mixed-topic Indonesian text | Available as a bundled local-import source; importer-generated SHA-256 and selected workflow-purpose record are still required |
-| `app/src/main/assets/corpus/DigiTransID.zip` | 94,226-byte archive; Git blob `abdc59d91a3c5e41b18c747f8fc7df2b0ead44c2`; 16 UTF-8 TXT entries and 258,654 expanded bytes in the audited archive | Owner-authored Indonesian prose covering digital transformation, organizations, AI governance, computing infrastructure and research capability | Available as a bundled local-import source; importer-generated archive/entry SHA-256 and selected workflow-purpose record are still required |
+| `app/src/main/assets/corpus/DigiTransID.zip` | 94,226-byte archive; Git blob `abdc59d91a3c5e41b18c747f8fc7df2b0ead44c2`; 16 UTF-8 TXT entries and 258,654 expanded bytes in the audited archive | Owner-provided Indonesian prose covering digital transformation, organizations, AI governance, computing infrastructure and research capability | Available as a bundled local-import source; importer-generated archive/entry SHA-256 and selected workflow-purpose record are still required |
+| `app/src/main/assets/corpus/Argus_story_Eng.txt` | 24,000,000 bytes; Git blob `6c59774acb4278033fefbedf59f83984e4ee3c86` | Owner-provided English story corpus; detailed content composition and source-level statistics remain to be profiled | Available as a bundled local-import source; importer-generated SHA-256, language/content profile, split manifest and selected workflow-purpose record are still required |
 
 **Initial comparison procedure:**
 
@@ -148,10 +149,10 @@ The repository already contains two owner-created Indonesian corpus assets. They
 2. Import them through the existing streaming importer and explicitly select **tokenizer frequency fitting**. Select neural-model training separately only if that is also intended. The existing importer records workflow purposes but does not fit a tokenizer.
 3. Freeze the importer/parser version, archive-entry list, source and record digests, document IDs, deduplication outcomes, preprocessing identity and deterministic split membership. The Git blob IDs above identify repository objects; they are not substitutes for the SHA-256 values emitted by the importer.
 4. Use only the training partition for frequency fitting. Keep validation and evaluation records sealed from trainer input and any merge/vocabulary selection. Split by document/source unit before any optional smaller-segment sampling; preserve document lineage and avoid near-duplicate leakage.
-5. Report `ArgusID.txt` and each `DigiTransID.zip` entry separately before publishing any aggregate. Do not choose an aggregate language/domain weighting until the product-language policy is accepted and corpus composition is measured.
-6. Treat the combined starter corpus as Indonesian-only. It is **not aligned development data** and cannot satisfy a PA-BPE `--dev` requirement. A PA-BPE no-development-data variant may be compared only when its algorithm definition permits it; an aligned-development variant requires a separately imported and approved aligned set.
+5. Report `ArgusID.txt`, each `DigiTransID.zip` entry and `Argus_story_Eng.txt` separately before publishing any aggregate. Preserve the English source as its own language stratum; do not let its larger byte size silently determine the bilingual mixture. Do not choose aggregate language/domain weighting until the product-language policy is accepted and corpus composition is measured.
+6. Treat these starter assets as separate monolingual Indonesian and English sources, not as sentence-aligned bilingual data. They are **not aligned development data** and cannot satisfy a PA-BPE `--dev` requirement. A PA-BPE no-development-data variant may be compared only when its algorithm definition permits it; an aligned-development variant requires a separately imported and approved aligned set.
 
-The repository snapshot does not yet contain an importer-generated immutable tokenizer-frequency manifest for these assets. Therefore, this subsection defines the source fixture and required manifest procedure; it does not claim that tokenizer fitting has already been authorized in the importer, that a tokenizer has been trained, or that any candidate has measured fertility/quality results.
+The repository snapshot does not yet contain an importer-generated immutable tokenizer-frequency manifest for these assets. Therefore, this subsection defines the source fixture and required manifest procedure; it does not claim that tokenizer fitting has already been selected in an importer manifest, that a tokenizer has been trained, or that any candidate has measured fertility/quality results.
 
 ### 4.5 HPLT v3 and v4 — Indonesian monolingual source lead
 
