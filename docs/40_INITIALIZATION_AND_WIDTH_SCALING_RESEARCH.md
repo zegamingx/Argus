@@ -1,7 +1,7 @@
 # Initialization and Width-Scaling Research for Local Genesis
 
 **Status:** Comparative evidence synthesis; no initializer or parameterization selected  
-**Last reviewed:** 2026-11-04  
+**Last reviewed:** 2026-11-05  
 **Scope:** Random-initialization contracts, residual/depth scaling, Transformer initialization research, width parameterization and small-proxy hyperparameter transfer  
 **Dependencies:** Documents 20, 21, 33, 35, 36, 38 and 39  
 **Boundary:** Documentary research and analytical contracts only. No Argus implementation, build, workflow, benchmark or physical-device experiment is authorized or claimed.
@@ -206,6 +206,20 @@ For candidate μP or depth-scaling use:
 - compare learning-rate landscapes and layerwise update-to-parameter ratios;
 - verify that regularization and optimizer parameters not covered by μTransfer are re-tuned;
 - state the proxy/target limits and confidence; do not call transfer zero-shot until the required parameterization is implemented and verified.
+
+### 6.5 Width/depth profile comparison contract
+
+Document 42 section 7.2.8 defines four symbolic model-shape candidates (M0, MW, ML and MWL). Initialization and parameterization comparisons must follow that matrix:
+
+- M0 is the reference proxy. Freeze its exact graph, tokenizer fingerprint/vocabulary, data split, sequence packing, objective, precision reference, parameter groups and seed derivation.
+- MW changes width while holding depth and all non-width controls fixed. Keep head dimension explicit and derive head count only when divisibility is exact. Record the exact parameter-group scaling for embeddings, Q/K/V/O, FFN, norms and output/readout.
+- ML changes depth while holding width and all non-depth controls fixed. Recount attention and FFN residual branches; do not apply a depth factor that assumes one residual addition per block.
+- MWL is a follow-up interaction candidate, not a substitute for the width-only and depth-only comparisons.
+
+Evaluate conventional fan-aware initialization as a transparent correctness control. Evaluate residual/depth scaling only with its exact architecture-specific branch count and equations. Evaluate μP/μTransfer only with a declared base-shape map, parameter-group/readout rules and optimizer compatibility. Do not presume Lion is covered by the cited μTransfer optimizer results. Compare at least two independent deterministic research seeds per candidate when numerical evidence is gathered; production generations still use independent per-instance seeds.
+
+Keep standard-parameterization and μP candidate rows distinct. Report per-layer activation/gradient scale and update-to-parameter ratios, plus learning-rate sensitivity. A hyperparameter transfer claim is limited to the architecture, tokenizer, data exposure, objective, optimizer and precision actually matched. No scaling method is selected by this comparison contract.
+
 
 ## 7. Family-specific boundaries
 
