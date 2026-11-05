@@ -7,6 +7,13 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.argus.agi.feature.chat.presentation.ChatMessage
+import com.argus.agi.feature.learning.presentation.LearningBenchmarkUiState
+import com.argus.agi.feature.learning.presentation.LearningHardwareUiState
+import com.argus.agi.feature.learning.presentation.LearningSafetyUiState
+import com.argus.agi.feature.learning.presentation.LearningUiState
+import com.argus.agi.feature.learning.presentation.TrainingQueueItemUiState
+import com.argus.agi.feature.perception.presentation.PerceptionHardwareUiState
+import com.argus.agi.feature.perception.presentation.PerceptionUiState
 import com.argus.agi.feature.settings.presentation.InstalledAppUiItem
 import com.argus.agi.feature.settings.presentation.SearchResultUiItem
 import com.argus.agi.feature.settings.presentation.SettingsUiState
@@ -16,11 +23,7 @@ import com.argus.agi.model.TrainingManager
 import com.argus.agi.model.WorldModel
 import com.argus.agi.platform.android.device.DeviceGuard
 import com.argus.agi.platform.android.device.HardwareProfile
-import com.argus.agi.model.BenchmarkResult
-import com.argus.agi.model.TrainingData
-import com.argus.agi.platform.android.device.DeviceSafetyState
 import com.argus.agi.platform.android.capture.ExcludedAppsManager
-import com.argus.agi.platform.android.device.SystemHardwareInfo
 import com.argus.agi.data.acquisition.WebSearchEngine
 import com.argus.agi.application.runtime.AccessibilityRuntime
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +31,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
@@ -52,30 +56,38 @@ class ArgusViewModel(
     private val _isGenerating = MutableStateFlow(false)
     val isGenerating: StateFlow<Boolean> = _isGenerating.asStateFlow()
 
-    private val _hardwareInfo = MutableStateFlow(hardwareProfile.getHardwareInfo())
-    val hardwareInfo: StateFlow<SystemHardwareInfo> = _hardwareInfo.asStateFlow()
+    private val initialHardwareInfo = hardwareProfile.getHardwareInfo()
 
-    val safetyState: StateFlow<DeviceSafetyState> = deviceGuard.safetyState
-    val currentTrainingItem: StateFlow<TrainingData?> = trainingManager.currentTrainingItem
-    val nextQueue: StateFlow<List<TrainingData>> = trainingManager.nextQueue
-    val completedQueue: StateFlow<List<TrainingData>> = trainingManager.completedQueue
-    val lossHistory: StateFlow<List<Float>> = trainingManager.lossHistory
-    val isTrainingPaused: StateFlow<Boolean> = trainingManager.isTrainingPaused
-    val totalStepsExecuted: StateFlow<Int> = trainingManager.totalStepsExecuted
-    val currentContextSummary: StateFlow<String> = worldModel.currentContextSummary
+    private val _learningState = MutableStateFlow(
+        LearningUiState(
+            safetyState = deviceGuard.safetyState.value.toLearningUiState(),
+            hardwareInfo = LearningHardwareUiState(
+                primaryAccelerator = initialHardwareInfo.primaryAccelerator
+            )
+        )
+    )
+    val learningState: StateFlow<LearningUiState> = _learningState.asStateFlow()
 
-    private val _benchmarkState = MutableStateFlow<BenchmarkResult?>(null)
-    val benchmarkState: StateFlow<BenchmarkResult?> = _benchmarkState.asStateFlow()
-
-    private val _isBenchmarking = MutableStateFlow(false)
-    val isBenchmarking: StateFlow<Boolean> = _isBenchmarking.asStateFlow()
-
-    private val _cameraLuminance = MutableStateFlow(0f)
-    val cameraLuminance: StateFlow<Float> = _cameraLuminance.asStateFlow()
+    private val _perceptionState = MutableStateFlow(
+        PerceptionUiState(
+            hardwareInfo = PerceptionHardwareUiState(
+                socManufacturer = initialHardwareInfo.socManufacturer,
+                socModel = initialHardwareInfo.socModel,
+                primaryAccelerator = initialHardwareInfo.primaryAccelerator,
+                npuApuDetected = initialHardwareInfo.npuApuDetected,
+                vulkanSupported = initialHardwareInfo.vulkanSupported,
+                vulkanVersionCode = initialHardwareInfo.vulkanVersionCode,
+                cpuCores = initialHardwareInfo.cpuCores,
+                maxHeapMb = initialHardwareInfo.maxHeapMb
+            ),
+            currentContextSummary = worldModel.currentContextSummary.value,
+            isAccessibilityConnected = accessibilityRuntime.isConnected.value
+        )
+    )
+    val perceptionState: StateFlow<PerceptionUiState> = _perceptionState.asStateFlow()
 
     private val _settingsState = MutableStateFlow(SettingsUiState())
     val settingsState: StateFlow<SettingsUiState> = _settingsState.asStateFlow()
-    val isAccessibilityConnected: StateFlow<Boolean> = accessibilityRuntime.isConnected
 
     init {
         // Seed initial greeting message
@@ -89,6 +101,8 @@ class ArgusViewModel(
 
         loadInstalledApps()
         observeWorldEntities()
+        observeLearningSources()
+        observePerceptionSources()
     }
 
     fun getTotalParameters(): Long = neuralEngine.countTotalParameters()
@@ -100,12 +114,20 @@ class ArgusViewModel(
     }
 
     fun runBenchmark() {
-        if (_isBenchmarking.value) return
-        _isBenchmarking.value = true
+        if (_learningState.value.isBenchmarking) return
+        _learningState.update { it.copy(isBenchmarking = true) }
         viewModelScope.launch {
-            val res = neuralEngine.runBenchmark(iterations = 12)
-            _benchmarkState.value = res
-            _isBenchmarking.value = false
+            val result = neuralEngine.runBenchmark(iterations = 12)
+            _learningState.update {
+                it.copy(
+                    benchmark = LearningBenchmarkUiState(
+                        tokensPerSecond = result.tokensPerSecond,
+                        latencyMsPerToken = result.latencyMsPerToken,
+                        memoryUsageMb = result.memoryUsageMb
+                    ),
+                    isBenchmarking = false
+                )
+            }
         }
     }
 
@@ -246,7 +268,7 @@ class ArgusViewModel(
     }
 
     fun updateCameraFrame(luminance: Float) {
-        _cameraLuminance.value = luminance
+        _perceptionState.update { it.copy(cameraLuminance = luminance) }
         worldModel.updateCameraContext(
             lightLevel = luminance,
             visualSummary = "Camera active. Luminance: ${String.format("%.1f", luminance)} lx"
@@ -330,6 +352,57 @@ class ArgusViewModel(
         }
     }
 
+    private fun observeLearningSources() {
+        viewModelScope.launch {
+            trainingManager.isTrainingPaused.collect { value ->
+                _learningState.update { it.copy(isPaused = value) }
+            }
+        }
+        viewModelScope.launch {
+            trainingManager.currentTrainingItem.collect { item ->
+                _learningState.update { it.copy(currentTrainingItem = item?.toLearningUiState()) }
+            }
+        }
+        viewModelScope.launch {
+            trainingManager.nextQueue.collect { items ->
+                _learningState.update { it.copy(nextQueue = items.map { item -> item.toLearningUiState() }) }
+            }
+        }
+        viewModelScope.launch {
+            trainingManager.completedQueue.collect { items ->
+                _learningState.update { it.copy(completedQueue = items.map { item -> item.toLearningUiState() }) }
+            }
+        }
+        viewModelScope.launch {
+            trainingManager.lossHistory.collect { values ->
+                _learningState.update { it.copy(lossHistory = values) }
+            }
+        }
+        viewModelScope.launch {
+            trainingManager.totalStepsExecuted.collect { value ->
+                _learningState.update { it.copy(totalStepsExecuted = value) }
+            }
+        }
+        viewModelScope.launch {
+            deviceGuard.safetyState.collect { value ->
+                _learningState.update { it.copy(safetyState = value.toLearningUiState()) }
+            }
+        }
+    }
+
+    private fun observePerceptionSources() {
+        viewModelScope.launch {
+            worldModel.currentContextSummary.collect { value ->
+                _perceptionState.update { it.copy(currentContextSummary = value) }
+            }
+        }
+        viewModelScope.launch {
+            accessibilityRuntime.isConnected.collect { value ->
+                _perceptionState.update { it.copy(isAccessibilityConnected = value) }
+            }
+        }
+    }
+
     private fun tryEvaluateMath(text: String): String? {
         val clean = text.trim().lowercase().removePrefix("calculate").removePrefix("compute").removePrefix("what is").trim()
         val mathRegex = Regex("^([0-9.]+)\\s*([+\\-*/^])\\s*([0-9.]+)$")
@@ -349,4 +422,22 @@ class ArgusViewModel(
         }
         return "Mathematical reasoning result: $n1 $op $n2 = $res"
     }
+}
+
+private fun com.argus.agi.model.TrainingData.toLearningUiState(): TrainingQueueItemUiState {
+    return TrainingQueueItemUiState(
+        id = id,
+        source = source,
+        title = title,
+        content = content,
+        finalLoss = finalLoss,
+        stepDurationMs = stepDurationMs
+    )
+}
+
+private fun com.argus.agi.platform.android.device.DeviceSafetyState.toLearningUiState(): LearningSafetyUiState {
+    return LearningSafetyUiState(
+        isSafeToTrain = isSafeToTrain,
+        statusMessage = statusMessage
+    )
 }

@@ -82,10 +82,11 @@ import java.util.Locale
 @Composable
 fun PerceptionScreen(viewModel: ArgusViewModel) {
     val context = LocalContext.current
-    val hardware by viewModel.hardwareInfo.collectAsState()
-    val contextSummary by viewModel.currentContextSummary.collectAsState()
-    val cameraLuminance by viewModel.cameraLuminance.collectAsState()
-    val isAccessibilityActive by viewModel.isAccessibilityConnected.collectAsState()
+    val perceptionState by viewModel.perceptionState.collectAsState()
+    val hardware = perceptionState.hardwareInfo
+    val contextSummary = perceptionState.currentContextSummary
+    val cameraLuminance = perceptionState.cameraLuminance
+    val isAccessibilityActive = perceptionState.isAccessibilityConnected
 
     var isCameraExpanded by remember { mutableStateOf(true) }
     var isScreenExpanded by remember { mutableStateOf(true) }

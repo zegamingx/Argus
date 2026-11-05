@@ -60,7 +60,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.argus.agi.model.TrainingData
 import com.argus.agi.ui.ArgusViewModel
 import com.argus.agi.ui.design.ArgusBlueAccent
 import com.argus.agi.ui.design.ArgusCardBorder
@@ -82,16 +81,17 @@ import java.util.Locale
 fun NeuralCoreScreen(viewModel: ArgusViewModel) {
     val totalParams = viewModel.getTotalParameters()
     val adapterBytes = viewModel.getAdapterSizeBytes()
-    val isPaused by viewModel.isTrainingPaused.collectAsState()
-    val safetyState by viewModel.safetyState.collectAsState()
-    val currentItem by viewModel.currentTrainingItem.collectAsState()
-    val nextQueue by viewModel.nextQueue.collectAsState()
-    val completedQueue by viewModel.completedQueue.collectAsState()
-    val lossHistory by viewModel.lossHistory.collectAsState()
-    val benchmark by viewModel.benchmarkState.collectAsState()
-    val isBenchmarking by viewModel.isBenchmarking.collectAsState()
-    val hardwareInfo by viewModel.hardwareInfo.collectAsState()
-    val totalSteps by viewModel.totalStepsExecuted.collectAsState()
+    val learningState by viewModel.learningState.collectAsState()
+    val isPaused = learningState.isPaused
+    val safetyState = learningState.safetyState
+    val currentItem = learningState.currentTrainingItem
+    val nextQueue = learningState.nextQueue
+    val completedQueue = learningState.completedQueue
+    val lossHistory = learningState.lossHistory
+    val benchmark = learningState.benchmark
+    val isBenchmarking = learningState.isBenchmarking
+    val hardwareInfo = learningState.hardwareInfo
+    val totalSteps = learningState.totalStepsExecuted
 
     var isSpecExpanded by remember { mutableStateOf(true) }
     var isTrainingExpanded by remember { mutableStateOf(true) }
@@ -562,7 +562,7 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
                 Spacer(modifier = Modifier.height(6.dp))
 
                 if (currentItem != null) {
-                    ActiveTrainingCard(currentItem!!)
+                    ActiveTrainingCard(currentItem)
                 } else {
                     EmptyQueueCard("No active training item (idle; waiting for approved input).")
                 }
@@ -750,7 +750,7 @@ fun QueueSectionHeader(
 }
 
 @Composable
-fun ActiveTrainingCard(item: TrainingData) {
+fun ActiveTrainingCard(item: TrainingQueueItemUiState) {
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = ArgusCyanPrimary.copy(alpha = 0.12f),
@@ -796,7 +796,7 @@ fun ActiveTrainingCard(item: TrainingData) {
 }
 
 @Composable
-fun QueuedItemCard(item: TrainingData) {
+fun QueuedItemCard(item: TrainingQueueItemUiState) {
     Surface(
         shape = RoundedCornerShape(10.dp),
         color = ArgusSurface,
@@ -831,7 +831,7 @@ fun QueuedItemCard(item: TrainingData) {
 }
 
 @Composable
-fun CompletedItemCard(item: TrainingData) {
+fun CompletedItemCard(item: TrainingQueueItemUiState) {
     Surface(
         shape = RoundedCornerShape(10.dp),
         color = ArgusSurfaceVariant.copy(alpha = 0.5f),

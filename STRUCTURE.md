@@ -38,8 +38,10 @@ Argus/
 │       │       │   │   ├── ChatMessage.kt
 │       │       │   │   └── ChatScreen.kt
 │       │       │   ├── learning/presentation/
+│       │       │   │   ├── LearningUiState.kt
 │       │       │   │   └── NeuralCoreScreen.kt
 │       │       │   ├── perception/presentation/
+│       │       │   │   ├── PerceptionUiState.kt
 │       │       │   │   └── PerceptionScreen.kt
 │       │       │   └── settings/presentation/
 │       │       │       ├── SettingsUiState.kt
@@ -100,12 +102,12 @@ The repository has moved beyond the first package relocation:
 - `app/bootstrap` owns the process-scoped composition root and ViewModel factory.
 - `app/entry` contains the Android Application and Activity.
 - `app/navigation` contains the current app shell and destination switching.
-- Feature screens and presentation-owned immutable state types live under their respective `feature/*/presentation` packages. Chat owns `ChatMessage`; Settings owns `SettingsUiState` and its application/platform-independent display records.
+- Feature screens and presentation-owned immutable state types live under their respective `feature/*/presentation` packages. Chat owns `ChatMessage`; Settings owns `SettingsUiState`; Learning owns `LearningUiState`; Perception owns `PerceptionUiState`.
 - `application/runtime` keeps the transitional aggregate entry contract in `ArgusRuntime.kt` and separates training, device, hardware, capture and accessibility ports into focused files. It is not yet the final workflow-specific application API layout.
 - Android capture, device, foreground lifecycle and notification adapters live under `platform/android/*`.
 - The concrete web-search connector lives under `data/acquisition`.
 - `model/` still contains four mixed legacy prototype classes. Their responsibilities must be separated before assigning final owners.
-- `ui/ArgusViewModel.kt` remains a transitional cross-feature ViewModel and still reaches concrete model, data and platform classes. Settings now receives a feature-owned immutable `SettingsUiState` instead of model, connector and Android adapter record types; command handling and the other feature states remain to be migrated after workflow APIs are established.
+- `ui/ArgusViewModel.kt` remains a transitional cross-feature ViewModel and still reaches concrete model, data and platform classes. Settings, Learning and Perception now receive feature-owned immutable UI state projections; command handling and full ViewModel ownership remain to be migrated after workflow APIs are established.
 - `ui/design/` contains shared Compose theme, color and typography resources.
 
 The current layout is an **intermediate migration state**, not proof that every dependency boundary is enforced. The source ownership and dependency audit is recorded in [46 — Android Source-Tree Ownership and Dependency Audit](docs/46_ANDROID_SOURCE_TREE_OWNERSHIP_AND_DEPENDENCY_AUDIT.md); package placement rules and target ownership remain in [45](docs/45_ANDROID_PROJECT_STRUCTURE_AND_FILE_PLACEMENT_RULES.md) and [47](docs/47_PACKAGE_INTERFACE_AND_DEPENDENCY_CONTRACT_MATRIX.md).

@@ -23,7 +23,7 @@ The current structural findings are:
 - `ArgusNeuralEngine` combines numerical execution, tokenizer mutation, benchmark reporting and Android checkpoint file I/O.
 - Android service and device classes now reside under `platform/android/*` and access the process runtime through narrow interfaces; feature presentation still performs some direct CameraX, Settings and permission operations.
 - `ExcludedAppsManager` remains a mixed Android installed-app discovery/exclusion-state prototype.
-- The chat-only `ChatMessage` presentation model has been separated into `feature/chat/presentation`. Settings now receives a feature-owned immutable `SettingsUiState` with projections for installed apps, search previews and world-entity summaries; the cross-feature ViewModel remains to be decomposed.
+- The chat-only `ChatMessage` presentation model has been separated into `feature/chat/presentation`. Settings, Learning and Perception now receive their own immutable feature UI-state projections; the cross-feature ViewModel and command ownership remain transitional.
 - The single test file does not represent most documented subsystem boundaries.
 
 **Recommendation:** retain one Gradle application module while package ownership, workflow contracts and dependency direction are stabilized. Extract Gradle modules only after stable APIs and concrete build/test/ABI boundaries exist. Creating many empty modules now would add complexity without proving the boundaries are correct.
@@ -446,3 +446,10 @@ These are source-level observations. They do not establish that the contracts ar
 The Settings feature now owns `feature/settings/presentation/SettingsUiState.kt` with immutable display records for installed-app rows, search-result previews and world-entity summaries. The shared ViewModel maps `InstalledAppItem`, `SearchResultItem` and `WorldEntity` into those feature-owned types before exposing them to Compose. The Settings screen collects a single `StateFlow<SettingsUiState>`.
 
 This removes those Android/data/model record types from the Settings screen's public state boundary. It does not yet move the corresponding commands into `application/settings`, nor does it remove the ViewModel's concrete implementation dependencies. No backend behavior, storage, consent, model or search logic was changed. No build/test result is claimed.
+
+
+### 11.3 Learning and Perception presentation projections (2026-11-05)
+
+The Learning feature now owns `feature/learning/presentation/LearningUiState.kt`, including display-only queue item, safety, hardware-label and benchmark records. The Perception feature owns `feature/perception/presentation/PerceptionUiState.kt`, including descriptive hardware and current-context/capture values. The shared ViewModel maps legacy model/platform values into these projections, and each screen collects its own immutable feature state.
+
+The projections are deliberately not domain/session manifests and do not establish workflow authority. The shared ViewModel still calls concrete model/data/platform classes; feature commands have not yet moved to application workflows. No backend behavior, algorithms, storage or permission behavior was changed. No build/test result is claimed.
