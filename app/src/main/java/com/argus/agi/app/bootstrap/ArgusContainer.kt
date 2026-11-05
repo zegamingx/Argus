@@ -15,6 +15,7 @@ import com.argus.agi.platform.android.capture.AccessibilityActionRegistry
 import com.argus.agi.platform.android.capture.ExcludedAppsManager
 import com.argus.agi.platform.android.device.DeviceGuard
 import com.argus.agi.platform.android.device.HardwareProfile
+import com.argus.agi.platform.android.device.SystemHardwareInfo
 import com.argus.agi.platform.android.storage.LocalDatasetImporter
 
 /**
@@ -39,6 +40,19 @@ class ArgusContainer(application: Application) : ArgusRuntime {
 
     val hardwareProfile: HardwareProfile by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         HardwareProfile(application)
+    }
+
+    @Volatile
+    private var cachedHardwareInfo: SystemHardwareInfo? = null
+
+    @Synchronized
+    fun getHardwareProfileSnapshot(): SystemHardwareInfo {
+        val cached = cachedHardwareInfo
+        if (cached != null) return cached
+
+        val detected = hardwareProfile.getHardwareInfo()
+        cachedHardwareInfo = detected
+        return detected
     }
 
     val excludedAppsManager: ExcludedAppsManager by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
@@ -78,7 +92,7 @@ class ArgusContainer(application: Application) : ArgusRuntime {
 
     override val hardware: HardwareRuntime = object : HardwareRuntime {
         override fun primaryAcceleratorLabel(): String {
-            return hardwareProfile.getHardwareInfo().primaryAccelerator
+            return getHardwareProfileSnapshot().primaryAccelerator
         }
     }
 

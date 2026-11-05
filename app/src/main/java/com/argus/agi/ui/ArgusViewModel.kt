@@ -21,7 +21,7 @@ import com.argus.agi.feature.settings.presentation.WorldEntityUiItem
 import com.argus.agi.model.ArgusNeuralEngine
 import com.argus.agi.model.WorldModel
 import com.argus.agi.platform.android.device.DeviceGuard
-import com.argus.agi.platform.android.device.HardwareProfile
+import com.argus.agi.platform.android.device.SystemHardwareInfo
 import com.argus.agi.platform.android.capture.ExcludedAppsManager
 import com.argus.agi.data.acquisition.WebSearchEngine
 import com.argus.agi.application.runtime.AccessibilityRuntime
@@ -44,7 +44,7 @@ class ArgusViewModel(
     private val neuralEngine: ArgusNeuralEngine,
     private val worldModel: WorldModel,
     private val deviceGuard: DeviceGuard,
-    private val hardwareProfile: HardwareProfile,
+    private val initialHardwareInfo: SystemHardwareInfo,
     private val excludedAppsManager: ExcludedAppsManager,
     private val webSearchEngine: WebSearchEngine,
     private val accessibilityRuntime: AccessibilityRuntime,
@@ -54,8 +54,6 @@ class ArgusViewModel(
     // UI States
     private val _chatState = MutableStateFlow(ChatUiState())
     val chatState: StateFlow<ChatUiState> = _chatState.asStateFlow()
-
-    private val initialHardwareInfo = hardwareProfile.getHardwareInfo()
 
     private val _learningState = MutableStateFlow(
         LearningUiState(

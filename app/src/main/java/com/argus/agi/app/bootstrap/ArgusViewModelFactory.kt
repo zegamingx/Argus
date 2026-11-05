@@ -21,7 +21,7 @@ class ArgusViewModelFactory(
             neuralEngine = container.neuralEngine,
             worldModel = container.worldModel,
             deviceGuard = container.deviceGuard,
-            hardwareProfile = container.hardwareProfile,
+            initialHardwareInfo = container.getHardwareProfileSnapshot(),
             excludedAppsManager = container.excludedAppsManager,
             webSearchEngine = container.webSearchEngine,
             accessibilityRuntime = container.accessibility,
