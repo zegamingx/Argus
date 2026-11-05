@@ -4,7 +4,7 @@
 **Behavioral/source-logic baseline:** `4d8104d4400dcd858e648d7b08ac0718385733d3`  
 **Latest structural migration checkpoint:** `b0441af8df127897f3ef579c22116d85337feea6`  
 **Latest source-continuity cross-check:** `09c72df12371670fc0417d47f5a0e6644537aa60`  
-**Latest startup/bootstrap source HEAD:** `0a3f7a1c4ac38fd60b8fc9d457a5bd7c518a6ee1`  
+**Latest startup/bootstrap source HEAD:** `c805118a5001a30ff1b7e69025efc2865dd8a1bd`  
 **Inspection date:** 2026-11-05
 
 The Kotlin implementation and build configuration were behaviorally unchanged by the initial package migration, but source paths, package declarations and manifest component names did change. The source-logic observations below remain based on `4d8104d`; current physical paths are recorded at structural checkpoint `b0441af8`. No build or test was run for the migration, so compilation and manifest/component resolution remain unverified.
