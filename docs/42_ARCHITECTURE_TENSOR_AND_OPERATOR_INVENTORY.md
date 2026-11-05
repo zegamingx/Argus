@@ -714,6 +714,75 @@ where \(N_{pairs}\) is the actual evaluated query-key pair count per sequence. A
 The formulas show why \(V\), \(D\), \(L\), \(F\), context, microbatch and precision must be evaluated together. They do not establish a numeric model profile, sustained tokens/second, a RAM threshold or Android device support.
 
 
+### 7.2.10 Structural-growth and sparse-topology resource accounting
+
+Architecture evolution introduces a second resource problem beyond selecting the first profile: the device must create, train, evaluate and either promote or discard a child generation without corrupting the active parent. A growth policy is not admitted by parameter count alone.
+
+#### Structural expansion
+
+For a child graph, compute the exact parameter and state delta from the ordered tensor mapping:
+
+\[
+P_{child}=P_{parent}+P_{added}-P_{removed}+P_{shape\text{-}delta}
+\]
+
+The final term is not an independent scalar count: when an existing tensor changes shape, enumerate the exact inherited, transformed, new and removed elements. Width/depth changes can alter attention projections, FFN matrices, normalization vectors, embeddings/output heads, optimizer groups, inference cache/state and operator workspaces. A local adapter/expert addition may have a smaller parent-tensor migration surface, but it adds routing, dispatch, activation and inference-path costs.
+
+A child-generation transition must separately estimate:
+
+- Parent resident inference weights, KV/recurrent state and workspaces while the parent remains active.
+- Child inherited and newly allocated tensors, optimizer state, initialization buffers and any transformed-tensor scratch.
+- Copy-on-write/shared-storage assumptions only when verified; otherwise use full-copy accounting.
+- Candidate training forward/backward/update peaks, activation/logit/workspace liveness and topology/migration scratch.
+- Evaluation overlap, candidate checkpoint publication, last-known-good retention, rollback and storage reserve.
+- Peak simultaneous CPU and GPU residency, host/device copies and Vulkan allocation/workspace; a disk-backed tensor does not remove required staging or I/O costs.
+
+If parent-plus-child coexistence exceeds the approved memory/storage envelope, choose an explicitly designed serialized/offline migration path or defer/reject growth. Never mutate active tensors in place to make the estimate appear to fit. A new architecture generation must preserve exact parent lineage and the tokenizer fingerprint unless a separate tokenizer migration is approved.
+
+#### Sparse parameter accounting
+
+Let \(N_{cap}\) be the logical number of possible scalar connections and \(K_{active}\) the active stored connections, with density:
+
+\[
+\rho=K_{active}/N_{cap}
+\]
+
+A dense tensor with a binary mask or 90% zero values still stores the dense tensor. Its parameter/gradient/optimizer cost remains proportional to \(N_{cap}\), unless the implementation actually changes representation and execution.
+
+A first-order sparse training estimate is:
+
+\[
+M_{sparse}\approx K_{active}(b_w+b_g+\sum_j b_{opt,j})
++M_{indices/pattern}
++M_{topology\ workspace}
++M_{conversion}
+\]
+
+where \(b_w\), \(b_g\) and \(b_{opt,j}\) are the stored bytes per active weight, gradient and optimizer-state tensor. This is not a complete model peak: activations, residuals, logits, KV/recurrent state, dense embeddings or other dense tensors, runtime allocations, allocator fragmentation and checkpoint staging remain separate terms. The topology workspace must include any inactive-gradient or growth-score computation required by the selected algorithm; do not assume all temporary gradients scale with \(K_{active}\).
+
+Use distinct accounting for three cases:
+
+| Sparse regime | Active-parameter behavior | Resource interpretation |
+|---|---|---|
+| Dense masked | Logical storage remains \(N_{cap}\); zeros are masked | No parameter-memory saving from zero values alone; include mask if separately stored |
+| Fixed-budget dynamic rewiring | \(K_{active}\) stays at the declared budget while connection identities change | Parameter/state budget is approximately stable; topology scores, indices, rewire scratch and optimizer-state changes still cost memory/compute |
+| Sparse-capacity growth | \(K_{active}\) increases toward a declared maximum | New values, active gradients and optimizer state increase; admission must reserve the growth envelope and define the maximum density/parameter budget |
+
+For sparse storage, include index widths, row/block/pattern metadata, alignment and padding. A structured N:M or block pattern may reduce index overhead and provide a more efficient kernel mapping, but only a matching kernel can turn that format into actual acceleration. Unstructured sparsity can reduce nominal arithmetic while still losing to dense kernels because of irregular memory access, dispatch and metadata overhead.
+
+#### Backend and energy constraints
+
+- CPU, Vulkan and NPU sparse support is operator- and pattern-specific. Do not infer support from general GEMM, Vulkan compute-queue availability or an inference delegate.
+- A sparse route must name the exact pattern, storage encoding, supported shapes/dtypes, forward and backward kernels, gradient accumulation, optimizer update, serialization and recovery. If a required sparse operator is absent, route an explicitly costed graph segment to a verified dense/CPU provider or reject that profile.
+- Include index decoding, gather/scatter, reduction contention, synchronization, data-layout conversion and CPU↔GPU transfer in end-to-end timing.
+- Measure both steady-state training and topology-update windows. Rewiring may require extra gradient scoring, mask/index reconstruction, buffer growth and checkpoint work; include its peak and energy cost.
+- Set a bounded topology-update cadence and hysteresis so small metric changes do not cause frequent allocator churn, recompilation or thermal spikes. Update only at a safe optimizer/checkpoint boundary.
+- Store the topology revision, active count, pattern/index digest, deterministic update schedule, RNG and active-parameter optimizer state in the candidate checkpoint.
+
+**Interpretation of the literature:** RigL demonstrates dynamic topology changes under a fixed parameter/computation budget, not unbounded active-parameter growth. Structured RigL reports hardware acceleration for its tested CPU/GPU implementations, but not Android Mali/Vulkan. SMET (ICML 2026) highlights cold-start instability for newly regrown Adam parameters and reports active-only gradient/optimizer-state storage with warm-up and density-aware learning-rate scaling; these are design risks and candidate techniques, not an established Argus/mobile implementation.
+
+**Disposition:** maintain separate research tracks for (1) structural child-generation expansion and (2) sparse topology evolution inside a versioned training candidate. Neither is selected for the first profile. No 90%-sparsity memory saving, Android sparse acceleration, or mobile growth feasibility is claimed.
+
 ## 8. G4 deliverables and current disposition
 
 G4 must produce one exact candidate bundle per supported profile, including:
