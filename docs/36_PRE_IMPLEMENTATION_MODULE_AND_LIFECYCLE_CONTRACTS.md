@@ -1,7 +1,7 @@
 # Pre-Implementation Module and Lifecycle Contracts
 
 **Status:** Proposed architecture-neutral contract baseline; architecture-specific bindings remain open  
-**Review date:** 2026-11-04  
+**Review date:** 2026-11-05  
 **Scope:** Documentation only. This document authorizes no source changes, build, test, workflow execution, device experiment or artifact publication.  
 **Authority:** Logical module/API boundaries, lifecycle state machines, event/error contracts, storage entities, concurrency rules and cross-system sequences. Exact neural architecture, tokenizer, runtime providers, numeric budgets and product-language scope remain governed by their research documents and ADRs.
 
@@ -114,9 +114,9 @@ The following are minimum logical records. A concrete serialization (Proto, Data
 | Record | Required identity and content | Integrity / lifecycle requirement |
 |---|---|---|
 | InstanceManifest | instance ID, schema version, creation time, local storage namespace, initial policy version | Created once per installation; never reused across instances |
-| DeviceCapabilityProfile | profile ID, Android build/API, ABI/ISA, memory class and measured baseline/headroom evidence, CPU/GPU/NPU provider/runtime/driver/operator evidence, tokenizer-training capability evidence, supported telemetry availability, confidence and unknown fields | Timestamped, source-labelled and versioned; unknown is not converted to supported; contains stable capability evidence rather than a live workload snapshot |
+| DeviceCapabilityProfile | profile ID, Android build/API, ABI/ISA, memory class and measured baseline/headroom evidence; CPU features; GPU/Vulkan loader and driver identity, reported API version, compute queue, queried features/extensions/limits and precision/storage capabilities; optional NPU/DSP provider/runtime/driver/operator evidence; tokenizer-training capability evidence; telemetry availability, confidence and unknown fields | Timestamped, source-labelled and versioned; unknown is not converted to supported; contains stable capability evidence rather than a live workload snapshot |
 | RuntimeConditionProfile | sample ID/time, current available memory/pressure, OS thermal status, battery/charging/power-saver state, current storage reserve, foreground/background and scheduler constraints | Short-lived observation with source/confidence; re-read for workload admission and never treated as a permanent hardware capability |
-| ModelConfig | architecture family/version, graph/module config, dimensions, tensor dtypes/layouts, context/state shape, precision, selected configuration-profile ID and backend constraints | Canonical fingerprint; unresolved architecture fields remain placeholders until ADR selection |
+| ModelConfig | architecture family/version, graph/module config, dimensions, tensor dtypes/layouts, context/state shape, precision, selected configuration-profile ID, backend/operator routing map, Vulkan shader/kernel contract where selected and explicit CPU/NPU fallback constraints | Canonical fingerprint; unresolved architecture fields remain placeholders until ADR selection |
 | TokenizerManifest | tokenizer ID/revision, profile ID, preparation mode (precomputed/local-trained/algorithmic), algorithm/trainer/runtime versions, normalization/pre-tokenizer/decoder, vocabulary and special IDs, artifact digest, trainer configuration, seed-corpus manifest digest and provenance/license | Immutable within one generation; referenced by digest; no private content is embedded in the manifest |
 | ModelGenerationManifest | instance ID, generation ID, parent generation, ModelConfig fingerprint, TokenizerManifest digest, initialization policy/version/seed metadata, tensor inventory, checksums, schema/storage versions | Immutable after commit; complete tensor inventory and digest verified before ACTIVE |
 | TrainingSessionManifest | session ID, target candidate generation, parent digest, objective/loss version, trainable parameter groups, optimizer/schedule, precision, dataset manifest digest, sampler/cursor policy, accumulation/update semantics, RNG policy, sequence/document reset and recurrent-state carry policy, chunk size and BPTT mode where applicable, resource profile | Immutable session definition; changes to mathematical semantics require a new session/revision |
@@ -265,6 +265,30 @@ Requirements:
 - A chunk boundary is not automatically an independent document boundary or an optimizer-update boundary. The declared semantics determine whether recurrent state carries, resets, or carries gradients across that boundary.
 - The session records and verifies the exact tokenizer manifest digest, profile ID and model configuration fingerprint. A tokenizer profile or vocabulary change requires a new generation/migration contract, never an in-place session mutation.
 - Training never consumes raw acquisition responses or unreviewed personal captures.
+
+### 5.5.1 Backend execution and Vulkan compute contract
+
+The Training Engine consumes a versioned backend execution map, not a boolean "GPU available" flag.
+
+~~~text
+BackendCapabilityProvider.inspect(modelProfile, workload) -> BackendCapabilityReport
+BackendExecutionPlanner.plan(operatorGraph, capabilityReport, precisionContract) -> BackendExecutionPlan
+BackendRuntime.execute(plan, immutableInputs, mutableCandidateState) -> BackendExecutionResult
+~~~
+
+Requirements:
+- CPU reference is the portable correctness baseline. It remains available when Vulkan/NPU discovery or execution fails, subject to the selected model's CPU resource envelope.
+- Vulkan GPU compute is an independent backend from NPU. Discovery must report the actual loader/driver, physical-device identity, API version, compute queue, queried features/extensions/limits, supported storage/arithmetic dtypes and driver/pipeline cache identity.
+- A Vulkan backend may be selected without an NPU when its compute queue and complete required operator path pass profile admission. A device without a Vulkan compute-capable driver uses CPU or another separately verified provider.
+- FP32 is the baseline shader path. FP16 arithmetic and FP16 storage are independent optional capabilities; each pipeline declares both requirements and provides a verified FP32 or CPU fallback when its optional precision requirements are absent.
+- The backend execution plan names every graph partition and each operator's provider, dtype, layout, synchronization points, host/device transfers and fallback reason. Unknown coverage remains UNKNOWN and cannot pass a required training gate.
+- A full training plan includes forward, objective/loss, backward, gradient accumulation/reduction, clipping, optimizer update, state serialization and recovery. Inference-only Vulkan or NPU coverage is not training coverage.
+- Backend numerical parity is measured against the CPU reference at the selected dtype/tolerance. A fallback must be visible in the execution result and telemetry; silent CPU fallback is prohibited.
+- Device loss, command submission failure, pipeline compilation failure or numerical mismatch invalidates the affected step. Do not commit the optimizer update or data cursor; recover from the last durable checkpoint and re-plan only through an explicit compatible session policy.
+- Memory admission includes GPU allocations/workspaces, shared-process residency, synchronization/transfer buffers, pipeline cache and any concurrent inference snapshot. A supported API version alone does not prove that the model graph fits or performs adequately.
+
+Vulkan compute pipeline creation uses a compute-capable queue and compute dispatch commands; it does not provide automatic differentiation or optimizer semantics. Those remain Argus engine/operator responsibilities. See [21 — Device-Adaptive Model and Training](21_DEVICE_ADAPTIVE_MODEL_AND_TRAINING.md) for Android feature discovery and [42 — Architecture-Family Tensor and Operator Inventory](42_ARCHITECTURE_TENSOR_AND_OPERATOR_INVENTORY.md) for the kernel-level resource worksheet.
+
 
 ### 5.6 Policy and data governance
 
@@ -592,7 +616,7 @@ The following are deliberately later tests. Their methods and acceptance criteri
 | Data rights/consent | Deny by default, operation-scope mismatch, revocation race, deletion cascade, training-candidate immutability | Sections 5.6–5.7 and 6.3 |
 | Connector safety | SSRF/redirect/host validation, response-size limits, rate limits, prompt injection, invalid MIME/archive and retry idempotency | Sections 5.7 and 11 |
 | Lifecycle/concurrency | Process death, background restriction, duplicate job, cancellation at safe boundary, competing inference/acquisition/training budgets | Sections 6 and 9 |
-| Runtime/backend | Actual backend/operator report, numerical parity, fallback safety, unavailable provider and Play services/offline/telemetry behavior | Section 5.4, 11 and documents 08/15 |
+| Runtime/backend | CPU-reference parity; Vulkan loader/driver/compute-queue and per-feature discovery; FP32 fallback and optional FP16 arithmetic/storage validation; full training-operator coverage; actual graph partition/transfer/fallback report; device-loss and checkpoint-safe recovery; optional NPU provider behavior | Sections 5.4, 5.5.1, 11 and documents 08/15/21/42 |
 | Candidate evaluation | Fixed digest, reproducible evaluation, regression failure, promotion race, rollback to last-known-good | Sections 5.2 and 6.2 |
 | Device feasibility | E1–E7 on named representative physical devices after implementation; no broad support claim before pass | Document 33 |
 
