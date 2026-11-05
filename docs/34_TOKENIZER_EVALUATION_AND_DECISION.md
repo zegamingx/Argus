@@ -446,7 +446,7 @@ If local tokenizer preparation fails its time/memory/storage admission or is can
 
 ### 7.1 Candidate matrix
 
-The initial bounded comparison for the current Indonesian-only starter fixture is:
+The initial bounded comparison for the current three-asset starter set keeps language roles separate: use the two Indonesian source assets as the initial frequency-fitting fixture, and use `Argus_story_Eng.txt` as a separately reported, quality-screened English tokenizer diagnostic. The comparison protocol is:
 
 | Candidate | Base representation | Learned vocabulary | Unknown handling | Role |
 |---|---|---|---|---|
