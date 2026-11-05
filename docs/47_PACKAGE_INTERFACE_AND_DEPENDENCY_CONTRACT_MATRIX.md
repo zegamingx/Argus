@@ -107,6 +107,8 @@ The following matrix is the proposed mapping for the logical subsystem APIs in d
 | IF-20 | Android permissions, accessibility/camera capture and installed-app discovery | Platform contracts in `platform/android/permissions` and `platform/android/capture`; policy rules in `core/policy` | Android OS callbacks hand bounded observations to the `application/knowledge` intake workflow defined in document 48 | `platform/android/permissions` and `platform/android/capture`; exclusions and consent records are persisted through `data/policy` | Platform permission is separate from surface/purpose consent; adapters do not own retention, review or training eligibility |
 | IF-21 | Compute capability, backend selection evidence and execution result | Provider-neutral contract in `core/compute` | `application/inference`, `application/learning`, Genesis/backend admission | Runtime/provider discovery and Android/vendor calls in `platform/android/compute`; numerical backend in `engine/*` | Report actual provider, runtime, driver, precision, operator coverage, fallback and execution evidence |
 | IF-22 | Shared Compose visual primitives | UI-only ownership in `ui/design` | Feature presentation and app navigation | `ui/design` | Visual state is presentation-only and cannot own domain or workflow state |
+| IF-23 | Growth assessment and child-generation planning: `GrowthController.assess(...)`, `ArchitectureEvolutionPlanner.plan(...)` | Transition invariants in `core/model`; capability/resource evidence in `core/device`; evaluation evidence in `core/evaluation` | `application/evolution`, invoked by approved local learning/evolution workflows | `application/evolution` coordinates; selected `engine/model` performs declared tensor transforms; `data/model` persists transition manifests and candidate generations | Growth decision and transition manifest are versioned; parent remains immutable; only `data/model` can publish/promote the child after `application/evaluation` passes |
+| IF-24 | Sparse topology policy and safe-boundary update: `SparseTopologyController.proposeUpdate(...)` | `core/training`, `core/model` and `core/compute` | `application/learning` and a selected training engine through the declared candidate-state contract | `engine/model` applies topology/optimizer kernels; `data/model` persists sparse topology and active optimizer state in checkpoints | Candidate topology revision, active count, pattern/index digest, optimizer state, RNG and data cursor commit atomically; no active-generation mutation |
 
 The method names reused above are conceptual names already present in document 36. Rows that describe a responsibility without a method name do not authorize a new public API shape by implication.
 
@@ -138,6 +140,8 @@ The composition root does not make the following relationships legal:
 - `platform/android/lifecycle` reaching into `data/model` to read training state;
 - `data/acquisition` calling `data/policy` to approve its own request;
 - `engine/model` reading Android files or deciding personal-data eligibility;
+- `application/evolution` importing `engine/model` or `data/model` directly instead of using declared ports;
+- `engine/model` changing the active parent generation, choosing growth policy or promoting a candidate;
 - `ArgusApp` static properties becoming the permanent dependency API.
 
 Adapters may use their own implementation details internally, but cross-adapter coordination remains with the application workflow or composition boundary.
@@ -195,6 +199,8 @@ State ownership is separate from who displays or triggers an operation.
 | Knowledge records and retrieval indexes | `data/knowledge` | Knowledge and inference workflows | Record revisions remain traceable to provenance/rights |
 | Corpus manifest and split/cursor | `data/corpus` for immutable dataset artifacts; `application/learning` for session use | Learning/evaluation | No live mutable acquisition queue as a training dataset |
 | Candidate evaluation and promotion decision | `application/evaluation` with report bound to candidate digest; commit in `data/model` | Learning and status UI | Evaluation and promotion are separate; promotion is atomic |
+| Growth decision and structural transition plan | `application/evolution`; immutable transition manifest in `data/model` | Learning/evolution workflow and status projection | Assessment may propose a child only; parent stays active until evaluation and repository promotion pass |
+| Sparse topology and active-parameter state | Candidate training state owned by `application/learning` and the selected engine contract; durable checkpoint in `data/model` | Recovery and evaluation | Topology revision, active optimizer state, RNG and cursor share one checkpoint boundary |
 | Lifecycle event schema | `core/events` | Owning workflows and observers | Event is a fact, not a source of truth |
 | Durable sanitized audit record | `data/audit` | Authorized diagnostics | No raw prompt, private capture or full corpus content in generic audit payload |
 | Transient runtime conditions | `platform/android/device` observations shaped by `core/device` | Resource admission workflows | Short-lived; must be re-read before workload admission |
@@ -305,6 +311,8 @@ The following checks are required when implementation is separately authorized. 
 | Training recovery | Candidate, optimizer update, RNG, data cursor and required recurrent state agree at checkpoint/resume | Learning lifecycle and checkpoint tests; recurrent requirements from document 41 |
 | Inference isolation | Inference consumes a fixed immutable snapshot and releases request-owned resources on cancellation | Inference/backend tests |
 | Promotion isolation | Evaluated candidate digest is unchanged when the repository atomically promotes it | Evaluation/promotion transaction tests |
+| Evolution isolation | Growth assessment cannot mutate the active generation; child tensor map, resource envelope, validation and rollback bind to the exact parent digest | Growth/repository contract tests |
+| Sparse topology recovery | Topology mask/index revision, active optimizer state, RNG and data cursor resume exactly after interruption; unsupported sparse kernels reject or route explicitly | Training/checkpoint/backend contract tests |
 | Android lifecycle | OS stop/reclaim/permission/service-denial paths preserve workflow-owned safe state without bypassing platform rules | Android instrumentation/device tests |
 | Capture intake | Raw capture cannot reach training before policy, classification, redaction and explicit approval | Capture/policy/learning integration tests |
 
@@ -323,8 +331,9 @@ A static pass proves only the dependency rule in the inspected revision. Runtime
 | PC-OPEN-07 | Tokenizer implementation and API binding | Tokenizer G1-D remains open; tokenizer artifact/profile selection is not finalized | Document 34 and G1-D evidence/decision | Concrete `engine/tokenizer` implementation |
 | PC-OPEN-08 | Selected model family and backend binding | G4 remains blocked and no architecture family is selected | Document 43 acceptance and required comparative evidence | Selected `engine/model` implementation |
 | PC-OPEN-09 | Session/report persistence split | Logical owners are known, but exact data-domain partition and durable schema are open | Storage/transaction contract review under document 36 | Final repository module boundary |
+| PC-OPEN-10 | Structural evolution and sparse-training feature binding | The generation-scoped lifecycle contract exists, but no growth trigger, mutation catalog, concrete tensor migration, sparse format, optimizer-state policy or Android backend kernel is selected | Documents 16, 36, 42 and 43; resolve only for a release/profile that enables model growth or sparse training | Growth/sparse feature implementation only; explicitly deferred features do not block a structurally fixed dense first profile |
 
-PC-OPEN-02, PC-OPEN-03 and PC-OPEN-06 remain in this register for traceability but are closed at the design-contract level. Their implementation and verification obligations remain. PC-OPEN-01 and PC-OPEN-04/07/08/09 remain scoped blockers for the personal-capture path, durable storage, concrete tokenizer and selected model family respectively. PC-OPEN-05 is deferred only for accelerated-provider selection; it is not a reason to block a correctness-first CPU reference path.
+PC-OPEN-02, PC-OPEN-03 and PC-OPEN-06 remain in this register for traceability but are closed at the design-contract level. Their implementation and verification obligations remain. PC-OPEN-01 and PC-OPEN-04/07/08/09 remain scoped blockers for the personal-capture path, durable storage, concrete tokenizer and selected model family respectively. PC-OPEN-05 is deferred only for accelerated-provider selection; it is not a reason to block a correctness-first CPU reference path. PC-OPEN-10 is a separately scoped future-feature blocker and does not block a first profile that explicitly defers growth and sparse training.
 
 The remaining open items must not be used to block unrelated subsystems. They do prevent inventing production interfaces, creating speculative packages/modules or claiming that the affected implementation surface is ready.
 
