@@ -85,9 +85,11 @@ While learning is active, monitor a timestamped Runtime Condition Profile using 
 - Vulkan GPU/NPU availability, correctness and execution cost, including queue/device-loss and fallback events.
 - Thermal status and sustained performance trend.
 - Battery/power mode and charging state.
-- Storage reserve and checkpoint capacity.
-- App foreground/background state and platform scheduling policy.
+- Storage reserve and checkpoint capacity, including dataset shards, the temporary checkpoint being written, the last committed checkpoint retained for recovery, and candidate-generation staging.
+- App foreground/background state, service/worker state and platform scheduling policy.
 - User pause/stop preferences.
+
+Admission must reserve simultaneous peak usage, not only final artifact size. Include active inference snapshots, candidate parameters, gradients, optimizer/scheduler/scaler state, activations/workspaces, runtime/provider allocations, streaming dataset buffers, checkpoint staging, and the previous durable checkpoint. A device is not admitted merely because model weights fit in RAM or a single checkpoint fits in free storage.
 
 Sampling intervals must respect API cost and thermal overhead. Avoid high-frequency polling when a platform callback or coarser observation is sufficient.
 
@@ -168,6 +170,39 @@ Expose the actual active state and explain adaptations:
 - Last successful checkpoint and resumable progress.
 
 The UI must not overstate precision of OS signals or claim training is real-time if displayed values are stale.
+
+### 8.1 Android background execution and scheduling decision matrix
+
+**Repository baseline observed 2026-11-05:** app minSdk 33, compileSdk 36 (minor API level 1), targetSdk 36 in app/build.gradle.kts. The requirements below are evaluated against that target; any targetSdk/compileSdk increase requires a fresh platform-policy review before implementation or release.
+
+| Mechanism | Suitable workload | Platform constraints relevant to the current target | A.R.G.U.S. disposition |
+|---|---|---|---|
+| Direct Foreground Service | Explicitly user-started, ongoing, user-visible local training where a valid FGS type exists | Apps targeting API 31+ cannot generally start an FGS from the background without a listed exemption. Target API 34+ requires a declared service type and matching type permission. FGS raises visibility/priority but does not guarantee process survival or uninterrupted execution. | Candidate for a user-visible active session only after the exact service type, start path, notification and distribution-policy eligibility are established. Start from a visible user action; keep workflow state and checkpoints outside the Service. |
+| WorkManager bounded/resumable work | Deferrable, constraint-aware, retryable or chunked work whose units can stop and resume from durable state | WorkManager supports long-running workers and explicitly lists local ML-model computation as an example. A long-running worker runs an FGS on WorkManager's behalf but still relies on JobScheduler. For target API 34+, runtime foreground info must specify a valid FGS type. On Android 16/API 36, long-running workers can exhaust app JobScheduler quota; direct FGS may be considered when quota behavior makes WorkManager unsuitable. | Suitable for bounded, independently resumable preparation/training chunks or deferred retry only after quota/type admission. It is not a guarantee of continuous training. A worker stop must preserve the last committed checkpoint. |
+| Hybrid scheduling | WorkManager handles deferred eligibility/retry; a direct user-visible FGS handles an explicitly started active run | Each mechanism retains its own Android restrictions. Do not let both schedulers own or execute the same session concurrently. An FGS does not remove Android 16 JobScheduler quota from jobs that are still executing under JobScheduler/WorkManager. | A possible design, not a selected binding. One durable session owner arbitrates a single execution lease; only one engine writer may own a candidate/session. |
+| User-initiated data-transfer job | User-requested data upload/download or other qualifying transfer | This is a transfer API, not a general-purpose compute execution exemption. | May serve a separately authorized dataset/model transfer if that product feature is later approved; it is not the training engine or a way to run local neural computation. |
+
+#### 8.1.1 Foreground-service type and quota rules
+
+- There is no dedicated Android foreground-service type named for neural-model training in the reviewed platform type catalog. The type must match the actual work; do not label local tensor computation as dataSync or mediaProcessing merely to obtain background execution.
+- For apps targeting API 35+ (including this repository's current targetSdk 36), dataSync and mediaProcessing services have separate app-wide six-hour-in-24-hour background execution budgets. The quota is shared across services of the same type. The timeout callback requires prompt service shutdown; it is not a safe place to serialize an entire model checkpoint. Periodic durable checkpoints must already exist.
+- specialUse covers valid FGS use cases not covered by another type. It requires a manifest subtype explanation and is reviewed in Google Play Console. It is not an automatic approval, not a generic compute exemption, and does not remove background-start or process-death risks. Do not select it until the precise user-facing use case and distribution route are reviewed.
+- systemExempted is reserved for eligible system apps/roles/integrations and is not a general-purpose training type.
+- If no compliant and distribution-eligible FGS type is established for sustained background training, the product must keep training foreground-only or use bounded resumable work that fits the available scheduler policy. It must not invent or misdeclare a service type.
+- For WorkManager, onStopped() is a lightweight stop notification: its callback thread is not contractually fixed and it must not perform long/blocking checkpoint I/O. It may signal the process-scoped session owner to stop at the next safe update boundary, but it is not a recovery guarantee.
+- If a service timeout or worker stop is received, signal the learning workflow to reach its next safe boundary when time permits. Do not start unbounded finalization in the timeout callback. The main recovery guarantee remains the last periodic checkpoint already committed to durable storage.
+- Direct FGS and WorkManager are execution/scheduling adapters only. Neither owns the session state, authoritative progress, candidate, checkpoint validity or active-generation pointer.
+
+#### 8.1.2 Selection remains an explicit product decision
+
+Before selecting a production execution binding, close these inputs: distribution route (Google Play or another channel), the precise user-visible purpose of continuous training, eligible FGS type and policy approval evidence, start restrictions, target API, quota behavior, OEM process-management behavior, expected session duration, pause latency, checkpoint interval, and resource/energy budget. Reassess whenever the target SDK or Android policy changes.
+
+Official platform evidence (reviewed 2026-11-05):
+- [Foreground-service types and per-type permissions](https://developer.android.com/develop/background-work/services/fgs/service-types)
+- [Foreground-service start restrictions](https://developer.android.com/develop/background-work/services/fgs/restrictions-bg-start)
+- [Foreground-service timeouts](https://developer.android.com/develop/background-work/services/fgs/timeout)
+- [Long-running WorkManager workers, including local ML workloads](https://developer.android.com/develop/background-work/background-tasks/persistent/how-to/long-running)
+- [ListenableWorker.onStopped() contract](https://developer.android.com/reference/androidx/work/ListenableWorker#onStopped())
 
 ## 9. Acquisition resource boundary
 
