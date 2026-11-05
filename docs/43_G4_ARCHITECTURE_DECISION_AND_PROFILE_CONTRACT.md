@@ -269,7 +269,7 @@ The first-generation profile portfolio may remain dense and structurally fixed w
 
 Federated learning is not a dependency or default optimization. Each installation evolves only its own model and optimizer state. Cross-instance aggregation remains outside the accepted product boundary.
 
-**Evidence disposition:** DEN, Progressive Neural Networks, Network Morphism, RigL, Structured RigL, SMET (ICML 2026), CoPE (ICML 2026) and Grow-on-Demand (AAAI 2026) establish research precedents for selective expansion or changing sparse connectivity. Their benchmark/task/hardware settings do not establish random-init Argus growth on Android. See document 36 section 17 for primary references and transfer limits, and document 42 section 7.2.10 for resource accounting.
+**Evidence disposition:** DEN, Progressive Neural Networks, Network Morphism, RigL, Structured RigL, SMET (ICML 2026), CoPE (ICML 2026) and Grow-on-Demand (AAAI 2026) establish research precedents for selective expansion or changing sparse connectivity. Their benchmark/task/hardware settings do not establish random-init Argus growth on Android. See document 36 section 17 for primary references and transfer limits, and document 42 section 7.2.11 for structural-growth and sparse-topology resource accounting.
 
 ## 7. Post-implementation verification plan
 
