@@ -17,7 +17,7 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 1. **Local Knowledge Genesis:** initialize Argus model parameters locally; do not use an externally pretrained model as the foundation.
 2. **First-launch readiness:** first launch performs device assessment, configuration, model construction, parameter initialization and initial-state persistence. It does not wait for pretraining.
 3. **Background general learning:** bundled general-corpus training is eligible to run after the app becomes ready and must be pausable and recoverable.
-4. **Bundled bootstrap corpus:** Small C4 is the current initial corpus candidate, pending exact revision, license, provenance, quality and packaging verification.
+4. **User-controlled dataset import:** local files selected by the user are the primary general-corpus intake. Small C4 is not a bundled/default requirement; optional public-source acquisition is a later capability.
 5. **Personal learning:** adapt to the user's experience over time; access to data is not training consent.
 6. **Device adaptation:** initial model configuration follows measured device capability; runtime workload follows live device conditions.
 7. **Architecture research first:** no initial neural architecture family has been selected.
@@ -48,7 +48,7 @@ The accepted principle is **One Origin, Independent Evolution**. Each installati
 | Model, learning, safety and verification foundations | 09–15 | Model, training, knowledge, governance, performance and verification |
 | Program control and implementation truth | 16–19 | Roadmap, research register, repository baseline, implementation audit and P0 remediation |
 | Genesis and core learning direction | 20–23 | Initial model creation, device adaptation, general/personal learning and architecture research |
-| Knowledge acquisition and corpus governance | 24–32 | Discovery, domain coverage, source rights, corpus candidates and device-adaptive acquisition |
+| User-imported corpus and optional acquisition | 22–32 | Local dataset import is the primary general-corpus intake; documents 24–32 describe optional future public-source discovery, rights and acquisition research |
 | Feasibility and pre-implementation foundations | 33–37 | From-scratch feasibility, tokenizer, Android evidence, module/lifecycle contracts and optimizer research |
 | Architecture comparison and G4 preparation | 38–43 | Cross-family synthesis, component/init/state/tensor contracts and G4 framework |
 | Documentation governance | 44 | Document authority, evidence/status semantics and change control |
@@ -84,14 +84,14 @@ The grouping is descriptive only. Each document retains its own declared scope a
 | [21 — Device-Adaptive Model and Training](21_DEVICE_ADAPTIVE_MODEL_AND_TRAINING.md) | Device profiling, configuration and live workload control |
 | [22 — General Corpus and Personal Learning](22_GENERAL_CORPUS_AND_PERSONAL_LEARNING.md) | Small C4 bootstrap, data governance and personal adaptation |
 | [23 — Neural Architecture Research Plan](23_NEURAL_ARCHITECTURE_RESEARCH_PLAN.md) | Candidate families and evidence-based selection |
-| [24 — Autonomous Knowledge Acquisition](24_AUTONOMOUS_KNOWLEDGE_ACQUISITION.md) | Self-directed public-source discovery, source policy, local knowledge and training handoff |
+| [24 — Autonomous Knowledge Acquisition](24_AUTONOMOUS_KNOWLEDGE_ACQUISITION.md) | Optional future self-directed public-source discovery, source policy, local knowledge and training handoff; not required for user dataset import |
 | [25 — Knowledge Domain and Discovery Strategy](25_KNOWLEDGE_DOMAIN_AND_DISCOVERY_STRATEGY.md) | Initial taxonomy, coverage states, breadth-to-depth planning and topic prioritization |
 | [26 — Source Registry and Connector Architecture](26_SOURCE_REGISTRY_AND_CONNECTOR_ARCHITECTURE.md) | Source permissions, connector types, fetch-job contracts and network safety |
 | [27 — Initial Source Registry Candidates](27_INITIAL_SOURCE_REGISTRY_CANDIDATES.md) | Initial named-source shortlist, item-level rights, API constraints and domain coverage |
 | [28 — Open Text and Educational Source Candidates](28_OPEN_TEXT_AND_EDUCATIONAL_SOURCE_CANDIDATES.md) | Full-text OER candidates, content-rights matrix and Indonesian-language source strategy |
-| [29 — Curated Initial Text Seed Set](29_CURATED_INITIAL_TEXT_SEED_SET.md) | Exact title-level seed candidates, license evidence, PDF sources and retrieval-pilot selection |
-| [30 — Domain-Balanced Text Source Expansion](30_DOMAIN_BALANCED_TEXT_SOURCE_EXPANSION.md) | Additional full-text candidates mapped to underserved knowledge domains |
-| [31 — Indonesian-Language OER Source Expansion](31_INDONESIAN_LANGUAGE_OER_SOURCE_EXPANSION.md) | Indonesian OER candidates, item-level rights path and SPADA 2022 program boundary |
+| [29 — Curated Initial Text Seed Set](29_CURATED_INITIAL_TEXT_SEED_SET.md) | Optional future public-source candidates; not a prerequisite for the user-controlled local dataset importer |
+| [30 — Domain-Balanced Text Source Expansion](30_DOMAIN_BALANCED_TEXT_SOURCE_EXPANSION.md) | Optional future public-source candidates mapped to underserved knowledge domains |
+| [31 — Indonesian-Language OER Source Expansion](31_INDONESIAN_LANGUAGE_OER_SOURCE_EXPANSION.md) | Optional future Indonesian OER source candidates; not a prerequisite for local import |
 | [32 — Device-Adaptive Knowledge Acquisition and Corpus Budgeting](32_DEVICE_ADAPTIVE_KNOWLEDGE_ACQUISITION.md) | Device capability profile, corpus/storage tiers, dynamic admission and verification |
 | [33 — From-Scratch Training Feasibility](33_FROM_SCRATCH_TRAINING_FEASIBILITY.md) | Evidence classification, Android resource model, sustained thermal/energy constraints and E1–E7 feasibility protocol |
 | [34 — Tokenizer Evaluation and Decision Framework](34_TOKENIZER_EVALUATION_AND_DECISION.md) | Device-conditioned tokenizer profile portfolio, multilingual fixtures, Unicode/special-token conformance, vocabulary/runtime costs and decision gates |
@@ -126,3 +126,8 @@ The grouping is descriptive only. Each document retains its own declared scope a
 Material decisions belong in [01 — System Requirements and Decisions](01_SYSTEM_REQUIREMENTS_AND_DECISIONS.md). Unresolved questions and phase/gate status belong in [16 — Roadmap and Research Register](16_ROADMAP_RESEARCH_REGISTER.md). Repository-wide authority, evidence, status and change rules belong in [44 — Documentation Governance and Change Control](44_DOCUMENTATION_GOVERNANCE_AND_CHANGE_CONTROL.md). Detailed Genesis, device adaptation, corpus, architecture, autonomous acquisition, knowledge-domain, source-connector, source-candidate, open-text, curated seed, domain-balanced text, Indonesian OER, device-adaptive acquisition, from-scratch feasibility, tokenizer, component-level Android architecture, cross-system implementation contracts, optimizer research, G2 synthesis, Transformer component comparisons, initialization/width-scaling research and recurrent-state lifecycle contracts are maintained in documents 20–43.
 
 The documentation phase ends only when requirements, architecture, model and tokenizer research, corpus governance, resource budgets, cross-system module/lifecycle contracts, verification strategy and cross-document consistency have been reviewed. The contracts in document 36 are a proposed baseline and remain subject to ADR reconciliation and explicit closure of their open bindings. Passing that gate authorizes an implementation-plan review only. It does not automatically authorize coding, builds or workflow execution.
+
+
+### 2026-11-05 — Local dataset import direction
+
+ADR-027 and document 22 establish user-selected local dataset import as the primary general-corpus intake. The importer will not require a bundled Small C4 artifact, autonomous crawling or Argus-performed source-by-source license research. The user declares the intended local use; Argus records provenance/integrity metadata and does not redistribute the files. Documents 24–32 remain optional research for a later user-controlled public-source acquisition capability. Personal experience remains separate under document 48.

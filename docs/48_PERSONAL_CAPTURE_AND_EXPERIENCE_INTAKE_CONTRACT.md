@@ -21,7 +21,7 @@ The contract applies to:
 - The handoffs from intake to inspectable memory and from an approved personal-training candidate to the learning workflow.
 - Existing personal records and pending candidates that must be reconciled when a capture adapter is replaced, disabled or removed.
 
-It does not govern bundled general-corpus data or public-source acquisition. Those paths retain their own source provenance, rights and eligibility contracts. Personal content must never be reclassified as general-corpus data merely to bypass this boundary.
+It does not govern a user-selected file that is explicitly imported as a general dataset through the separate local corpus-import path in document 22. That path records the user's general-dataset intent and authority declaration and does not use personal-experience retention/review state. If a selected file contains personal experience or is intended for personal memory/adaptation, this contract applies; the user cannot relabel personal content as a general dataset merely to bypass this boundary. Autonomous public-source acquisition remains separately governed by documents 24–32.
 
 The governing principle is: **access to a device surface is not consent to retain its content, and retention is not consent to train on it.**
 
@@ -454,3 +454,6 @@ If this document conflicts with accepted product constraints in document 01 or t
 
 
 - 2026-11-05 — Updated the implementation disposition after retirement of the raw-string training worker and engine entry point. Learning remains unavailable until a reviewed immutable-candidate intake and independent learning-admission workflow is implemented. This does not close PC-IMPL-01 through PC-IMPL-07.
+
+
+- 2026-11-05 — Clarified that user-selected files explicitly designated as general datasets follow document 22's local corpus-import path, not the personal-capture PC-IMPL lifecycle. Personal experience and personal adaptation remain governed by this contract; relabelling personal data as general corpus to bypass consent/review is prohibited.

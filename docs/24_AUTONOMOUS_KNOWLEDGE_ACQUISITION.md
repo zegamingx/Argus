@@ -1,13 +1,13 @@
 # Autonomous Knowledge Acquisition
 
-**Status:** Accepted product direction; implementation, source allowlist, quotas and scheduling remain open  
+**Status:** Accepted optional future capability; not a prerequisite for user-controlled local dataset import or initial general-corpus preparation. Implementation, source allowlist, quotas and scheduling remain open  
 **Last reviewed:** 2026-11-03
 
 ## 1. Purpose
 
-Argus is intended to acquire general public knowledge for its own local model instance. It must be able to discover topics, find permitted public sources, collect and process information, preserve provenance, make approved knowledge available to retrieval, and prepare eligible material for later neural training.
+Argus may later acquire general public knowledge for its own local model instance. This capability is separate from the primary initial general-corpus path: a user imports local dataset files under document 22. Autonomous acquisition is an optional later capability for discovering topics, accessing approved public sources, processing information, preserving provenance, supporting retrieval and preparing eligible material for later neural training.
 
-This is an internal capability of each Argus installation. Argus is not collecting information for external AI companies or other customers. There is no shared collection network, central knowledge pool, cross-user data exchange or central training server in the accepted design.
+When enabled, this is an internal capability of each Argus installation. Argus is not collecting information for external AI companies or other customers. There is no shared collection network, central knowledge pool, cross-user data exchange or central training server in the accepted design.
 
 The product analogy is a self-directed acquisition system: the installation gathers knowledge for its own instance rather than acting as a data supplier for an outside client.
 
@@ -23,7 +23,7 @@ The following behavior is the intended contract:
 6. The engine must be visible and controllable by the device owner. It must not perform hidden, unlimited crawling.
 7. The engine does not upload local conversations, personal files, model weights, gradients, checkpoints or collected corpora to an external customer or central Argus service.
 
-This is a planned capability. The current repository prototype must not be described as already implementing it.
+This is an optional planned capability. It is not required before user-selected local dataset import can be implemented or used. The current repository prototype must not be described as already implementing it.
 
 ## 3. Separate acquisition from learning
 
@@ -283,7 +283,7 @@ Progress reporting should show meaningful counts and current activity without ex
 
 ## 16. Implementation sequence
 
-Implement in dependency order, after the documentation and P0 gates:
+Implement only after the local user-import path is available and the user explicitly enables network acquisition. This is not the first corpus-ingestion milestone:
 
 1. Source policy, registry schema and user network controls.
 2. Deterministic topic discovery and bounded job scheduler.
@@ -316,7 +316,7 @@ The design is ready for implementation planning only when:
 
 The following remain research or implementation-planning questions, not fixed values:
 
-- Initial source list and source-by-source license review.
+- Whether to enable autonomous public-source acquisition at all, followed by the source list and source-by-source permission review for that optional network capability.
 - Supported-language priorities and per-domain source coverage; the initial domain taxonomy is defined in document 25.
 - Discovery refresh policy and scheduling interval.
 - Network and storage quotas for device classes.
@@ -327,4 +327,15 @@ The following remain research or implementation-planning questions, not fixed va
 - Training eligibility policy for each source/license class.
 - The maturity gate at which model-assisted discovery may be enabled.
 
-These decisions must be resolved with evidence and recorded before the acquisition engine is implemented.
+These decisions must be resolved with evidence and recorded before the optional network acquisition engine is implemented. They do not block local user-supplied dataset import under document 22.
+
+
+## 19. Relationship to user-controlled local dataset import
+
+Document 22 owns the primary general-corpus import path. The user selects files locally, supplies the general-dataset intent and authority declaration, reviews the import result, and confirms corpus preparation. This document governs a different optional capability: Argus itself initiates network discovery/fetch operations from approved public sources.
+
+The two paths must not be conflated:
+
+- User import does not require an autonomous source registry, network provider, crawler, topic scheduler or per-article online rights investigation by Argus.
+- Autonomous acquisition does require the source/operation policy, network controls and source-specific eligibility contract described here.
+- Neither path may silently start a model update. Both produce immutable corpus candidates that are separately admitted by the Learning workflow.

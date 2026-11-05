@@ -1,7 +1,7 @@
 # System Requirements and Initial Architecture Decisions
 
 **Status:** Mixed baseline — requirements remain draft; each ADR's explicit status is authoritative. ADR-001 and ADR-009–023 record accepted product/design directions; ADR-002–008 remain proposed.  
-**Last reviewed:** 2026-11-03
+**Last reviewed:** 2026-11-05
 
 ## 1. Product and system boundary
 
@@ -105,9 +105,9 @@ Each Argus installation creates its own model state locally from architecture-sp
 First launch performs device assessment, configuration selection, model construction, parameter initialization and durable registration of the initial generation. The application becomes available after those steps. General-corpus pretraining is not a prerequisite for opening the application and must not run as a blocking splash-screen task.
 
 ### ADR-011 — Bundled bootstrap corpus
-**Status:** Accepted direction; source acceptance gate remains open.
+**Status:** Superseded as the initial data-delivery path by ADR-027.
 
-General foundation data is bundled for offline availability. Small C4 is the current initial bootstrap candidate, not the complete lifelong knowledge source. Exact source revision, license terms, attribution, data quality, split integrity and package checksums must be verified before distribution.
+The earlier proposal to bundle Small C4 is no longer a release prerequisite or default corpus choice. Small C4 remains historical research material only. The initial general-corpus path is user-controlled local dataset import under ADR-027; Argus does not need to download, curate, bundle or redistribute a public corpus before local dataset preparation can begin.
 
 ### ADR-012 — Independent model instances
 **Status:** Accepted direction.
@@ -150,9 +150,9 @@ Autonomous acquisition uses a local, versioned source registry and replaceable c
 Open-text catalogs and educational repositories are used for discovery, but full-text fetch, local retention, retrieval indexing, neural training and redistribution require separate item-level permissions. Free-to-read, downloadable or open-access labels are not training authorization. Non-commercial and share-alike content is held from default general training until Argus's distribution model and use-specific legal obligations are resolved. No collection-level label overrides a more restrictive item-level notice.
 
 ### ADR-020 — Curated item-level text seed before bulk ingestion
-**Status:** Accepted pilot direction; selected items remain unapproved for neural training.
+**Status:** Superseded as the initial general-corpus ingestion path by ADR-027. The named-title catalog remains optional source research for a later public-acquisition capability.
 
-The first document-ingestion pilot uses exact, individually identified books and modules with recorded landing-page rights evidence, source URLs, file checksums and attribution. It validates parsing, language/domain classification, local storage and retrieval before any training corpus is enabled. Catalog-level "open" status is not enough; every work and its third-party components require item-level review.
+The initial corpus importer does not depend on Argus selecting books, crawling catalogs or performing source-by-source rights research. The user supplies local files, declares that they are authorized for the intended local use, and controls whether the imported corpus is prepared for general learning. This does not turn an unknown or absent license into public-domain status, nor does it authorize Argus to redistribute the imported files.
 
 ### ADR-021 — Domain-balanced text acquisition
 **Status:** Accepted discovery direction; individual source activation remains open.
@@ -194,13 +194,31 @@ The component matrix in document 35 assigns exactly one primary ADOPT, MODIFY, C
 
 These dispositions define ownership, research direction and the evidence required before later selection. ADOPT/MODIFY does not authorize copying or coding an external implementation. CUSTOM identifies Argus-owned contracts, not completed code. DEFER remains open by design and must not be silently converted. REJECT applies to the current product boundary and may be reconsidered only through a documented product-scope change. G3 closure does not select an architecture or optimizer, settle tokenizer/product-language rights, authorize implementation/builds/workflows, or establish physical Android support.
 
+### ADR-027 — User-controlled local dataset import as the primary general-corpus path
+**Status:** Accepted product direction; importer, parser, manifest and training-session implementation remain open.
+
+The initial general-corpus intake is a user-initiated import of locally selected dataset files. Argus must not make bundled Small C4, autonomous web acquisition, curated article catalogs or item-by-item external license research prerequisites for this path.
+
+The import workflow is local-first and explicit:
+
+1. The user selects local files or a supported archive through Android's system document picker. Argus does not crawl, fetch or upload the selected content.
+2. The user declares that the selected data is intended for the general corpus and that they have authority to use it for the declared local processing/training purpose. A file intended as personal experience follows the separate personal-learning intake in document 48.
+3. Argus validates supported formats, archive boundaries, decoding, record structure, content size and integrity; it reports rejected or skipped records rather than silently dropping them.
+4. Argus records import identity, file/content digests, timestamps, user-provided source labels and the user's declaration. It does not perform an external legal investigation for each article and does not infer that missing license metadata means public-domain material.
+5. The user reviews the import summary and explicitly confirms corpus preparation. Argus creates a deterministic, immutable dataset manifest with split membership and preprocessing identity. Token counts/shards that depend on the selected tokenizer are finalized only after G1-D.
+6. Importing a corpus does not itself start model training. A later Learning session may consume only the exact committed manifest after Genesis, architecture/tokenizer, resource admission, checkpoint/recovery and training-workflow gates are satisfied.
+
+Imported corpora remain local to the owning Argus instance. The importer does not publish, redistribute, sync or send the content to an external service. This is a user-controlled ingestion path, not a legal determination about the contents of a file; source declarations and content digests remain inspectable.
+
+The first import implementation should prioritize common text and structured-text formats plus bounded archives. Exact parser support and resource limits are implementation bindings, not reasons to block the product direction. Public-source crawling and curated-source research remain optional later capabilities under ADR-016–023 and documents 24–32; they are not prerequisites for user-imported general learning.
+
 ## 8. Revised open decisions
 
 These items remain open; they must not be filled with assumed values:
 
 - Initial architecture family and first supported module set.
 - Tokenizer family, vocabulary policy and Unicode behavior.
-- Exact Small C4 revision and corpus acceptance/redistribution review.
+- Supported local dataset import formats, archive limits, record schema and error-reporting behavior.
 - Preprocessing, deduplication, train/validation/test partition and language diagnostics.
 - Device capability benchmark protocol and admission thresholds.
 - Architecture-specific initializer policies.
@@ -215,7 +233,7 @@ These items remain open; they must not be filled with assumed values:
 - Which candidate sources may be activated for retrieval versus neural training, after item-level rights and provider terms review.
 - Argus commercial-distribution decision and use-specific model-training review for CC BY, CC BY-SA, CC BY-NC and CC BY-NC-SA materials.
 - Exact item-level rights for open textbooks, OER, public-domain texts and Indonesian educational repositories.
-- Curated title-level seed selection and third-party asset audit before full-text acquisition.
+- Whether Small C4 or any curated public-source corpus is useful as an optional future dataset; neither is required for the initial import path.
 - Indonesian OER source diversification beyond information systems, including individual item licenses and program-scoped grant provenance.
 - Device-specific acquisition/storage/network/processing budgets and the model-resource reservation policy.
 - Common knowledge-coverage objectives versus per-instance acquisition capacity and optional shard selection.

@@ -1,157 +1,156 @@
 # General Corpus and Personal Learning
 
-**Status:** Accepted learning split; corpus acceptance and tokenizer remain open  
-**Last reviewed:** 2026-11-04
+**Status:** Accepted general/personal learning split; user-controlled local dataset import selected as the primary general-corpus intake; importer and training implementation remain open  
+**Last reviewed:** 2026-11-05
 
 ## 1. Purpose
 
-Argus begins general foundation learning with a bundled offline bootstrap corpus and is intended to expand its general knowledge through autonomous, policy-controlled acquisition from permitted public sources. It also adapts to the individual user's experience through a separate personal-learning path. The bootstrap corpus is neither the complete knowledge of Argus nor a pretrained model.
+Argus evolves through two distinct learning paths:
 
-General foundation learning and personal learning remain separate in provenance, permission, evaluation and retention.
+- **General corpus learning:** the user selects and imports local dataset files for general model development.
+- **Personal learning:** the instance adapts from the owner's personal experience through the separate consent, retention, review and revocation lifecycle in document 48.
 
-## 2. Small C4 bootstrap candidate
+The first path does not depend on a bundled public dataset, an Argus-operated web crawler, or an externally curated article collection. The user supplies the corpus. Small C4 is no longer a default/bootstrap requirement; it remains optional historical research only.
 
-Current candidate: [brando/small-c4-dataset](https://huggingface.co/datasets/brando/small-c4-dataset), derived from the English subset of [allenai/c4](https://huggingface.co/datasets/allenai/c4).
+Both paths remain local to the owning Argus instance. General-corpus records and personal-experience records must never be mixed merely because their text formats are similar.
 
-The dataset card reports:
-- 30,000 text passages in total.
-- 10,000 training passages.
-- 10,000 validation passages.
-- 10,000 test passages.
-- Approximately 40 MB download size and 64.8 MB dataset size in its metadata.
-- English-only text.
-- Parquet data files.
+## 2. Primary intake: user-controlled local dataset import
 
-The card describes train as the first 10,000 examples from C4 train, validation as the first 10,000 examples from C4 validation, and test as the next 10,000 from that same C4 validation split. Test examples are distinct by the described ordering, but validation and test originate from the same upstream partition. Do not treat them as independent source-level test sets without documenting and addressing that limitation.
+The initial general-corpus intake is a user-initiated local import.
 
-These values are dataset-card metadata, not a substitute for inspecting the exact dataset revision and bytes used by Argus.
+### 2.1 User flow
 
-## 3. Why Small C4 is suitable only as bootstrap
+1. The user opens the dataset-import action and selects one or more local files or a supported archive using Android's system document picker.
+2. The user declares that the selected material is a **general dataset**, not personal experience, and confirms that they have authority to use it for the stated local processing/training purpose.
+3. Argus parses and validates the selected files locally. It does not fetch linked articles, crawl source websites, upload content or silently add the data to a training queue.
+4. Argus presents an import summary: files/records discovered, accepted, skipped/rejected, detected structure/languages, duplicate counts, approximate text volume and validation warnings.
+5. The user confirms corpus preparation. Argus creates a versioned local corpus manifest and deterministic split plan.
+6. Training remains a separate explicit operation. The import does not start a worker or update model weights by itself.
 
-Small C4 is useful for exercising the offline data pipeline, tokenizer and sequence preparation, early training experiments, and checkpoint/recovery mechanics.
+The exact supported MIME types, file-size limits, archive limits and parser implementations are implementation bindings. The initial parser set should prioritize common plain-text and structured-text formats, with bounded archive support. Unsupported or malformed files must produce a visible reason rather than being silently ignored.
 
-It is not sufficient evidence for broad general-language competence from random initialization. It is a small English-only sample of web text and should not be described as exhaustive, balanced or comprehensive language foundation data.
+### 2.2 Local-only boundary
 
-Argus does not need to force multilingual breadth into the first bootstrap release. The personal instance is intended to adapt to the owner's actual usage over time. Language ability still depends on meaningful, sufficient and permitted language exposure; a handful of chats cannot be assumed to teach a language from scratch.
+- Selected file contents stay on the device. The import path performs no network upload or remote processing.
+- The importer does not download URLs contained in articles, HTML or dataset rows.
+- A source label, publisher/name, original URL or other provenance may be supplied by the user and stored as metadata; missing optional source metadata is recorded as unknown rather than fabricated.
+- Content and file digests are calculated for integrity, duplicate detection and immutable manifest identity.
+- Archive extraction must enforce path safety, entry-count limits, expanded-size limits and cancellation. A malicious or oversized archive is rejected or partially held with an explicit report.
+- A user can inspect the import summary and discard the staged import before committing a corpus revision.
 
-## 4. License and provenance gate
+### 2.3 User declaration and rights metadata
 
-The Small C4 dataset card states that its license inherits from original C4. The original C4 dataset card identifies ODC-BY for the C4 dataset/database and separately states that Common Crawl terms apply to the underlying crawled content. Common Crawl's current Terms of Use (last updated 2024-03-07) say that crawled material may also be subject to the original website owner's separate terms; they also prohibit uses such as privacy invasion and harvesting personally identifiable information for separate use. Therefore, the ODC-BY label on C4 must not be interpreted as a blanket license from every website publisher represented in the corpus.
+Argus does not need to perform source-by-source web research or an external license investigation before accepting a user-directed local import. At import time, the user confirms that they have the authority to use the selected material for the declared local purpose. The system records that declaration with the import identity and timestamp.
 
-The current Small C4 dataset card confirms the 30,000-row sampling method: first 10,000 rows from C4 train; first 10,000 rows from C4 validation; next 10,000 rows from that same C4 validation split. This makes the 10,000-row test partition distinct by row order from validation, but not independent at the upstream split level. Retain this limitation in all evaluation claims.
+The declaration is not a legal determination by Argus. Missing license metadata is recorded as unknown; it is not silently converted to public-domain status. Imported material is kept local and is not automatically bundled into Argus, published, redistributed, synced or sent to another service. Any future redistribution or Argus-operated public-source acquisition is a separate operation with its own requirements.
 
-The dataset viewer also demonstrates heterogeneous web content rather than a curated textbook corpus. The reduced card exposes only passage text; the original C4 includes source URL/timestamp fields, but those are not present in the small-c4 text-only derivative described here. This loss of source identity weakens item-level rights review, privacy remediation and deletion lineage. It is a material drawback for Argus even though the smaller artifact is convenient.
+This keeps public-corpus curation and license research from blocking the user's ability to import their own chosen dataset, without making unsupported claims about the legal status of third-party material.
 
-Before bundling or redistributing:
-1. Pin the exact Small C4 repository commit, source C4 revision, Parquet files and file list.
-2. Preserve the C4 ODC-BY database attribution and the applicable Common Crawl Terms of Use; separately assess the original website/content terms and the intended Argus training/redistribution use.
-3. Determine attribution and redistribution obligations for both the reduced derivative and the source.
-4. Establish whether the lack of original URL/timestamp makes item-level rights and privacy assurance insufficient for the intended use; do not fabricate missing provenance.
-5. Run versioned language, quality, spam, personal-data/sensitive-content and safety screening on the exact pinned bytes, with documented false-negative limitations and an item-level hold/quarantine path.
-6. Record preprocessing and filtering changes; preserve dataset and shard checksums.
-7. Produce a corpus manifest, record the source-level validation/test overlap, and include required notices in the app/package.
-8. Require an explicit source approval before this dataset becomes TRAINING_ELIGIBLE; until then it remains a bootstrap candidate only.
+## 3. Dataset preparation and manifest
 
-The word “bundled” means the approved corpus is available locally for training without a network requirement at training time. Whether it is packaged inside the APK or delivered as a separately installable offline asset is a packaging decision; it must not become a required online model-weight download.
+A local import becomes a corpus revision only after parsing, validation, duplicate handling and the user's explicit confirmation.
 
-
-
-Evidence reviewed 2026-11-04: [Small C4 dataset card](https://huggingface.co/datasets/brando/small-c4-dataset), [original C4 dataset card and licensing note](https://huggingface.co/datasets/allenai/c4), and [Common Crawl Terms of Use](https://commoncrawl.org/terms-of-use/).
-
-## 5. Corpus preparation pipeline
+The processing path is:
 
 ~~~text
-Pinned Source Revision
-        |
-        v
-License / Provenance Review
-        |
-        v
-Decode + Text Validation
-        |
-        v
-Language and Quality Diagnostics
-        |
-        v
-Privacy / Sensitive-Content Filtering
-        |
-        v
-Normalization + Deduplication
-        |
-        v
-Tokenizer-based Token Counting
-        |
-        v
-Train / Validation / Test Construction
-        |
-        v
-Sharding + Manifest + SHA-256
-        |
-        v
-Bundled Offline Corpus Package
+User-selected local files / bounded archive
+                  |
+                  v
+         File and archive validation
+                  |
+                  v
+        Decode + record-structure checks
+                  |
+                  v
+        Content integrity + deduplication
+                  |
+                  v
+      Language / quality / safety diagnostics
+                  |
+                  v
+        Normalization + deterministic split
+                  |
+                  v
+       Corpus manifest + SHA-256 identities
+                  |
+                  v
+         Local immutable corpus revision
+                  |
+                  v
+       Explicit later Learning-session admission
 ~~~
 
-Preprocessing must be deterministic and versioned. Keep a source document identifier or stable digest for provenance. Do not silently mix training, validation and test examples. Validation/test data must never be fed to the optimizer.
+Validation should identify malformed encodings, empty/duplicate records, broken structured rows, unsupported records, obvious boilerplate/spam and content that cannot safely be processed. These diagnostics are local and explainable; a filter result must not be described as proof that the corpus is factually correct or free of sensitive content.
 
-Because Small C4 exposes only a text field in the reduced dataset, original URL/timestamp provenance may not be available in that derived package. The corpus manifest must disclose this limitation rather than fabricate missing metadata.
+Train, validation and test partitions are deterministic and disjoint at the record/document level. A record must never appear in more than one split after deduplication. Validation and test partitions are never passed to the optimizer. Split policy and seed are included in the manifest so a corpus revision can be reproduced.
 
-## 6. Corpus manifest
+Tokenizer-dependent token counts and tokenized shards are finalized against the exact tokenizer fingerprint selected by the active model generation. Until G1-D is closed, the importer may preserve validated raw text and record-based split membership, but it must not invent a tokenizer identity or claim final token counts.
 
-At minimum record:
-- Corpus ID and immutable revision.
-- Original source dataset and revision.
-- License, notices, attribution and applicable terms.
-- Split names, source split and sampling method.
-- Shard names, exact sizes and SHA-256 values.
-- Preprocessing pipeline version and configuration.
-- Language-detection and quality-filter versions.
-- Deduplication method and statistics.
-- Tokenizer ID/fingerprint used for token counts.
-- Per-split document count and token count.
-- Known exclusions, bias and data-quality limitations.
+### 3.1 Minimum corpus manifest
 
-Token count must be measured using the tokenizer fingerprint selected by the active local model generation. File size and document count are not reliable substitutes for training volume.
+Record at least:
 
-## 7. General learning lifecycle
+- Corpus ID, immutable revision and owning local instance ID.
+- Import timestamp and importer/parser version.
+- Each input file's name, size, media type, SHA-256 digest and import outcome.
+- User-supplied source label/URL or publisher when provided.
+- User declaration: intended general-corpus purpose, authority confirmation, declaration version and timestamp.
+- Record IDs/digests, duplicate and rejected-record summaries.
+- Language/quality/safety diagnostic versions and outcomes.
+- Normalization and deduplication version/configuration.
+- Split policy, seed, source record membership and split digests.
+- Tokenizer ID/fingerprint and token counts once the tokenizer is selected.
+- Known limitations, warnings and excluded records.
 
-The local package is validated before use. The scheduler reads it in bounded shards and never requires the full corpus to be loaded into RAM.
+No full document text, credentials or private article content should be copied into generic logs or diagnostic events. The local corpus store owns the content; manifests and logs reference it by identity and digest.
 
-General training becomes eligible after the initial model generation is committed and the application is ready. It runs in resumable background work and follows the device-adaptive training controller. It can be deferred by system conditions or user policy without blocking the app.
+## 4. General learning lifecycle
 
-## 8. Autonomous general knowledge acquisition
+General-corpus preparation is separate from a training session.
 
-Small C4 is the initial bootstrap candidate, not the permanent or exclusive source of general knowledge. After Genesis readiness, each instance is intended to run a separate acquisition engine that discovers and collects permitted public information for its own local knowledge store.
+A corpus may be imported and inspected before the model is ready for training. A Learning session can consume it only after all of the following exist and pass validation:
 
-The first discovery cycle uses deterministic topic policies and a reviewed source registry because a newly initialized model cannot yet be trusted to direct its own research. Model-assisted discovery may be introduced only after defined model and retrieval quality gates pass. Model suggestions remain subject to source eligibility, network policy, user controls and resource budgets.
+- A committed and recoverable Genesis generation.
+- The exact architecture/model configuration and tokenizer identity.
+- An immutable corpus manifest with deterministic split membership.
+- A supported numerical training backend and declared optimizer/update semantics.
+- Resource admission for the user's device and current thermal/power state.
+- Candidate-only model state and complete checkpoint/recovery semantics.
+- Evaluation gates and a repository-controlled promotion/rollback path.
 
-Acquisition output is processed for provenance, rights, quality, language, sensitivity and duplication. Accepted records may become searchable through local retrieval without changing model weights. Only records with verified provenance and permitted training use may be included in an immutable general-training corpus candidate.
+Learning runs as bounded, resumable background work after application readiness. It must not block app startup. Device capability changes may adjust safe work size and scheduling, but may not silently change the architecture, tokenizer, objective, precision or optimizer semantics of an active session.
 
-This general acquisition path must not ingest private user interactions or personal files. It does not collect information for external AI companies, share corpora across installations or upload model state. Personal context used to direct learning belongs to the separate personal-learning permission lifecycle.
+**Current implementation status:** the legacy raw-string worker and `trainStep(String)` path were retired. No replacement Learning coordinator or training backend is currently available. The import direction is accepted, but importing a dataset cannot truthfully be presented as starting training until the implementation gates above are met.
 
-See [24 — Autonomous Knowledge Acquisition](24_AUTONOMOUS_KNOWLEDGE_ACQUISITION.md) for source eligibility, processing, storage, safety, scheduling and acceptance requirements.
+## 5. Optional future public-source acquisition
 
-## 9. Personal learning
+Argus may later add an instance-owned autonomous acquisition capability that discovers public sources and collects material for its own local knowledge store. It is optional and does not block local dataset import or the first user-provided corpus workflow.
 
-Personal learning is intended to adapt to the individual:
-- The user's language and communication patterns.
-- Explicit corrections and preferences.
-- User-selected documents or knowledge sources.
-- Repeated tasks and approved procedural examples.
+When enabled, network discovery/fetch, source-specific terms, retention, retrieval, training eligibility and redistribution remain separate operations. The source registry and acquisition contracts in documents 24–32 apply to that future network capability. Argus must not silently crawl arbitrary websites, bypass access controls or claim that a page is training-authorized merely because it is readable.
 
-The source must have a clear permission scope. Platform permission, an open chat or a visible screen does not automatically authorize retention or parameter training. Personal candidates require provenance, sensitivity classification, appropriate redaction, review/approval, revocation and deletion lineage.
+User-imported files are not fetched again from their source URLs. Their source metadata is descriptive provenance supplied by the user; local import does not authorize web crawling or redistribution.
 
-Use inspectable memory first when it meets the use case. Parameter learning is a separate, validated batch operation. General-corpus training must not ingest personal records, and personal training must not silently alter the general corpus.
+## 6. Personal learning
 
-## 10. Evaluation separation
+Personal learning adapts the individual instance using user-approved personal experience, such as explicit corrections, preferences, repeated tasks or selected personal documents.
 
-General evaluation measures performance on held-out general data and relevant language-quality checks. Personal evaluation measures only user-approved tasks/facts within the same instance.
+A selected personal file, chat, screen observation or camera-derived experience is not automatically a general-corpus record. When the intended purpose is personal retention or personal parameter learning, the intake path in document 48 applies: purpose-specific authorization, classification, retention, provenance, review and a separate training authorization bound to a specific candidate/session.
 
-Track both after personal updates to detect catastrophic forgetting. A candidate that improves personal metrics but materially regresses general capability must not be promoted without an explicit reviewed policy.
+Use inspectable memory first when it meets the use case. Retrieval does not itself authorize parameter training. Personal training must not silently alter the general corpus, and general-corpus imports must not be relabelled as personal experience to bypass source or dataset policy.
 
-## 11. Explicit non-goals
+## 7. Evaluation separation
 
-- Small C4 is not a complete world-knowledge dataset.
-- Small C4 is not a pretrained model.
-- The first release does not promise balanced multilingual competence.
-- User conversations are not automatically training data.
+General evaluation measures capability on held-out general data and relevant language-quality checks. Personal evaluation measures only user-approved tasks/facts within the same local instance.
+
+Track both after any personal update to detect catastrophic forgetting. The candidate generation is not promoted merely because training loss falls or a personal metric improves. Evaluation binds to the exact corpus, split, tokenizer, model-generation and training-session identities.
+
+## 8. Explicit non-goals
+
+- Small C4 is not a required, bundled or default bootstrap dataset.
+- Argus does not need to curate or download public articles before the user can import a local dataset.
+- User import is not permission for Argus to publish, redistribute, sync or upload the files.
+- Missing license metadata is not described as public-domain status or as proof of permission.
+- A dataset import does not itself start a training worker or change model weights.
+- User conversations, file attachments and screen observations are not automatically general-training data.
+- Public-source crawling remains an optional, separate capability.
 - Personal training does not upload data or weights to a central service.
