@@ -19,14 +19,14 @@ The profile should include evidence and confidence, not just device marketing me
 | Domain | Inputs |
 |---|---|
 | CPU | ABI, supported ISA features, core topology where exposed, measured kernel/compute performance |
-| GPU | Device/driver, compute queue/features, storage formats, runtime availability, operator validation and benchmark |
-| NPU/DSP | Vendor/runtime/SDK availability, APK access rules, supported operators and precision, compile/load behavior |
+| GPU | Vulkan loader/driver presence; physical-device identity; actual API version; compute-capable queue family; queried core features/extensions/limits; buffer/storage formats; FP32/FP16 arithmetic and storage support separately; operator validation, transfer cost and sustained benchmark |
+| NPU/DSP | Optional vendor runtime/SDK availability, APK access rules, supported operators and precision, compile/load behavior; absence is not a configuration failure when a verified Vulkan-GPU or CPU path fits |
 | Memory | App memory class, process limits, measured allocation behavior and baseline headroom; current free memory/pressure belongs to the runtime-condition snapshot |
 | Thermal | Availability and semantics of OS thermal signals plus recorded sustained-behavior evidence; current thermal status belongs to the runtime-condition snapshot |
 | Power | Availability/semantics of battery and power-policy telemetry; current charge/charging/power-saver state belongs to the runtime-condition snapshot |
 | Storage | App-private storage limits and measured I/O behavior; current free space and checkpoint reserve belong to the runtime-condition snapshot |
 | Tokenizer preparation | CPU capability, available memory and storage, seed-corpus size, trainer/runtime availability, vocabulary/head cost and bounded preparation budget; accelerator support is UNKNOWN unless measured |
-| Platform | Android API level, lifecycle restrictions, ABI, driver/runtime versions and permission state |
+| Platform | Android API level, lifecycle restrictions, ABI, Vulkan loader/driver versions, runtime/provider versions and permission state |
 
 Unknown telemetry must remain unknown. Missing temperature or memory data is not a measured safe state. The versioned Device Capability Profile records stable hardware/runtime capability and measured baseline evidence; current thermal, battery, free-memory and storage-pressure values are short-lived Runtime Condition observations, not permanent device properties.
 
@@ -82,7 +82,7 @@ A profile change caused by updated hardware/runtime capability may justify a new
 While learning is active, monitor a timestamped Runtime Condition Profile using relevant OS signals and bounded measurements:
 - Available memory and memory-pressure events.
 - CPU load and sustainable thread capacity.
-- GPU/NPU availability, correctness and execution cost.
+- Vulkan GPU/NPU availability, correctness and execution cost, including queue/device-loss and fallback events.
 - Thermal status and sustained performance trend.
 - Battery/power mode and charging state.
 - Storage reserve and checkpoint capacity.
@@ -130,9 +130,31 @@ A user stop is distinct from a temporary pause. A failed checkpoint or invalid n
 
 ## 7. Backend policy
 
-Backend choice is per workload, not a fixed preference order. CPU, GPU and NPU may serve different operations. For every path, measure transfer cost, compile/load overhead, operator coverage, numerical tolerance, sustained throughput and power.
+Backend selection is per workload and per operator-capability contract, not a fixed assumption that every device owns an NPU.
 
-An NPU must not be selected for training unless the complete required forward/backward/optimizer path is verified. A successful inference run is not evidence of training support.
+**Portable execution roles:**
+
+1. **CPU reference/fallback:** the required baseline for deterministic correctness and for devices without a usable accelerator. CPU ISA features such as ARM NEON are queried separately; CPU availability does not imply that every model profile fits or reaches a useful training rate.
+2. **Vulkan GPU compute:** the primary general GPU-acceleration candidate when a Vulkan-capable GPU/driver exposes a compute queue and the required features. It does not require an NPU. Argus owns the compute pipelines/shaders and the forward/backward/update kernels; Vulkan itself is a low-level GPU API, not an autograd engine or an LLM-training framework.
+3. **Vendor NPU/DSP runtime:** an optional backend selected only when the exact provider, driver, precision and complete required training graph are verified. NPU absence must never block a candidate that is valid on Vulkan or CPU.
+
+**Vulkan admission contract:**
+
+- Enumerate the actual physical device and query the loader/driver API version, device/driver identity, queue families and the compute-queue capability; reject a graphics-only queue for compute work.
+- Query the exact core features, optional extensions, descriptor/storage limits, subgroup/workgroup limits and buffer alignment needed by each kernel. Do not infer Vulkan API/feature support from Android API level, Android release branding or GPU model strings alone.
+- Use FP32 as the portable numerical/reference shader path. Android Vulkan requires FP32 shader arithmetic; FP16 arithmetic and 16-bit storage are optional capabilities and must be queried separately before compiling/selecting the corresponding pipeline. A supported FP16 arithmetic feature does not by itself prove 16-bit storage-buffer support.
+- Compile/cache shader variants by GPU/driver/API and kernel revision. Pipeline creation, specialization, shader-cache storage, device-loss handling and driver changes are part of runtime identity and observability.
+- Report per-operation execution: GPU Vulkan, CPU fallback, optional NPU provider, or unsupported. A partially accelerated graph must declare partition boundaries, synchronization, transfer/copy buffers and host/device residency; a CPU fallback inside a large tensor path may erase the expected GPU gain.
+- For a full training path, verify forward, loss, backward, gradient accumulation/reduction, clipping, optimizer update, serialization and recovery—not only inference or matrix multiplication. At minimum audit embedding gather and gradient accumulation, linear/GEMM, QKᵀ/attention, softmax, value aggregation, RoPE, normalization, GELU/FFN, residuals, vocabulary projection/loss, optimizer kernels and all dtype conversions used by the selected graph.
+- Measure peak shared/process memory, GPU allocations/workspaces, queue synchronization, host/device transfers, sustained throughput, energy and thermal behavior. GPU offload is rejected when the combined liveness or sustained execution budget does not fit.
+
+The Android platform API version does not guarantee a particular Vulkan driver version on an already-upgraded device. Android's Vulkan documentation describes platform/launch requirements, while the runtime must still inspect the reported physical-device version and features. The current Android requirement matrix lists Vulkan 1.3 for devices launching with Android 13+ and Vulkan 1.4 for devices launching with Android 16+; those requirements are not permission to skip runtime feature discovery. Vulkan 1.1 devices also do not universally support FP16 storage buffers.
+
+Do not make NNAPI the required Argus abstraction: Android deprecated its NDK API in Android 15. Treat any surviving NNAPI/vendor path as an optional provider adapter with explicit capability and fallback, not as the universal GPU/NPU selector.
+
+The supported LiteRT GPU inference path is not proof of Argus training support. The current Google Play services documentation recommends the CompiledModel API for new GPU-accelerated work and marks the older Interpreter GPU delegate deprecated; an inference delegate does not satisfy Argus forward/backward/optimizer coverage by itself.
+
+Official evidence: [Android Vulkan implementation requirements](https://source.android.com/docs/core/graphics/implement-vulkan), [Android Vulkan compute architecture](https://source.android.com/docs/core/graphics/arch-vulkan), [Vulkan compute shader dispatch](https://docs.vulkan.org/guide/latest/compute_shaders.html), [Android Vulkan precision guidance](https://developer.android.com/games/optimize/vulkan-reduced-precision), [NNAPI migration/deprecation](https://developer.android.com/ndk/guides/neuralnetworks/migration-guide), and [LiteRT Android GPU guidance](https://developers.google.com/edge/litert/android/java). These references establish APIs and capability rules, not Argus kernel availability or device performance.
 
 ## 8. Observability
 
