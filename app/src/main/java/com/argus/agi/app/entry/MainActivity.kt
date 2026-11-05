@@ -1,5 +1,6 @@
 package com.argus.agi.app.entry
 
+import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -22,7 +23,7 @@ class MainActivity : ComponentActivity() {
         ArgusViewModelFactory(argusApplication, argusApplication.container)
     }
 
-    override fun onCreate(savedInstanceState: android.os.Bundle?) {
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
