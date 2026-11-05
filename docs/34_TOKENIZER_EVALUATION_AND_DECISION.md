@@ -133,7 +133,7 @@ The local-import contract is now the primary data path. A fixture remains provis
 
 No fixed language proportions, corpus token quota or universal corpus size is approved by this document.
 
-### 4.4 Owner-created starter corpus fixture
+### 4.4 Repository-bundled starter corpus fixtures
 
 The repository now contains three owner-provided starter corpus assets: two Indonesian sources and one English source. They are initial frequency-corpus candidates and must remain separately identifiable by language and source; their presence does not establish product-wide language coverage or an approved bilingual product-language policy.
 
@@ -141,18 +141,20 @@ The repository now contains three owner-provided starter corpus assets: two Indo
 |---|---|---|---|
 | `app/src/main/assets/corpus/ArgusID.txt` | 13,182,863 bytes; Git blob `4afef2b74e1b9745d361e96d574ca0103771246f` | Owner-authored mixed-topic Indonesian text | Available as a bundled local-import source; importer-generated SHA-256 and selected workflow-purpose record are still required |
 | `app/src/main/assets/corpus/DigiTransID.zip` | 94,226-byte archive; Git blob `abdc59d91a3c5e41b18c747f8fc7df2b0ead44c2`; 16 UTF-8 TXT entries and 258,654 expanded bytes in the audited archive | Owner-provided Indonesian prose covering digital transformation, organizations, AI governance, computing infrastructure and research capability | Available as a bundled local-import source; importer-generated archive/entry SHA-256 and selected workflow-purpose record are still required |
-| `app/src/main/assets/corpus/Argus_story_Eng.txt` | 24,000,000 bytes; Git blob `6c59774acb4278033fefbedf59f83984e4ee3c86` | Owner-provided English story corpus; detailed content composition and source-level statistics remain to be profiled | Available as a bundled local-import source; importer-generated SHA-256, language/content profile, split manifest and selected workflow-purpose record are still required |
+| `app/src/main/assets/corpus/Argus_story_Eng.txt` | 24,000,000 bytes; Git blob `6c59774acb4278033fefbedf59f83984e4ee3c86` | English story-like text; 1,306 chapter headings, 376,017 lines, approximately 4,274,907 word tokens and 1,781 case-folded word types in a simple lexical scan | Available as a bundled local-import source and English tokenizer-diagnostic candidate; importer-generated SHA-256, selected workflow-purpose record, split manifest and content-quality disposition remain required |
+
+**English corpus screening boundary.** The first-pass scan of `Argus_story_Eng.txt` gives approximately 0.00042 case-folded word types per word token and frequent repeated sentence-opening patterns. Samples from the beginning, middle and end contain recurring grammatical and semantic anomalies, including verbs applied to unrelated objects and incomplete/missing prepositional constructions. These are screening observations, not a formal language-quality score or a finding about authorship. Until document-level quality review is complete, treat this asset as a tokenizer encoding/fertility diagnostic and a provisional English frequency-corpus candidate—not as representative English prose, a general-language benchmark, or evidence of English model competence. Record its eventual quality disposition; do not silently discard it.
 
 **Initial comparison procedure:**
 
-1. Keep the two source assets separately identifiable until parsing, hashing and duplicate analysis finish. Do not flatten the ZIP or erase per-entry lineage.
+1. Keep all three source assets separately identifiable until parsing, hashing, document-level quality review and duplicate analysis finish. Do not flatten the ZIP or erase per-entry lineage.
 2. Import them through the existing streaming importer and explicitly select **tokenizer frequency fitting**. Select neural-model training separately only if that is also intended. The existing importer records workflow purposes but does not fit a tokenizer.
 3. Freeze the importer/parser version, archive-entry list, source and record digests, document IDs, deduplication outcomes, preprocessing identity and deterministic split membership. The Git blob IDs above identify repository objects; they are not substitutes for the SHA-256 values emitted by the importer.
 4. Use only the training partition for frequency fitting. Keep validation and evaluation records sealed from trainer input and any merge/vocabulary selection. Split by document/source unit before any optional smaller-segment sampling; preserve document lineage and avoid near-duplicate leakage.
 5. Report `ArgusID.txt`, each `DigiTransID.zip` entry and `Argus_story_Eng.txt` separately before publishing any aggregate. Preserve the English source as its own language stratum; do not let its larger byte size silently determine the bilingual mixture. Do not choose aggregate language/domain weighting until the product-language policy is accepted and corpus composition is measured.
 6. Treat these starter assets as separate monolingual Indonesian and English sources, not as sentence-aligned bilingual data. They are **not aligned development data** and cannot satisfy a PA-BPE `--dev` requirement. A PA-BPE no-development-data variant may be compared only when its algorithm definition permits it; an aligned-development variant requires a separately imported and approved aligned set.
 
-The repository snapshot does not yet contain an importer-generated immutable tokenizer-frequency manifest for these assets. Therefore, this subsection defines the source fixture and required manifest procedure; it does not claim that tokenizer fitting has already been selected in an importer manifest, that a tokenizer has been trained, or that any candidate has measured fertility/quality results.
+The repository snapshot does not yet contain an importer-generated immutable tokenizer-frequency manifest for the three bundled starter assets. Therefore, this subsection defines the source fixture and required manifest procedure; it does not claim that tokenizer fitting has already been selected in an importer manifest, that a tokenizer has been trained, or that any candidate has measured fertility/quality results.
 
 ### 4.5 HPLT v3 and v4 — Indonesian monolingual source lead
 
@@ -353,7 +355,7 @@ A rights decision must be operation-specific. A source may be permitted for tran
 
 The permission record must answer separate yes/no/conditional questions for: (a) tokenizer-frequency fitting; (b) PA-BPE aligned development/merge selection; (c) generation of the vocabulary/merge/tokenizer artifact; (d) distribution of that artifact in Argus; (e) redistribution of the raw source corpus; and (f) use in neural-model training. A positive answer for one operation must never be copied into another permission field. For owner-created sources, record the owner's authorship/use declaration and the exact selected purposes; do not invent a separate third-party license or mark an import purpose as selected until the local import workflow records it.
 
-**Product-language proposal — not an accepted decision:** use Indonesian and English as the initial core language tier, with additional language groups admitted through explicit evidence/rights review rather than implied by the corpus catalogue. Preserve deterministic UTF-8 byte coverage as a representation fallback where the selected tokenizer family supports it, but do not equate encodability with model competence. The product owner must still accept or replace the language tiers, priority weights and unsupported-language behavior. Device capability may select an affordable approved profile; it must never silently remove a product-required language.
+**Product-language proposal — not an accepted decision:** use Indonesian and English as the initial core language tier, with additional language groups admitted through explicit evidence/rights review rather than implied by the corpus catalogue. The separate bundled Indonesian and English starter assets make language-stratified tokenizer diagnostics possible, but corpus presence does not settle language priority, quality, weighting or product support. Preserve deterministic UTF-8 byte coverage as a representation fallback where the selected tokenizer family supports it, but do not equate encodability with model competence. The product owner must still accept or replace the language tiers, priority weights and unsupported-language behavior. Device capability may select an affordable approved profile; it must never silently remove a product-required language.
 
 ## 6.3 Language scope and optional external-source research
 
@@ -366,7 +368,7 @@ The current repository does **not** contain an accepted product-language priorit
 | Language scope fact | Evidence in Argus decisions | Current interpretation |
 |---|---|---|
 | Indonesian | ADR-022 requires deliberate Indonesian-language source diversity beyond programming/technical material | Indonesian source coverage is an accepted discovery requirement; this alone does not establish the complete product language list, first-release priority, tokenizer weight or a fixed Indonesian-first model |
-| English | Several historical research sources are English-aligned; no bundled corpus is required | English source-research presence does not prove English is the sole or primary product language |
+| English | `Argus_story_Eng.txt` is bundled as a separate English story-like asset; additional parallel sources are present in historical research | Corpus presence makes an English comparison stratum available, but preliminary content screening does not establish representative English coverage or product-language priority |
 | Malay, Thai, Vietnamese, Japanese, Korean, Burmese/Myanmar and Javanese | Candidate parallel material is listed in the TALPCo upstream repository | These are evidenced source-coverage candidates, not accepted product-language commitments |
 | Other languages | No complete scope/priority ADR is present in the reviewed baseline | Open; do not infer inclusion or exclusion |
 
@@ -376,7 +378,7 @@ The current repository does **not** contain an accepted product-language priorit
 
 | Proposed tier | Languages / scope | Meaning and boundary |
 |---|---|---|
-| Initial core comparison and proposed minimum product coverage | **Indonesian and English** | Indonesian is an accepted discovery/source-diversity requirement under ADR-022; English is present in historical source research. A user-imported fixture can represent both languages if that is the owner's accepted product-language scope. This proposal does not assign equal model-training weights or establish first-release language priority until the product owner accepts it. |
+| Initial core comparison and proposed minimum product coverage | **Indonesian and English** | Indonesian is an accepted discovery/source-diversity requirement under ADR-022; both languages now have separate bundled starter assets for comparison. This proposal does not approve English product support, assign equal model-training weights or establish first-release language priority until the product owner accepts it and the English fixture passes content-quality review. |
 | Conditional regional expansion candidates | **Malay, Javanese, Thai, Vietnamese, Burmese/Myanmar, Japanese and Korean** | These have identified parallel-resource leads in TALPCo or related source research. Inclusion requires an explicit product decision, sufficient user-imported data with tokenizer frequency fitting selected as an import purpose and quality/coverage review. Source-catalog presence alone is not a model-support commitment. |
 | Other languages | **Not yet classified** | Do not silently claim support or silently exclude a language as a permanent product policy. Add a language only through a reviewed scope/source/profile change. |
 
@@ -457,7 +459,7 @@ The initial bounded comparison for the current Indonesian-only starter fixture i
 
 T2/T3 byte-fallback variants must be listed separately from their no-fallback configurations. They are not separate tokenization families, but they change vocabulary allocation, unknown behavior and sequence length.
 
-**Minimum experiment set:** T0, T1, T2 and T3 are the required first sweep against the exact owner-provided Indonesian fixture. T1-P stays conditional until multilingual product scope and aligned/no-dev algorithm requirements are explicitly resolved. T4 is not part of the minimum sweep. This bounds the work without treating the currently unavailable English/SEA fixture or an optional public-source catalog as a hidden dependency.
+**Minimum experiment set:** T0, T1, T2 and T3 are the required first sweep against the exact Indonesian frequency fixture. Run the same candidate encoders over `Argus_story_Eng.txt` as a separate English tokenization/fertility diagnostic, with its quality limitations disclosed; do not use it as a representative English quality benchmark or merge its counts into an aggregate until its content review and the product-language policy are accepted. T1-P stays conditional until multilingual product scope and its aligned/no-development-data algorithm requirements are explicitly resolved. T4 is not part of the minimum sweep. This bounds the work without making the unreviewed English story asset or optional public-source catalog a hidden dependency; the other SEA-language fixtures remain unresolved.
 
 ### 7.2 Controlled dimensions
 
