@@ -430,21 +430,55 @@ Failure at any pre-commit state transitions to GENESIS_RECOVERY_REQUIRED or a ty
 
 ~~~text
 CREATED -> POLICY_CHECK -> RESOURCE_ADMISSION -> QUEUED -> RUNNING
-RUNNING -> PAUSE_REQUESTED -> PAUSED -> RESUME_CHECK -> QUEUED
+
+RUNNING -> PAUSE_REQUESTED -> PAUSE_CHECKPOINT_COMMIT -> PAUSED
+PAUSED -> RESUME_CHECK -> QUEUED
+
 RUNNING -> CHECKPOINTING -> RUNNING
-RUNNING -> STOP_REQUESTED -> STOPPED
-RUNNING -> FAILED
-RUNNING -> COMPLETED -> CANDIDATE_EVALUATION
-CANDIDATE_EVALUATION -> PROMOTION_PENDING -> PROMOTED
+
+RUNNING -> STOP_REQUESTED -> STOP_AT_SAFE_BOUNDARY -> STOPPED
+
+RUNNING -> INTERRUPTED
+INTERRUPTED -> RECOVERY_VALIDATING -> RECOVERY_READY -> RESUME_CHECK -> QUEUED
+RECOVERY_VALIDATING -> RECOVERY_REJECTED -> FAILED
+
+RUNNING -> FINALIZING -> FINAL_CHECKPOINT_COMMIT -> COMPLETED -> CANDIDATE_EVALUATION
+CANDIDATE_EVALUATION -> VERIFIED -> PROMOTION_PENDING -> PROMOTED
 CANDIDATE_EVALUATION -> REJECTED
+
+RUNNING -> FAILED
 ~~~
 
-- PAUSED means a committed resumable state exists and no update is in flight.
-- STOPPED is a user/owner-requested terminal state; it does not imply failure.
-- FAILED includes a typed cause and recovery disposition.
-- COMPLETED means the declared training schedule finished, not that the candidate is useful.
-- PROMOTED means a validated candidate atomically became active.
-- A candidate can be trained and still be rejected.
+- **PAUSED** is acknowledged only after a complete resumable checkpoint is durably committed and no update is in flight. A pause request is not yet a pause acknowledgement.
+- **STOPPED** is an explicit user/owner-requested terminal state, distinct from PAUSED and FAILED. It cannot be resumed as the same session. STOP is honored at a safe boundary; any final checkpoint is committed before STOPPED is published when the selected stop policy requires one.
+- **INTERRUPTED** records that normal session ownership ended without a terminal commit, such as process reclamation, device restart or an unrecoverable backend interruption. It is not equivalent to a user-requested STOP.
+- **RECOVERY_VALIDATING** checks the latest durable checkpoint before any training update is allowed. **RECOVERY_READY** means the checkpoint is intact and its session, candidate/parent, model, tokenizer, dataset, optimizer, RNG, sampler/cursor and any required recurrent or sparse state identities match the session contract. A missing, partial or mismatched required component transitions to RECOVERY_REJECTED; the system must not guess a cursor or silently restart from initialization.
+- **RESUME_CHECK** revalidates current policy and resource admission as well as the durable training identity. **RUNNING** is published only after the training engine has actually resumed from the validated committed state.
+- **COMPLETED** is reached only after the declared training schedule has finished and its final checkpoint transaction has committed. It describes that bounded training run, not a permanently finished or universally capable model.
+- **VERIFIED** means the exact immutable candidate digest passed its declared evaluation gates. **PROMOTED** means the repository atomically published that verified candidate as the active generation. A candidate can be COMPLETED but rejected, or VERIFIED but not yet promoted.
+- **FAILED** carries a typed cause and recovery disposition. A failed final-checkpoint commit cannot be presented as a completed run; recovery starts from the last known durable checkpoint.
+
+### 6.2.1 Recovery and user-visible status semantics
+
+Session lifecycle, checkpoint recoverability and candidate evaluation are related but separate facts. The UI must not collapse them into one success label.
+
+| User-visible fact | Required meaning and evidence | Must not be interpreted as |
+|---|---|---|
+| Training running | The owning learning workflow reports RUNNING and the engine is executing the declared session | A background service merely exists |
+| Paused | A pause-safe boundary was reached and a complete resumable checkpoint was committed | STOPPED, process interruption or an uncommitted pause request |
+| Interrupted | The previous run lost normal ownership before a terminal commit; recovery is required | A user explicitly stopped training |
+| Restorable | A specific durable checkpoint passed integrity and exact-identity validation and is eligible for restoration under current policy/resource checks | Training completed, candidate evaluated, or candidate promoted |
+| Trained / run completed | The declared schedule completed and its final checkpoint committed | The model is finished learning, useful, verified or active |
+| Verified | The exact candidate digest passed its declared evaluation gates | The candidate is already the active generation |
+| Promoted | The verified candidate became the active generation through the repository transaction | A checkpoint was merely written |
+
+- **RESTORABLE is a checkpoint capability/result, not a training-session state.** It is scoped to a particular checkpoint ID and the identities it validates. A checkpoint may be restorable while its session is paused or interrupted; a checkpoint-save message alone does not establish restorability.
+- Training progress and recovery progress are independent measurements. Training progress uses committed optimizer updates or another declared work unit with an explicit numerator, denominator and unit. Recovery progress describes checkpoint discovery, integrity/identity validation or restore work. They must never share a counter, denominator or label.
+- A percentage is shown only when its denominator is known and meaningful. For open-ended background learning, show committed units/rate or session-local work rather than inventing a percentage or implying that the model is globally complete.
+- A recovery screen may retain the last committed training position (for example, 64% of a declared session) while showing a separate checkpoint-validation/restore operation. The recovery bar reaching 100% does not mean the training session reached 100%.
+- Status changes are rendered from the owning workflow snapshot and committed repository facts. UI animation, notification delivery, a local timer or a backend process callback cannot advance authoritative progress or lifecycle state.
+- Backend and precision labels are evidence-bound. Show CPU/NEON, Vulkan GPU or NPU only when the selected training execution report confirms that provider for the relevant operators. Report training precision separately from inference precision; an INT8 inference path is not evidence of INT8 training.
+- A “resumed” message is emitted only after RECOVERY_READY, RESUME_CHECK and the engine's transition to RUNNING. A “checkpoint saved” message is emitted only after the checkpoint transaction commits and must not be used as a synonym for COMPLETED or VERIFIED.
 
 ### 6.3 Knowledge item and training-candidate lifecycle
 
