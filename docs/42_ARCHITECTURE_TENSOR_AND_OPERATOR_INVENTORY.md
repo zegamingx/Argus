@@ -1,7 +1,7 @@
 # Architecture-Family Tensor and Operator Inventory
 
 **Status:** Symbolic architecture inventory; no dimensions or backbone selected  
-**Last reviewed:** 2026-11-04  
+**Last reviewed:** 2026-11-05  
 **Scope:** Parameter shapes, forward/backward operator inventory, logits/state accounting and profile-estimation inputs for the four G2 families  
 **Dependencies:** Documents 33–41  
 **Boundary:** Documentary and analytical contract only. This document does not authorize implementation, builds, workflows, device benchmarks or physical Android support claims.
@@ -360,6 +360,150 @@ For every proposed model profile, produce a machine-readable worksheet with at l
 7. Runtime workload controls may reduce microbatch, add accumulation or schedule/pause only within the session contract. They may not mutate model width, tokenizer IDs, block family or optimizer semantics inside an active generation/session.
 
 The numeric safety margins and per-device thresholds remain open until the documented memory model is reconciled with Android app/system reserve evidence and later E1–E7 measurements. This document intentionally supplies formulas and inventory fields, not invented cutoff values.
+
+## 7.2 First-pass Transformer resource envelope
+
+This subsection turns the symbolic inventory into a repeatable analytical worksheet for the first-generation Transformer profile portfolio. It is a sizing method, not a selected set of model dimensions or a claim of Android feasibility. Use the document 43 reference graph for the initial control: decoder-only, MHA, RoPE, dense GELU FFN, Pre-LN + LayerNorm. Component alternatives remain separate ablations under document 39.
+
+### 7.2.1 Required profile inputs
+
+Every candidate row must pin these values before calculating bytes or FLOPs:
+
+| Input | Meaning |
+|---|---|
+| \(V\) | Exact vocabulary including reserved IDs from the tokenizer fingerprint |
+| \(D,L,F\) | Model width, block count and dense FFN intermediate width |
+| \(H_q,H_{kv},d_h\) | Query/KV heads and head width; enforce the selected graph's exact projection dimensions |
+| \(T_{train},B_\mu\) | Training sequence length and live microbatch |
+| \(C,B_{req}\) | Inference context and simultaneous active requests |
+| \(s_w,s_g,s_o,s_m,s_{act},s_{logit},s_{KV}\) | Bytes per element for weights, gradients, optimizer state, optional master weights, activations, logits and KV cache |
+| \(R_{accum}\) | Gradient-accumulation count; changes effective batch/update exposure, not the number of simultaneously resident activation graphs |
+| Runtime/backend | Exact CPU/GPU/NPU implementation and operator coverage, including forward, loss, backward, optimizer and serialization |
+| Device budget | Measured app/process headroom, storage reserve, baseline resident footprint and evidence confidence; do not substitute total physical RAM |
+
+Training sequence length \(T_{train}\) and inference context \(C\) are different controls and must not be conflated. The tokenizer vocabulary \(V\) is a dependency from G1-D, not a width-scaling knob.
+
+### 7.2.2 Transformer parameter and persistent-state estimate
+
+Let \(D_q=H_qd_h\) and \(D_{kv}=H_{kv}d_h\). For the reference MHA graph, \(D_q=D_{kv}=D\). The projection matrix count per block before optional biases is:
+
+\[
+P_{attn,block}=2DD_q+2DD_{kv}
+\]
+
+The conventional dense FFN contributes:
+
+\[
+P_{ffn,block}=2DF
+\]
+
+For a Pre-LN block with two affine LayerNorms, the norm contribution is \(4D\) parameters per block; a final affine LayerNorm contributes \(2D\). Add declared biases, positional parameters, special learned tensors and any selected extras from the exact tensor inventory.
+
+For a tied embedding/output head:
+
+\[
+P_{embed/head}=VD
+\]
+
+For an untied output head, add another \(VD\). RoPE adds no learned \(C\times D\) position table. A learned absolute-position table, if separately selected, adds \(CD\).
+
+A useful first-order control estimate is therefore:
+
+\[
+P \approx VD(1+I_{untied})+
+L(2DD_q+2DD_{kv}+2DF+4D)+2D+P_{bias}+P_{other}
+\]
+
+where \(I_{untied}=0\) for tied and \(1\) for untied. This is a sensitivity estimate only. The authoritative \(P\) is still the exact sum of tensor element counts in section 2.1. Do not use this approximation to omit biases, norm variants, adapters or other graph tensors.
+
+Persistent training allocation, before transient activations/workspaces, is:
+
+\[
+M_{persistent}=P(s_w+s_g+s_o+s_m)
+\]
+
+Here \(s_o\) is the sum of the selected optimizer-state bytes per parameter, and \(s_m=0\) when no FP32 master copy is required. Under the document 37 FP32-state comparison, AdamW contributes 8 optimizer-state bytes/parameter and Lion contributes 4. Those are separate candidate rows, not a product optimizer decision. Gradient accumulation does not multiply persistent optimizer state by \(R_{accum}\); the exact implementation must state whether any uncommitted accumulation buffer or master copy is additionally live.
+
+### 7.2.3 Logits, activations and attention workspace
+
+Unchunked training logits require:
+
+\[
+M_{logits}=B_\mu T_{train}V s_{logit}
+\]
+
+The logits gradient, loss intermediates and any simultaneous cast/copy buffers must be listed as separate live tensors where the implementation retains them. Vocabulary chunking may reduce the peak only after token-weighted loss, gradient and exact-update equivalence are established; do not simply divide this estimate by a chunk count without an execution/liveness contract.
+
+Activation memory must be calculated from the actual saved-tensor and rematerialization schedule:
+
+\[
+M_{saved}=\sum_{i\in SavedForwardTensors}\operatorname{numel}(A_i)s_{A_i}
+\]
+
+Do not substitute a universal “X bytes per parameter” or fixed activation multiplier. For a reference implementation that retains dense attention scores, the score allocation can scale as \(L B_\mu H_q T_{train}^2 s_{score}\); a causal-only compact representation can instead be related to \(N_{pairs}=T_{train}(T_{train}+1)/2\). A tiled/Flash-style path must report its actual tile/workspace and backward saved values. Avoiding a full score matrix reduces residency, not quadratic attention compute. If the backend does not yet exist, mark its activation/workspace term as an explicit unknown or bounded scenario rather than assigning it zero.
+
+### 7.2.4 Forward compute and training-work estimate
+
+Count multiply-add as two FLOPs. For one dense causal-attention layer, define \(N_{pairs}\) as the number of query-key positions actually evaluated per sequence. For ideal causal-only work, \(N_{pairs}=T_{train}(T_{train}+1)/2\); a dense masked implementation may evaluate \(T_{train}^2\) pairs.
+
+With the selected projection widths, the forward matrix-multiply estimate is:
+
+\[
+F_{proj}=2B_\mu T_{train}D(2D_q+2D_{kv})
+\]
+
+\[
+F_{ffn}=4B_\mu T_{train}DF
+\]
+
+\[
+F_{attention}=4B_\mu D_qN_{pairs}
+\]
+
+The vocabulary projection adds approximately \(2B_\mu T_{train}DV\) FLOPs. Thus:
+
+\[
+F_{forward,matmul}\approx L(F_{proj}+F_{ffn}+F_{attention})+2B_\mu T_{train}DV
+\]
+
+For a first training estimate, forward plus backward dense matrix operations are approximately \(3F_{forward,matmul}\). This is not an exact operation count: softmax, normalization, activation, masking, loss, embedding lookup, optimizer update, padding, recomputation and kernel inefficiency are additional. Record the exact graph-level count when available and retain this formula as a transparent comparison baseline.
+
+A theoretical TOPS rating is not a time estimate. A lower-bound runtime may be written as \(t\ge F_{work}/Q_{sustained}\), but \(Q_{sustained}\) must come from the exact operator/backend on the relevant device under sustained thermal conditions. Before such evidence exists, report FLOPs and leave wall-clock throughput unverified.
+
+### 7.2.5 Phase-specific peak memory and storage
+
+Use liveness by phase. The profile worksheet must show separate rows for:
+
+| Phase | Included terms and overlap to calculate |
+|---|---|
+| Tokenizer resolution/preparation | Tokenizer artifact, trainer buffers and selected seed-corpus streaming window; do not count the entire corpus file as resident when the importer/trainer streams it |
+| First Genesis | Model tensor allocation, initializer scratch, deterministic chunk buffers, staged checkpoint/write buffer and runtime baseline; state whether initialization is fully resident or chunk-streamed |
+| Training forward/backward | Weights, gradients, optimizer state, optional master weights, saved activations, attention workspace, logits/loss tensors, data staging and any concurrent inference |
+| Optimizer update | Persistent state plus fused/eager update scratch and temporary casts/copies |
+| Inference | Active model weights, \(2LB_{req}CH_{kv}d_hs_{KV}\) KV bytes for attention layers, prefill/decode workspace, logits and concurrency |
+| Checkpoint publication/recovery | Model + optimizer + RNG/scheduler/cursor state, serialization buffers, staged new checkpoint, retained prior checkpoint and journal; include only copies that the actual atomic protocol keeps live |
+| Generation migration | Parent generation, candidate child generation, validation/evaluation state and rollback reserve when they genuinely coexist |
+
+The process peak is the maximum live allocation over each phase, including actual cross-workload overlap, plus the declared runtime/application reserve. It is not the sum of every row above. For example, a chunk-streamed Genesis path may avoid holding a second complete model copy, while a child-generation migration may genuinely need parent and candidate storage at the same time.
+
+Storage admission is separate from RAM admission. Record the tokenizer artifact, model weights, resumable optimizer/checkpoint state, active generation, staged generation, retained rollback checkpoint, journals and temporary files independently. Corpus storage is governed by the corpus/acquisition budget and must not be silently charged to model in-memory staging or omitted from free-storage checks.
+
+### 7.2.6 Bounded profile sweep and admission order
+
+Use a finite candidate table, not a new configuration for every SoC label:
+
+1. Fix an eligible tokenizer artifact/profile and its \(V\), special IDs and language fixture. Until G1-D closes, show a range or separate candidate rows for vocabulary uncertainty; do not freeze embedding/head dimensions.
+2. Use exact graph divisibility constraints to enumerate a small set of \(D,L,F,H_q,H_{kv},d_h\) hypotheses. Begin with the document 43 MHA reference and keep GQA as a separately labelled ablation.
+3. For each graph, evaluate a small declared set of \(T_{train}\), \(C\), \(B_\mu\), precision and optimizer-state policies. Do not mix FP32 correctness-reference results with lower-precision throughput claims.
+4. Calculate exact tensor bytes, persistent optimizer state, logits, saved activations, workspaces and phase-specific peaks. Run both an analytical no-concurrency case and the intended background-training-plus-inference case if that is a product requirement.
+5. Reject any candidate that fails tokenizer/runtime eligibility, full training-operator coverage, correctness, RAM headroom, storage/rollback reserve or a required operational gate. A candidate that fits weights alone is not admitted.
+6. Retain a Pareto set across model capability proxies, language/tokenizer coverage, peak RAM, storage, compute, sustained energy/thermal cost and implementation complexity. Do not collapse these into one unexplained score.
+7. Assign stable profile IDs only to a finite set that survives review. Device capability selects among those immutable profiles; runtime pressure may lower microbatch, accumulate gradients or pause only where the selected training contract permits it.
+
+The device-side memory budget must be based on measured application/process limits and baseline headroom, less an explicit safety reserve. Total marketed RAM, memory-class metadata alone, SoC family names or theoretical accelerator TOPS are not sufficient admission evidence. Numeric profile cutoffs remain open until the evidence source and reserve policy are recorded; no threshold is invented in this research pass.
+
+**Current analytical output:** equations, live-memory categories, phase boundaries and the finite sweep procedure are now defined. Exact numerical profiles remain blocked by the unresolved tokenizer vocabulary/runtime contract, final graph dimensions, precision/update choices, and measured per-device process/storage/throughput evidence. This does not prevent continuing the documentary comparison; it prevents claiming a numeric device profile is already supported.
+
 
 ## 8. G4 deliverables and current disposition
 
