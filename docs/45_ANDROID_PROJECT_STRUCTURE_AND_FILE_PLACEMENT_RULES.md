@@ -90,6 +90,7 @@ com.argus.agi
 │   ├── genesis/               # Initial generation workflow and readiness
 │   ├── inference/             # Request/context workflow and cancellation
 │   ├── learning/              # Training admission, session and candidate lifecycle
+│   ├── evolution/              # Capacity assessment and versioned child-generation planning; add only when approved
 │   ├── acquisition/           # Discovery/fetch job orchestration and handoff
 │   ├── knowledge/             # Retrieval and memory workflows
 │   └── evaluation/            # Candidate evaluation and promotion coordination
@@ -142,6 +143,7 @@ The tree deliberately does **not** include a generic application/usecase plus ap
 | app/navigation | Stable route identity/encoding, navigation state and destination composition; internal learning-session route is `argus://app/learning/session/{sessionId}` | Activity ownership, business rules, data access or authoritative workflow/session state |
 | feature/*/presentation | Feature UI, immutable feature-specific UI state, ViewModels, lifecycle-aware observation and user intent mapping | Concrete repositories, engine classes, connector policy, JNI or authoritative workflow state |
 | `application/<workflow>` | Workflow-specific use cases, coordination, admission, cancellation, readiness and result mapping | Android framework implementation, tensor mathematics or direct file/database manipulation |
+| application/evolution | Growth evidence assessment, mutation-plan coordination, growth budgets and child-generation transition orchestration | Direct tensor transforms, optimizer updates, active-generation mutation, evaluation internals or repository persistence |
 | core/identity | Instance/generation/session IDs and identity invariants | Android Context, database entities or UI models |
 | core/model, core/tokenizer, core/inference, core/training | Architecture-neutral model/tokenizer/session contracts and invariants | Selected family implementation, persistence code or Android lifecycle |
 | core/device, core/compute | Capability evidence, runtime-condition records and execution contracts | Chipset-name guesses, vendor calls or false acceleration claims |
@@ -169,12 +171,15 @@ Document 36 remains authoritative for logical responsibilities and lifecycle gua
 | Tokenizer service | core/tokenizer | engine/tokenizer after G1-D; immutable artifact reference/persistence through data/model |
 | Inference service | core/inference, core/compute | application/inference; numerical execution in engine; runtime providers in platform/android/compute |
 | Learning coordinator | core/training, core/device, core/policy | application/learning; numerical updates in engine; OS scheduling in platform/android/lifecycle |
+| Architecture evolution controller | core/model, core/device, core/evaluation, core/training | application/evolution; tensor transforms in the selected engine/model; transition and checkpoint persistence in data/model; evaluation and promotion remain in application/evaluation |
 | Training engine/backend | core/model, core/training, core/compute | engine/reference and later selected engine/model; Android runtime adapters in platform/android/compute |
 | Corpus and knowledge store | core/knowledge, core/acquisition, core/training | data/corpus, data/knowledge and data/model as appropriate |
 | Personal experience intake | core/policy and core/knowledge | application/knowledge owns intake, retention routing and review orchestration; platform/android/capture supplies observations; data/knowledge stores approved personal-experience records; data/policy stores consent/revocation/review evidence; application/learning independently validates training admission |
 | Acquisition/connectors | core/acquisition, core/policy | application/acquisition orchestrates; data/acquisition fetches/parses; platform connectivity is observed under platform/android/connectivity |
 | Evaluation/promotion | core/evaluation, core/model | application/evaluation; generation commit/promotion persistence in data/model |
 | Event/diagnostic contracts | core/events | Emission stays with owning workflow; data/audit persists sanitized records; no generic event-bus service is required |
+
+`application/evolution` is a future workflow seam, not an instruction to create an empty package now. Its first implementation requires an approved mutation catalog and growth policy; it must reuse the model-generation repository and evaluation/promotion contracts rather than owning a parallel generation store.
 
 The core packages contain contracts and domain invariants, not every workflow implementation. The application packages coordinate those contracts. data, platform/android and engine implement distinct ports and must not depend on one another directly unless a later reviewed module contract proves a narrow adapter dependency is unavoidable.
 
