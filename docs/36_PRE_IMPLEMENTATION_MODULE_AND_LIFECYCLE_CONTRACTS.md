@@ -53,6 +53,7 @@ These are logical ownership boundaries. They may map to Gradle modules, Kotlin p
 | Tokenizer service | Versioned tokenizer load, deterministic encode/decode and fingerprint checks | Runtime vocabulary registration or changing token IDs in an active generation |
 | Inference service | Read-only model snapshot, request execution, cancellation and result provenance | Updating weights or optimizer state |
 | Learning coordinator | Session creation, training admission, candidate lifecycle, pause/resume, checkpoints and promotion | Direct ingestion of unapproved raw input |
+| Architecture evolution controller | Capacity assessment, growth evidence, approved mutation planning, growth budgets and child-generation transition coordination | Active-generation tensor mutation, numerical training, sparse-kernel execution or direct candidate promotion |
 | Training engine/backend | Forward, objective, backward, optimizer update and numerical status for a declared architecture contract | Source rights, personal consent, generation promotion or user-facing lifecycle policy |
 | Corpus and knowledge store | Source/item provenance, canonical content where retention permits, indexes and immutable dataset manifests | Treating retrieval eligibility as training eligibility |
 | Acquisition/connectors | Approved network fetch, parsing and connector-specific rate/response behavior | Granting themselves source permission or selecting training eligibility |
@@ -69,6 +70,7 @@ Dependencies must point toward contracts, not concrete platform implementations:
 - Inference/training → read-only or candidate model snapshots plus declared backend interfaces.
 - Acquisition → source registry/policy, connector interfaces, provenance store and resource admission.
 - Promotion → evaluation report, candidate manifest and generation repository.
+- Architecture evolution → evaluation history, capability/runtime conditions, approved mutation catalog and model-generation repository; tensor transforms remain in the selected engine, and promotion remains with evaluation/repository.
 - Android entry adapters → narrow application-facing ingress/control interfaces; application workflows never depend on Android service implementations.
 - Concrete data, platform and engine adapters → the contracts they implement; they do not form a default dependency chain between one another.
 
