@@ -264,10 +264,10 @@ G4 closure does not authorize coding, builds, Actions, artifact upload or physic
 
 ## 9. Current disposition
 
-- **G1-D:** OPEN. The owner-created local corpus path is identified, and the format-specific runtime evidence has been refreshed through 2026-11-05. The product-language/unsupported-language policy, exact imported tokenizer-frequency manifest and selected workflow purpose, final retained tokenizer/runtime/API/ABI bundle, and immutable per-profile artifact contract remain unresolved.
+- **G1-D:** OPEN. The owner-created Indonesian `ArgusID.txt` and `DigiTransID.zip` assets are identified as the primary frequency-corpus candidates. The initial sweep is bounded to T0 raw bytes, T1 byte-level BPE, T2 SentencePiece BPE and T3 SentencePiece Unigram; T1-P PA-BPE remains conditional and T4 WordPiece is deferred from the minimum sweep. The importer-generated SHA-256/split manifest and explicit tokenizer-frequency purpose are not yet recorded; the product-language/unsupported-language policy and final tokenizer/runtime/API/ABI profile contract also remain unresolved.
 - **G2:** CLOSED only for the four-family comparison shortlist.
 - **G3:** CLOSED only for the component disposition planning baseline; DEFER remains DEFER.
-- **G4:** BLOCKED. A Transformer-first, single-family profile portfolio is the preliminary engineering recommendation for owner review, not a selected ADR. The exact tokenizer, graph/component contracts, profile resource envelopes, optimizer/precision and final comparative rejection record remain incomplete.
+- **G4:** BLOCKED. A Transformer-first, single-family profile portfolio is the preliminary engineering recommendation for owner review, not a selected ADR. Document 39 now defines a bounded semantic reference and staged component-ablation order, but the exact tokenizer, graph/component selections, profile resource envelopes, optimizer/precision and final comparative rejection record remain incomplete.
 - **Backbone/profile/component:** none approved for implementation planning.
 - **Implementation/build/CI/physical testing:** not performed or authorized by this document.
 
