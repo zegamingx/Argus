@@ -28,7 +28,7 @@ The application namespace is `com.argus.agi`. Principal current paths are:
 | `app/src/main/java/com/argus/agi/app/entry/` | `ArgusApp` and `MainActivity` |
 | `app/src/main/java/com/argus/agi/app/navigation/` | `MainScreen` and destination switching |
 | `app/src/main/java/com/argus/agi/application/runtime/` | Transitional runtime aggregation plus focused training, device, hardware, capture and accessibility port files |
-| `app/src/main/java/com/argus/agi/feature/*/presentation/` | Chat, learning, perception and settings screens; chat presentation model |
+| `app/src/main/java/com/argus/agi/feature/*/presentation/` | Feature screens and presentation-owned state; ChatMessage and SettingsUiState are feature-owned |
 | `app/src/main/java/com/argus/agi/ui/ArgusViewModel.kt` | Transitional cross-feature Android ViewModel; decomposition remains open |
 | `app/src/main/java/com/argus/agi/ui/design/` | Shared Compose theme, colors and typography |
 | `app/src/main/java/com/argus/agi/model/` | Four mixed legacy prototype classes: engine, tokenizer, training manager and world model |
@@ -392,6 +392,7 @@ This is a proposed ownership map, not an instruction to move mixed classes mecha
 | `app/entry/MainActivity.kt` + `app/navigation/MainScreen.kt` | app/entry + app/navigation | Keep Activity as Android host; navigation shell owns destination switching, not business workflow |
 | `application/runtime/ArgusRuntime.kt` | Workflow-specific application ports; core contracts where they own provider-neutral meaning | Transitional aggregate ingress; split only when each interface has a named workflow/contract owner and consumer |
 | `feature/chat/presentation/ChatMessage.kt` | feature/chat/presentation | Chat-only immutable presentation model; not persisted conversation history |
+| `feature/settings/presentation/SettingsUiState.kt` | feature/settings/presentation | Immutable display projections for installed apps, search previews and world-entity summaries; no Android or storage DTOs cross into the screen |
 | `ui/ArgusViewModel.kt` | Feature-specific feature/*/presentation state holders | Split by user-facing workflow after application-facing workflow APIs exist; do not move the monolith wholesale into one feature |
 | `model/ArgusNeuralEngine.kt` | engine/reference initially; model persistence in data/model; Android file/key access through platform/android/storage | Separate numerical operations, checkpoint policy and Android I/O; experimental, not selected production engine |
 | `model/Tokenizer.kt` | core/tokenizer contracts + engine/tokenizer only after G1-D | Separate immutable identity/API from concrete algorithm; preserve compatibility and token-ID semantics |
@@ -492,7 +493,7 @@ These decisions depend on architecture, tokenizer, storage/security, backend and
 - **Dependency direction:** defined in Section 5; concrete source dependencies still need remediation.
 - **Composition strategy:** `app/bootstrap/ArgusContainer` uses explicit manual constructor injection. `ArgusApp` is the Android host and no longer exposes the former global companion-object service locator.
 - **Runtime ingress:** Android services consume the transitional `application/runtime` interfaces through `ArgusRuntimeOwner`; aggregation and focused port declarations are separated by file, while final workflow-specific API ownership remains open.
-- **Presentation ownership:** chat-only `ChatMessage` now resides in `feature/chat/presentation`; `ui/ArgusViewModel.kt` remains a transitional cross-feature ViewModel and must not be mechanically moved into one feature.
+- **Presentation ownership:** chat-only `ChatMessage` and Settings-owned `SettingsUiState` reside in their feature presentation packages. The shared ViewModel still coordinates several features and must not be mechanically moved wholesale into one feature.
 - **Gradle module extraction:** intentionally deferred until stable contracts and concrete dependency boundaries justify it.
 - **Native C++/JNI structure:** documented as a future isolated boundary; no native implementation exists in the inspected tree.
 - **File ownership/dependency audit:** recorded in [46 — Android Source-Tree Ownership and Dependency Audit](46_ANDROID_SOURCE_TREE_OWNERSHIP_AND_DEPENDENCY_AUDIT.md).
@@ -515,3 +516,5 @@ The initial migration is not complete architecture remediation. The monolithic V
 - 2026-11-05 — Follow-up source structure reviewed after composition-root/runtime-ingress commits `d9c3924` and `8a9014c`. Extracted the chat presentation message type into `feature/chat/presentation/ChatMessage.kt` and aligned the ViewModel import. Refreshed the physical-path crosswalk; no behavior, model, Gradle or schema changes were intended. No build/test result is claimed.
 
 - 2026-11-05 — Split the transitional runtime contract source file into focused interface/snapshot files under the same `application/runtime` package. Package names, public type names and method signatures were preserved; no runtime behavior or dependency direction was changed. Updated the physical structure crosswalk. No build/test result is claimed.
+
+- 2026-11-05 — Added `feature/settings/presentation/SettingsUiState.kt` and changed the shared ViewModel to project installed-app, search-result and world-entity records into immutable Settings-owned UI records. The Settings screen now collects one feature state object; the underlying adapters and data/model records were not changed. No build/test result is claimed.

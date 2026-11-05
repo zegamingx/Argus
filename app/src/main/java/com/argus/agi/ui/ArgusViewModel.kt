@@ -7,6 +7,10 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.argus.agi.feature.chat.presentation.ChatMessage
+import com.argus.agi.feature.settings.presentation.InstalledAppUiItem
+import com.argus.agi.feature.settings.presentation.SearchResultUiItem
+import com.argus.agi.feature.settings.presentation.SettingsUiState
+import com.argus.agi.feature.settings.presentation.WorldEntityUiItem
 import com.argus.agi.model.ArgusNeuralEngine
 import com.argus.agi.model.TrainingManager
 import com.argus.agi.model.WorldModel
@@ -14,11 +18,8 @@ import com.argus.agi.platform.android.device.DeviceGuard
 import com.argus.agi.platform.android.device.HardwareProfile
 import com.argus.agi.model.BenchmarkResult
 import com.argus.agi.model.TrainingData
-import com.argus.agi.model.WorldEntity
 import com.argus.agi.platform.android.device.DeviceSafetyState
 import com.argus.agi.platform.android.capture.ExcludedAppsManager
-import com.argus.agi.platform.android.capture.InstalledAppItem
-import com.argus.agi.data.acquisition.SearchResultItem
 import com.argus.agi.platform.android.device.SystemHardwareInfo
 import com.argus.agi.data.acquisition.WebSearchEngine
 import com.argus.agi.application.runtime.AccessibilityRuntime
@@ -26,6 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
@@ -60,7 +62,6 @@ class ArgusViewModel(
     val lossHistory: StateFlow<List<Float>> = trainingManager.lossHistory
     val isTrainingPaused: StateFlow<Boolean> = trainingManager.isTrainingPaused
     val totalStepsExecuted: StateFlow<Int> = trainingManager.totalStepsExecuted
-    val worldEntities: StateFlow<List<WorldEntity>> = worldModel.entitiesFlow
     val currentContextSummary: StateFlow<String> = worldModel.currentContextSummary
 
     private val _benchmarkState = MutableStateFlow<BenchmarkResult?>(null)
@@ -69,14 +70,11 @@ class ArgusViewModel(
     private val _isBenchmarking = MutableStateFlow(false)
     val isBenchmarking: StateFlow<Boolean> = _isBenchmarking.asStateFlow()
 
-    private val _installedApps = MutableStateFlow<List<InstalledAppItem>>(emptyList())
-    val installedApps: StateFlow<List<InstalledAppItem>> = _installedApps.asStateFlow()
-
     private val _cameraLuminance = MutableStateFlow(0f)
     val cameraLuminance: StateFlow<Float> = _cameraLuminance.asStateFlow()
 
-    private val _searchResults = MutableStateFlow<List<SearchResultItem>>(emptyList())
-    val searchResults: StateFlow<List<SearchResultItem>> = _searchResults.asStateFlow()
+    private val _settingsState = MutableStateFlow(SettingsUiState())
+    val settingsState: StateFlow<SettingsUiState> = _settingsState.asStateFlow()
     val isAccessibilityConnected: StateFlow<Boolean> = accessibilityRuntime.isConnected
 
     init {
@@ -90,6 +88,7 @@ class ArgusViewModel(
         )
 
         loadInstalledApps()
+        observeWorldEntities()
     }
 
     fun getTotalParameters(): Long = neuralEngine.countTotalParameters()
@@ -257,7 +256,11 @@ class ArgusViewModel(
     fun searchWebDirectly(query: String) {
         viewModelScope.launch {
             val results = webSearchEngine.search(query)
-            _searchResults.value = results
+            _settingsState.value = _settingsState.value.copy(
+                searchResults = results.map { item ->
+                    SearchResultUiItem(title = item.title, snippet = item.snippet)
+                }
+            )
             if (results.isNotEmpty()) {
                 val textToTrain = results.joinToString(" ") { it.snippet }
                 trainingManager.enqueueData(
@@ -299,7 +302,31 @@ class ArgusViewModel(
     private fun loadInstalledApps() {
         viewModelScope.launch {
             val apps = excludedAppsManager.getInstalledApps()
-            _installedApps.value = apps
+            _settingsState.value = _settingsState.value.copy(
+                installedApps = apps.map { app ->
+                    InstalledAppUiItem(
+                        appName = app.appName,
+                        packageName = app.packageName,
+                        isExcluded = app.isExcluded
+                    )
+                }
+            )
+        }
+    }
+
+    private fun observeWorldEntities() {
+        viewModelScope.launch {
+            worldModel.entitiesFlow.collect { entities ->
+                _settingsState.value = _settingsState.value.copy(
+                    worldEntities = entities.map { entity ->
+                        WorldEntityUiItem(
+                            key = entity.key,
+                            value = entity.value,
+                            source = entity.source
+                        )
+                    }
+                )
+            }
         }
     }
 

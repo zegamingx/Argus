@@ -272,9 +272,9 @@ This table maps the inspected files from document 46 to the contract work requir
 
 | Existing prototype file/package | Current coupling | Required future contract boundary |
 |---|---|---|
-| `ArgusApp.kt` | Global companion properties construct/expose engine, model, device and training objects | Keep Application entry in `app/entry`; construct and bind dependencies in `app/bootstrap` |
-| `MainActivity.kt` | Hosts navigation and directly references feature screens/ViewModel | `app/entry` hosts Activity; `app/navigation` wires feature destinations and application state |
-| `ArgusViewModel.kt` | Reaches global app state, engine, manager, sensor/search and services; owns multiple feature workflows | Split feature state holders; consume only owning application APIs and immutable presentation state |
+| `ArgusApp.kt` | Android Application host delegates to process-scoped `app/bootstrap/ArgusContainer` through `ArgusRuntimeOwner`; no global companion-object service locator remains | Keep Application entry in `app/entry`; construct and bind dependencies in `app/bootstrap` |
+| `MainActivity.kt` | Hosts Activity, creates the shared transitional ViewModel through `ArgusViewModelFactory`, and starts the foreground service; navigation composition is delegated to `app/navigation` | `app/entry` hosts Activity; `app/navigation` wires feature destinations and state; service lifecycle remains an Android adapter |
+| `ArgusViewModel.kt` | Still coordinates multiple features and reaches concrete model, data and platform implementations. ChatMessage and Settings-owned SettingsUiState are feature-owned immutable types; Settings no longer receives InstalledAppItem, SearchResultItem or WorldEntity directly. | Split feature state holders after workflow APIs are implemented; expose each owning feature's immutable UI state and send commands through the owning application workflow API |
 | `ArgusNeuralEngine.kt` | Combines numerical operations, tokenizer mutation/usage, Android Context and checkpoint file I/O | Core model/inference/training contracts; `engine/reference` numerical implementation; `data/model` persistence; `platform/android/storage` platform file/key access |
 | `Tokenizer.kt` | Concrete mutable tokenizer is colocated with experimental engine | `core/tokenizer` identity/API; selected implementation only in `engine/tokenizer` after G1-D |
 | `TrainingManager.kt` | Queue, coroutine worker, device guard, engine update and world-model update combined | `application/learning` coordinator; `core/training` session contracts; device provider/admission; engine backend; repository checkpoint transaction |
@@ -282,9 +282,9 @@ This table maps the inspected files from document 46 to the contract work requir
 | `DeviceGuard.kt` / `HardwareProfile.kt` | Android observations and workload/device interpretation are mixed | `platform/android/device` providers with stable/live records in `core/device`; admission stays in application workflows |
 | `ExcludedAppsManager.kt` | PackageManager discovery and exclusion state are combined | Platform installed-app discovery plus `core/policy` rules and `data/policy` durable exclusions |
 | `WebSearchEngine.kt` | HTTP transport/parser is labelled as a sensor | `data/acquisition` connector behind `core/acquisition` and application authorization |
-| `ArgusAccessibilityService.kt` | Constructs exclusion adapter; accesses globals; directly forwards to memory/training | `platform/android/capture` adapter behind the unresolved capture-ingress contract |
-| `ArgusForegroundService.kt` | Reads global training/device/hardware state and imports MainActivity | `platform/android/lifecycle` + notification adapter; application-owned learning controls and route contract |
-| Compose screens | Direct service/Android APIs and model DTOs cross presentation boundary | Feature presentation consumes application state/API; Android UI-edge permissions/preview remain narrowly scoped |
+| `ArgusAccessibilityService.kt` | Uses `ArgusRuntimeOwner`/capture ingress and action registry; current handoff updates transient screen context only and does not enqueue personal text directly for training | `platform/android/capture` adapter behind the personal-intake workflow; explicit consent, review, retention and learning admission remain separate |
+| `ArgusForegroundService.kt` | Reads training/device/hardware snapshots and sends pause control through `ArgusRuntimeOwner`; launch intent is resolved by package manager rather than importing MainActivity | `platform/android/lifecycle` + notification adapter; application-owned learning controls and route contract |
+| Compose screens | Settings now consumes `SettingsUiState`; perception still directly integrates CameraX/Settings/permission APIs, and learning still consumes legacy training records through the shared ViewModel | Feature presentation consumes application state/API; Android UI-edge permissions/preview remain narrowly scoped |
 
 ## 9. Dependency and interface verification plan
 
@@ -380,3 +380,5 @@ The package-interface mapping is complete enough for a bounded contract review w
 - 2026-11-04 — Cross-checked source-registry ownership and personal-capture requirements against documents 13, 22, 24 and 26. The source registry is assigned to `data/acquisition`, while user consent/revocation remains in `data/policy`; the capture-ingress gap is narrowed to API ownership/routing, not missing privacy principles.
 - 2026-11-05 — PC-OPEN-01 is now documented by document 48. Updated IF-11, IF-14 and IF-20 to assign intake/review to `application/knowledge`, candidate/session admission to `application/learning`, and the capture adapter to the application intake boundary. Concrete bindings remain open.
 - 2026-11-05 — Closed PC-OPEN-02, PC-OPEN-03 and PC-OPEN-06 at the design-contract level by binding immutable workflow snapshots, the internal learning-session notification route and manual constructor injection to documents 36 and 45. Reclassified PC-OPEN-05 as an accelerated-provider-only blocker; no code or build files were changed.
+
+- 2026-11-05 — Reconciled the existing-prototype matrix with the current `ArgusContainer`/`ArgusRuntimeOwner` source and the new Settings-owned immutable UI projection. No new API or workflow contract was claimed; application command ownership and full ViewModel decomposition remain open.

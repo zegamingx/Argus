@@ -78,9 +78,10 @@ import com.argus.agi.ui.design.ArgusWarning
 @Composable
 fun SkillsAndSettingsScreen(viewModel: ArgusViewModel) {
     val context = LocalContext.current
-    val installedApps by viewModel.installedApps.collectAsState()
-    val worldEntities by viewModel.worldEntities.collectAsState()
-    val searchResults by viewModel.searchResults.collectAsState()
+    val settingsState by viewModel.settingsState.collectAsState()
+    val installedApps = settingsState.installedApps
+    val worldEntities = settingsState.worldEntities
+    val searchResults = settingsState.searchResults
 
     var isBatteryExpanded by remember { mutableStateOf(true) }
     var isSkillsExpanded by remember { mutableStateOf(true) }

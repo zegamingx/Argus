@@ -23,7 +23,7 @@ The current structural findings are:
 - `ArgusNeuralEngine` combines numerical execution, tokenizer mutation, benchmark reporting and Android checkpoint file I/O.
 - Android service and device classes now reside under `platform/android/*` and access the process runtime through narrow interfaces; feature presentation still performs some direct CameraX, Settings and permission operations.
 - `ExcludedAppsManager` remains a mixed Android installed-app discovery/exclusion-state prototype.
-- The chat-only `ChatMessage` presentation model has been separated into `feature/chat/presentation`; the cross-feature ViewModel remains to be decomposed.
+- The chat-only `ChatMessage` presentation model has been separated into `feature/chat/presentation`. Settings now receives a feature-owned immutable `SettingsUiState` with projections for installed apps, search previews and world-entity summaries; the cross-feature ViewModel remains to be decomposed.
 - The single test file does not represent most documented subsystem boundaries.
 
 **Recommendation:** retain one Gradle application module while package ownership, workflow contracts and dependency direction are stabilized. Extract Gradle modules only after stable APIs and concrete build/test/ABI boundaries exist. Creating many empty modules now would add complexity without proving the boundaries are correct.
@@ -439,3 +439,10 @@ These are source-level observations. They do not establish that the contracts ar
 - 2026-11-05 — Rechecked the follow-up composition-root and runtime-ingress changes at `d9c3924` and `8a9014c`: documented process-scoped construction, removal of static service-locator access, platform-service ingress through runtime ports, and the transient-only capture handoff. Extracted `ChatMessage` into `feature/chat/presentation`. No build/test result is claimed.
 
 - 2026-11-05 — Split `application/runtime/ArgusRuntime.kt` into focused source files for training, device, hardware, capture and accessibility runtime ports while preserving package names, public type names, method signatures and consumers. Updated the current structure register; no build or test result is claimed.
+
+
+### 11.2 Feature-owned Settings presentation state (2026-11-05)
+
+The Settings feature now owns `feature/settings/presentation/SettingsUiState.kt` with immutable display records for installed-app rows, search-result previews and world-entity summaries. The shared ViewModel maps `InstalledAppItem`, `SearchResultItem` and `WorldEntity` into those feature-owned types before exposing them to Compose. The Settings screen collects a single `StateFlow<SettingsUiState>`.
+
+This removes those Android/data/model record types from the Settings screen's public state boundary. It does not yet move the corresponding commands into `application/settings`, nor does it remove the ViewModel's concrete implementation dependencies. No backend behavior, storage, consent, model or search logic was changed. No build/test result is claimed.
