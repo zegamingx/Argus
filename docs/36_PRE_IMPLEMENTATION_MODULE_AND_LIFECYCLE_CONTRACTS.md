@@ -427,6 +427,7 @@ Requirements:
 - Provenance/rights/quality processing completes before a record is accepted.
 - Retrieval eligibility does not imply training eligibility.
 - Corpus building uses pinned revisions and deterministic preprocessing; it may not consume a live queue.
+- The existing TrainingCandidateManifest names an immutable corpus/data candidate and its source/rights membership; it is not the ModelCandidateManifest that represents trained model weights and generation lineage.
 - Training/evaluation/test split membership is stable and leakage checks are recorded.
 - Records that cannot be retained as full text must not be promised as available for future retokenization or retraining.
 
@@ -495,7 +496,7 @@ The following are orthogonal facts with separate authoritative records. They mus
 | Promotion transaction | PromotionTransaction | PREPARED -> COMMITTED, or ABORTED/CONFLICT. The transaction is idempotent and compares the expected active-pointer revision. |
 | Active model | One ActiveGenerationPointer per local instance | The pointer alone determines the generation used for new inference snapshots. Existing immutable snapshots remain bound to their original generation. |
 
-- The product may display **PROMOTED** only as a derived fact: the active-generation pointer currently references the candidate generation and its committed promotion transaction. PROMOTED is not a mutable candidate approval status.
+- The UI may display **ACTIVE** when the authoritative active-generation pointer currently references the candidate generation. A committed PromotionTransaction records that a promotion occurred, including if the generation is later rolled back. PROMOTED is not a mutable candidate assessment status.
 - A checkpoint may be VALID but not currently RESTORABLE because current runtime conditions, policy or storage/resource admission do not permit restoration. A saved file alone proves neither.
 - **TRAINED** does not mean EVALUATED; **VERIFIED** does not mean PROMOTED; checkpoint validity does not imply candidate quality.
 - Training progress and recovery progress are independent measurements. Training progress uses committed optimizer updates or another declared work unit with an explicit numerator, denominator and unit. Recovery progress describes checkpoint discovery, integrity/identity validation or restore work. They must never share a counter, denominator or label.
