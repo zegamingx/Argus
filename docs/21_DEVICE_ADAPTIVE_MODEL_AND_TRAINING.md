@@ -1,7 +1,7 @@
 # Device-Adaptive Model and Training
 
 **Status:** Accepted adaptive-design direction; thresholds and implementation remain open  
-**Last reviewed:** 2026-11-04
+**Last reviewed:** 2026-11-05
 
 ## 1. Two different adaptation problems
 
@@ -29,6 +29,22 @@ The profile should include evidence and confidence, not just device marketing me
 | Platform | Android API level, lifecycle restrictions, ABI, driver/runtime versions and permission state |
 
 Unknown telemetry must remain unknown. Missing temperature or memory data is not a measured safe state. The versioned Device Capability Profile records stable hardware/runtime capability and measured baseline evidence; current thermal, battery, free-memory and storage-pressure values are short-lived Runtime Condition observations, not permanent device properties.
+
+### 2.1 Android memory evidence and interpretation
+
+The Device Capability Profile must keep three different memory observations separate:
+
+| Signal | Interpretation | Use in Argus admission |
+|---|---|---|
+| ActivityManager.getMemoryClass() | Approximate per-application managed-heap class in MB; a sizing hint, not total process/native memory headroom | Record as platform evidence only. Never treat it as the complete model-training budget |
+| ActivityManager.getMemoryInfo() | System-wide available/total memory, low-memory flag and threshold at which Android begins reclaiming/killing processes | Capture a timestamped workload-admission observation; do not confuse system-wide availability with a guaranteed app allocation |
+| Process anonymous RSS/swap and native/managed allocation telemetry | Measures the process working set beyond the Java/Kotlin heap, including native allocations and thread stacks; file-backed pages have different reclaim behavior | Include native training tensors, runtime pools, mmap/file-backed weights and swap/pressure evidence where observable |
+| ComponentCallbacks2.onTrimMemory() | OS pressure notification/trim signal; documented preferred response path rather than frequent getMemoryInfo() polling | Release rebuildable caches, reduce/defer work at a safe boundary and persist the event; do not use it to mutate model identity |
+
+Android documents that heap limits vary by device and reaching the app heap limit can cause OutOfMemoryError; system memory pressure can trigger low-memory process kills. The memory class is therefore not a substitute for measured native-process peak or the device's changing system pressure. Keep process baseline, process limit, current system availability/threshold, anonymous RSS/swap, native/runtime workspace and application reserve as separate fields. Capture expensive system observations at workload admission and relevant lifecycle/trim events rather than continuous high-frequency polling.
+
+Official references: [ActivityManager API](https://developer.android.com/reference/android/app/ActivityManager), [Manage your app's memory](https://developer.android.com/topic/performance/memory/manage-app-memory), and [Memory usage: anonymous RSS + swap](https://developer.android.com/topic/performance/issues/memory-usage). These sources define Android signals; they do not provide a universal safe RAM number for Argus.
+
 
 ## 3. Configuration selection
 
