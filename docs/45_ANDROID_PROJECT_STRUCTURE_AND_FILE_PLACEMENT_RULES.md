@@ -3,7 +3,7 @@
 **Status:** Target package structure accepted for bounded migration; package relocation and composition-root ingress work are in progress; dependency remediation remains open  
 **Last reviewed:** 2026-11-05  
 **Pre-migration source observation:** `24b26b061574700d82fecd5c2a1485353333cef8`  
-**Source baseline reviewed for this update:** `77f0e23ff81b2460d42ecc3cf9369b8dbb45efc2`  
+**Source baseline reviewed for this update:** `4fea8fb2351868c7e6ec0464c8c58724d90eeed4`  
 **Scope:** Android repository layout, Kotlin package ownership, subsystem boundaries, Gradle module extraction, native/JNI boundary, resource and test placement, build configuration ownership and migration rules  
 **Dependencies:** Documents 01, 02, 13, 15, 17–22, 23, 35, 36, 43, 44, 46, 47 and 48  
 **Boundary:** This document governs package ownership and structural migration. The project owner has authorized bounded package/path relocation and the required import/manifest alignment. It does not authorize behavior rewrites, neural architecture/tokenizer/backend selection, Gradle module extraction, build/dependency changes, tests, workflow execution or device experiments.
@@ -27,7 +27,7 @@ The application namespace is `com.argus.agi`. Principal current paths are:
 | `app/src/main/java/com/argus/agi/app/bootstrap/` | `ArgusContainer` composition root and `ArgusViewModelFactory` |
 | `app/src/main/java/com/argus/agi/app/entry/` | `ArgusApp` and `MainActivity` |
 | `app/src/main/java/com/argus/agi/app/navigation/` | `MainScreen` and destination switching |
-| `app/src/main/java/com/argus/agi/application/runtime/` | Transitional runtime ingress interfaces and snapshots |
+| `app/src/main/java/com/argus/agi/application/runtime/` | Transitional runtime aggregation plus focused training, device, hardware, capture and accessibility port files |
 | `app/src/main/java/com/argus/agi/feature/*/presentation/` | Chat, learning, perception and settings screens; chat presentation model |
 | `app/src/main/java/com/argus/agi/ui/ArgusViewModel.kt` | Transitional cross-feature Android ViewModel; decomposition remains open |
 | `app/src/main/java/com/argus/agi/ui/design/` | Shared Compose theme, colors and typography |
@@ -491,7 +491,7 @@ These decisions depend on architecture, tokenizer, storage/security, backend and
 - **Target logical package hierarchy:** defined in Section 4 and cross-mapped to the logical subsystems in document 36.
 - **Dependency direction:** defined in Section 5; concrete source dependencies still need remediation.
 - **Composition strategy:** `app/bootstrap/ArgusContainer` uses explicit manual constructor injection. `ArgusApp` is the Android host and no longer exposes the former global companion-object service locator.
-- **Runtime ingress:** Android services consume the transitional `application/runtime` interfaces through `ArgusRuntimeOwner`; final workflow-specific API ownership remains open.
+- **Runtime ingress:** Android services consume the transitional `application/runtime` interfaces through `ArgusRuntimeOwner`; aggregation and focused port declarations are separated by file, while final workflow-specific API ownership remains open.
 - **Presentation ownership:** chat-only `ChatMessage` now resides in `feature/chat/presentation`; `ui/ArgusViewModel.kt` remains a transitional cross-feature ViewModel and must not be mechanically moved into one feature.
 - **Gradle module extraction:** intentionally deferred until stable contracts and concrete dependency boundaries justify it.
 - **Native C++/JNI structure:** documented as a future isolated boundary; no native implementation exists in the inspected tree.
@@ -513,3 +513,5 @@ The initial migration is not complete architecture remediation. The monolithic V
 - 2026-11-05 — Project owner authorized the first bounded source-structure migration. Android entry/navigation, feature screens, shared UI design, Android capture/device/lifecycle adapters and the web-search connector were moved to their assigned Kotlin package roots. Import and Android manifest class references were aligned. The migration did not change Gradle module topology, dependencies, model algorithms or workflow behavior; no build/test result is claimed.
 
 - 2026-11-05 — Follow-up source structure reviewed after composition-root/runtime-ingress commits `d9c3924` and `8a9014c`. Extracted the chat presentation message type into `feature/chat/presentation/ChatMessage.kt` and aligned the ViewModel import. Refreshed the physical-path crosswalk; no behavior, model, Gradle or schema changes were intended. No build/test result is claimed.
+
+- 2026-11-05 — Split the transitional runtime contract source file into focused interface/snapshot files under the same `application/runtime` package. Package names, public type names and method signatures were preserved; no runtime behavior or dependency direction was changed. Updated the physical structure crosswalk. No build/test result is claimed.

@@ -24,7 +24,12 @@ Argus/
 │       │       │       └── MainScreen.kt
 │       │       ├── application/
 │       │       │   └── runtime/
-│       │       │       └── ArgusRuntime.kt
+│       │       │       ├── ArgusRuntime.kt
+│       │       │       ├── AccessibilityRuntime.kt
+│       │       │       ├── CaptureRuntime.kt
+│       │       │       ├── DeviceRuntime.kt
+│       │       │       ├── HardwareRuntime.kt
+│       │       │       └── TrainingRuntime.kt
 │       │       ├── data/
 │       │       │   └── acquisition/
 │       │       │       └── WebSearchEngine.kt
@@ -95,7 +100,7 @@ The repository has moved beyond the first package relocation:
 - `app/entry` contains the Android Application and Activity.
 - `app/navigation` contains the current app shell and destination switching.
 - Feature screens live under their respective `feature/*/presentation` packages. The chat message presentation type is also owned by `feature/chat/presentation`.
-- `application/runtime` currently contains transitional runtime ports used by Android adapters. It is not yet the final workflow-specific application API layout.
+- `application/runtime` keeps the transitional aggregate entry contract in `ArgusRuntime.kt` and separates training, device, hardware, capture and accessibility ports into focused files. It is not yet the final workflow-specific application API layout.
 - Android capture, device, foreground lifecycle and notification adapters live under `platform/android/*`.
 - The concrete web-search connector lives under `data/acquisition`.
 - `model/` still contains four mixed legacy prototype classes. Their responsibilities must be separated before assigning final owners.
@@ -120,4 +125,4 @@ The current layout is an **intermediate migration state**, not proof that every 
 - Composition root and runtime ingress: [commit d9c3924](https://github.com/zegamingx/Argus/commit/d9c39243dac32570fdd4882aa8b07c1393933472).
 - Removal of old service-locator/static-service access paths and transient-only capture ingress: [commit 8a9014c](https://github.com/zegamingx/Argus/commit/8a9014c7728c65124caa0a6204e16baab84c5cfd).
 
-These changes establish source/package direction only; no build or test result is implied. Further work remains on feature ViewModel decomposition, workflow API ownership, mixed model prototypes, platform permission/camera adapters, persistence and verification.
+The runtime-port file split preserves package names, public type names and method signatures; it is a source-organization change only. No build or test result is implied. Further work remains on feature ViewModel decomposition, workflow API ownership, mixed model prototypes, platform permission/camera adapters, persistence and verification.

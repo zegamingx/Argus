@@ -1,6 +1,6 @@
 # Argus Android Source-Tree Ownership and Dependency Audit
 
-**Status:** Pre-migration static audit retained; composition-root/runtime-ingress follow-up reviewed; dependency remediation remains open  
+**Status:** Pre-migration static audit retained; composition-root/runtime-ingress and focused port-file split reviewed; dependency remediation remains open  
 **Audit date:** 2026-11-04; structural follow-up: 2026-11-05  
 **Repository:** `zegamingx/Argus` · **Branch:** `main`  
 **Pre-migration audit baseline:** `bd75ac1533e079bfca4d12e1af9ec3170d7187d9` (`docs: clarify structure proposal authority`)  
@@ -420,7 +420,7 @@ The following changes supersede the corresponding pre-migration observations abo
 
 - `app/bootstrap/ArgusContainer.kt` now owns construction of process-scoped concrete dependencies; `ArgusViewModelFactory` performs explicit constructor injection.
 - `app/entry/ArgusApp.kt` implements `ArgusRuntimeOwner` and exposes the container through the runtime contract. The global companion-object fields are gone.
-- `application/runtime/ArgusRuntime.kt` defines the current service-facing snapshots and narrow ports for training, device, hardware, capture and accessibility. This is a transitional aggregate contract, not the final workflow-specific application API hierarchy.
+- `application/runtime/ArgusRuntime.kt` retains the aggregate process runtime and owner contracts. Focused files in the same package now hold the training, device, hardware, capture and accessibility snapshots/ports. This remains a transitional ingress package, not the final workflow-specific application API hierarchy.
 - `platform/android/capture/ArgusAccessibilityService.kt` registers its action controller through `AccessibilityActionRegistry`; it no longer exposes a static live service instance.
 - `platform/android/lifecycle/ArgusForegroundService.kt` reads state and sends pause control through runtime interfaces instead of global `ArgusApp` fields.
 - The capture adapter currently forwards transient screen context only. It no longer enqueues captured screen text into training from this adapter; personal learning admission remains a separate consent/review workflow.
@@ -437,3 +437,5 @@ These are source-level observations. They do not establish that the contracts ar
 - 2026-11-05 — Recorded the owner-authorized initial package relocation at `b0441af8`. Added the current path map and confirmed that service-locator access and the entry/UI/platform dependency cycle remain. No build, test, workflow or device result is claimed.
 
 - 2026-11-05 — Rechecked the follow-up composition-root and runtime-ingress changes at `d9c3924` and `8a9014c`: documented process-scoped construction, removal of static service-locator access, platform-service ingress through runtime ports, and the transient-only capture handoff. Extracted `ChatMessage` into `feature/chat/presentation`. No build/test result is claimed.
+
+- 2026-11-05 — Split `application/runtime/ArgusRuntime.kt` into focused source files for training, device, hardware, capture and accessibility runtime ports while preserving package names, public type names, method signatures and consumers. Updated the current structure register; no build or test result is claimed.
