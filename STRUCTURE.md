@@ -12,6 +12,9 @@ Argus/
 │   └── src/
 │       ├── main/
 │       │   ├── AndroidManifest.xml
+│       │   ├── assets/
+│       │   │   └── corpus/
+│       │   │       └── DigiTransID.zip
 │       │   └── java/com/argus/agi/
 │       │       ├── app/
 │       │       │   ├── bootstrap/
@@ -40,6 +43,7 @@ Argus/
 │       │       │   │   └── ChatUiState.kt
 │       │       │   ├── learning/presentation/
 │       │       │   │   ├── LearningUiState.kt
+│       │       │   │   ├── LocalDatasetImporterCard.kt
 │       │       │   │   └── NeuralCoreScreen.kt
 │       │       │   ├── perception/presentation/
 │       │       │   │   ├── PerceptionUiState.kt
@@ -49,6 +53,8 @@ Argus/
 │       │       │       └── SkillsAndSettingsScreen.kt
 │       │       ├── model/              # Three transitional mixed prototype classes: engine, tokenizer, world model
 │       │       ├── platform/android/
+│       │       │   ├── storage/
+│       │       │   │   └── LocalDatasetImporter.kt
 │       │       │   ├── capture/
 │       │       │   │   ├── AccessibilityActionRegistry.kt
 │       │       │   │   ├── ArgusAccessibilityService.kt
@@ -107,6 +113,7 @@ The repository has moved beyond the first package relocation:
 - `application/runtime` keeps the transitional aggregate entry contract in `ArgusRuntime.kt` and separates the read-only training-availability, device, hardware, capture and accessibility ports into focused files. It is not yet the final workflow-specific application API layout.
 - Android capture, device, foreground lifecycle and notification adapters live under `platform/android/*`.
 - The concrete web-search connector lives under `data/acquisition`.
+- `platform/android/storage/LocalDatasetImporter.kt` handles user-selected and bundled local text-corpus imports, staged previews, local manifests and committed app-private corpus revisions. The bundled `app/src/main/assets/corpus/DigiTransID.zip` is the owner-created Indonesian starter corpus.
 - `model/` contains three mixed legacy prototype classes: `ArgusNeuralEngine`, `Tokenizer` and `WorldModel`. The former `TrainingManager` and raw-text worker have been removed; no replacement `application/learning` coordinator exists.
 - `ui/ArgusViewModel.kt` remains a transitional cross-feature ViewModel and still reaches concrete model, data and platform classes. Settings, Learning and Perception now receive feature-owned immutable UI state projections; command handling and full ViewModel ownership remain to be migrated after workflow APIs are established.
 - `ui/design/` contains shared Compose theme, color and typography resources.
@@ -134,4 +141,4 @@ The runtime-port file split preserves package names, public type names and metho
 
 ## Learning implementation status — 2026-11-05
 
-The legacy `model/TrainingManager.kt` queue/worker and `ArgusNeuralEngine.trainStep(String)` raw-text entry point have been removed. No `application/learning` workflow replaces them yet. Learning is explicitly unavailable in the feature UI and foreground notification until approved immutable candidate manifests, admission checks and session lifecycle are implemented. The numerical inference and benchmark prototype remains separate from training.
+The Learning screen now exposes the local dataset importer. It supports UTF-8 TXT, Markdown, JSONL, NDJSON and bounded ZIP input; the bundled DigiTransID archive is selectable directly. Import creates a preview, deduplicates records, hashes input/documents, assigns document-level deterministic splits, and commits a manifest plus JSONL records to app-private storage. Import does not start training. The legacy `model/TrainingManager.kt` queue/worker and `ArgusNeuralEngine.trainStep(String)` raw-text entry point have been removed. No `application/learning` workflow replaces them yet. Learning is explicitly unavailable in the feature UI and foreground notification until approved immutable candidate manifests, admission checks and session lifecycle are implemented. The numerical inference and benchmark prototype remains separate from training.

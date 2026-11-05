@@ -126,6 +126,10 @@ fun NeuralCoreScreen(viewModel: ArgusViewModel) {
             }
         }
 
+        item {
+            LocalDatasetImporterCard(viewModel = viewModel)
+        }
+
         // 1. Model Architecture & Parameter Card (Collapsible)
         item {
             Surface(

@@ -17,7 +17,8 @@ data class LearningUiState(
     val benchmark: LearningBenchmarkUiState? = null,
     val isBenchmarking: Boolean = false,
     val hardwareInfo: LearningHardwareUiState = LearningHardwareUiState(),
-    val totalStepsExecuted: Int = 0
+    val totalStepsExecuted: Int = 0,
+    val datasetImport: DatasetImportUiState = DatasetImportUiState()
 )
 
 data class LearningSafetyUiState(
@@ -42,4 +43,49 @@ data class LearningBenchmarkUiState(
     val tokensPerSecond: Float,
     val latencyMsPerToken: Float,
     val memoryUsageMb: Float
+)
+
+enum class DatasetPurposeUi(val label: String) {
+    MODEL_TRAINING("General model training"),
+    TOKENIZER_FREQUENCY_FITTING("Tokenizer frequency fitting"),
+    ALIGNED_TOKENIZER_DEVELOPMENT("Aligned tokenizer development")
+}
+
+data class DatasetImportUiState(
+    val isBusy: Boolean = false,
+    val statusMessage: String = "Imported files are staged locally before a corpus revision is committed.",
+    val errorMessage: String? = null,
+    val selectedPurposes: Set<DatasetPurposeUi> = setOf(
+        DatasetPurposeUi.MODEL_TRAINING,
+        DatasetPurposeUi.TOKENIZER_FREQUENCY_FITTING
+    ),
+    val stagedPreview: DatasetImportPreviewUiState? = null,
+    val committedCorpora: List<LocalCorpusUiState> = emptyList()
+)
+
+data class DatasetImportPreviewUiState(
+    val stageId: String,
+    val corpusId: String,
+    val selectedSourceCount: Int,
+    val parsedDocumentCount: Int,
+    val acceptedRecordCount: Int,
+    val duplicateRecordCount: Int,
+    val rejectedRecordCount: Int,
+    val skippedFileCount: Int,
+    val importedBytes: Long,
+    val trainRecordCount: Int,
+    val validationRecordCount: Int,
+    val testRecordCount: Int,
+    val warnings: List<String>
+)
+
+data class LocalCorpusUiState(
+    val corpusId: String,
+    val revision: Int,
+    val importedAtEpochMillis: Long,
+    val recordCount: Int,
+    val trainRecordCount: Int,
+    val validationRecordCount: Int,
+    val testRecordCount: Int,
+    val purposeLabels: List<String>
 )

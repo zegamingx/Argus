@@ -15,6 +15,7 @@ import com.argus.agi.platform.android.capture.AccessibilityActionRegistry
 import com.argus.agi.platform.android.capture.ExcludedAppsManager
 import com.argus.agi.platform.android.device.DeviceGuard
 import com.argus.agi.platform.android.device.HardwareProfile
+import com.argus.agi.platform.android.storage.LocalDatasetImporter
 
 /**
  * Process-scoped composition root for the current single-:app topology.
@@ -46,6 +47,10 @@ class ArgusContainer(application: Application) : ArgusRuntime {
 
     val webSearchEngine: WebSearchEngine by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         WebSearchEngine()
+    }
+
+    val localDatasetImporter: LocalDatasetImporter by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+        LocalDatasetImporter(application)
     }
 
     override val accessibility = AccessibilityActionRegistry()

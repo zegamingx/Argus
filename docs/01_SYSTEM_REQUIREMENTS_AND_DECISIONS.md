@@ -202,13 +202,13 @@ The initial general-corpus intake is a user-initiated import of locally selected
 The import workflow is local-first and explicit:
 
 1. The user selects local files or a supported archive through Android's system document picker. Argus does not crawl, fetch or upload the selected content.
-2. The user selects the intended local operation(s): general-corpus model training, tokenizer frequency fitting, aligned tokenizer development, or a chosen combination. The user declares that they have authority to use the selected data for each checked purpose. A file intended as personal experience follows the separate personal-learning intake in document 48.
+2. The user selects the intended local operation(s): general-corpus model training, tokenizer frequency fitting, aligned tokenizer development, or a chosen combination. A file intended as personal experience follows the separate personal-learning intake in document 48.
 3. Argus validates supported formats, archive boundaries, decoding, record structure, content size and integrity; it reports rejected or skipped records rather than silently dropping them.
-4. Argus records import identity, file/content digests, timestamps, user-provided source labels and a separate user declaration for each selected purpose, including tokenizer fitting when selected. It does not perform an external legal investigation for each article and does not infer that missing license metadata means public-domain material.
+4. Argus records import identity, file/content digests, timestamps, selected workflow purposes and optional user-provided source labels. This local path does not perform item-by-item source/license review.
 5. The user reviews the import summary and explicitly confirms corpus preparation. Argus creates a deterministic, immutable dataset manifest with split membership and preprocessing identity. Token counts/shards that depend on the selected tokenizer are finalized only after G1-D.
 6. Importing a corpus does not itself start model training. A later Learning session may consume only the exact committed manifest after Genesis, architecture/tokenizer, resource admission, checkpoint/recovery and training-workflow gates are satisfied.
 
-Imported corpora remain local to the owning Argus instance. The importer does not publish, redistribute, sync or send the content to an external service. This is a user-controlled ingestion path, not a legal determination about the contents of a file; source declarations and content digests remain inspectable.
+Imported corpora remain local to the owning Argus instance. The importer does not publish, redistribute, sync or send the content to an external service. Selected workflow purposes, source-file metadata and content digests remain inspectable in the local manifest.
 
 The first import implementation should prioritize common text and structured-text formats plus bounded archives. Exact parser support and resource limits are implementation bindings, not reasons to block the product direction. Public-source crawling and curated-source research remain optional later capabilities under ADR-016–023 and documents 24–32; they are not prerequisites for user-imported general learning.
 

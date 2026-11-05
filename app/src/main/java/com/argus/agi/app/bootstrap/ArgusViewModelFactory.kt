@@ -24,7 +24,8 @@ class ArgusViewModelFactory(
             hardwareProfile = container.hardwareProfile,
             excludedAppsManager = container.excludedAppsManager,
             webSearchEngine = container.webSearchEngine,
-            accessibilityRuntime = container.accessibility
+            accessibilityRuntime = container.accessibility,
+            localDatasetImporter = container.localDatasetImporter
         ) as T
     }
 }

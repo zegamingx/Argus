@@ -9,6 +9,9 @@ import com.argus.agi.feature.learning.presentation.LearningBenchmarkUiState
 import com.argus.agi.feature.learning.presentation.LearningHardwareUiState
 import com.argus.agi.feature.learning.presentation.LearningSafetyUiState
 import com.argus.agi.feature.learning.presentation.LearningUiState
+import com.argus.agi.feature.learning.presentation.DatasetPurposeUi
+import com.argus.agi.feature.learning.presentation.DatasetImportPreviewUiState
+import com.argus.agi.feature.learning.presentation.LocalCorpusUiState
 import com.argus.agi.feature.perception.presentation.PerceptionHardwareUiState
 import com.argus.agi.feature.perception.presentation.PerceptionUiState
 import com.argus.agi.feature.settings.presentation.InstalledAppUiItem
@@ -22,6 +25,13 @@ import com.argus.agi.platform.android.device.HardwareProfile
 import com.argus.agi.platform.android.capture.ExcludedAppsManager
 import com.argus.agi.data.acquisition.WebSearchEngine
 import com.argus.agi.application.runtime.AccessibilityRuntime
+import com.argus.agi.platform.android.storage.CorpusImportPreview
+import com.argus.agi.platform.android.storage.DatasetPurpose
+import com.argus.agi.platform.android.storage.LocalCorpusSummary
+import com.argus.agi.platform.android.storage.LocalDatasetImporter
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,7 +47,8 @@ class ArgusViewModel(
     private val hardwareProfile: HardwareProfile,
     private val excludedAppsManager: ExcludedAppsManager,
     private val webSearchEngine: WebSearchEngine,
-    private val accessibilityRuntime: AccessibilityRuntime
+    private val accessibilityRuntime: AccessibilityRuntime,
+    private val localDatasetImporter: LocalDatasetImporter
 ) : AndroidViewModel(application) {
 
     // UI States
@@ -91,6 +102,7 @@ class ArgusViewModel(
         observeWorldEntities()
         observeLearningSafety()
         observePerceptionSources()
+        loadLocalCorpora()
     }
 
     fun getTotalParameters(): Long = neuralEngine.countTotalParameters()
@@ -111,6 +123,222 @@ class ArgusViewModel(
                     ),
                     isBenchmarking = false
                 )
+            }
+        }
+    }
+
+    fun setDatasetPurpose(purpose: DatasetPurposeUi, enabled: Boolean) {
+        _learningState.update { state ->
+            val currentPurposes = state.datasetImport.selectedPurposes
+            val updatedPurposes = if (enabled) {
+                currentPurposes + purpose
+            } else {
+                currentPurposes - purpose
+            }
+            state.copy(
+                datasetImport = state.datasetImport.copy(
+                    selectedPurposes = updatedPurposes,
+                    errorMessage = null
+                )
+            )
+        }
+    }
+
+    fun stageLocalDataset(uris: List<Uri>) {
+        if (uris.isEmpty()) return
+        stageDataset { purposes ->
+            localDatasetImporter.stage(uris, purposes)
+        }
+    }
+
+    fun stageBundledDigiTransId() {
+        stageDataset { purposes ->
+            localDatasetImporter.stageBundledDigiTransId(purposes)
+        }
+    }
+
+    private fun stageDataset(
+        importAction: (Set<DatasetPurpose>) -> CorpusImportPreview
+    ) {
+        val currentImportState = _learningState.value.datasetImport
+        if (currentImportState.isBusy) return
+        if (currentImportState.selectedPurposes.isEmpty()) {
+            _learningState.update { state ->
+                state.copy(
+                    datasetImport = state.datasetImport.copy(
+                        errorMessage = "Select at least one purpose before importing."
+                    )
+                )
+            }
+            return
+        }
+
+        val purposes = currentImportState.selectedPurposes.map { purpose ->
+            when (purpose) {
+                DatasetPurposeUi.MODEL_TRAINING -> DatasetPurpose.MODEL_TRAINING
+                DatasetPurposeUi.TOKENIZER_FREQUENCY_FITTING -> DatasetPurpose.TOKENIZER_FREQUENCY_FITTING
+                DatasetPurposeUi.ALIGNED_TOKENIZER_DEVELOPMENT -> DatasetPurpose.ALIGNED_TOKENIZER_DEVELOPMENT
+            }
+        }.toSet()
+
+        _learningState.update { state ->
+            state.copy(
+                datasetImport = state.datasetImport.copy(
+                    isBusy = true,
+                    errorMessage = null,
+                    statusMessage = "Reading the selected corpus and preparing a local preview.",
+                    stagedPreview = null
+                )
+            )
+        }
+
+        viewModelScope.launch {
+            try {
+                val preview = withContext(Dispatchers.IO) {
+                    importAction(purposes)
+                }
+                _learningState.update { state ->
+                    state.copy(
+                        datasetImport = state.datasetImport.copy(
+                            isBusy = false,
+                            statusMessage = "Preview ready. Review the counts and warnings before committing the corpus.",
+                            stagedPreview = preview.toLearningUiState(),
+                            errorMessage = null
+                        )
+                    )
+                }
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                _learningState.update { state ->
+                    state.copy(
+                        datasetImport = state.datasetImport.copy(
+                            isBusy = false,
+                            statusMessage = "The local import did not create a corpus revision.",
+                            errorMessage = exception.message ?: "The selected files could not be imported."
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    fun commitStagedLocalDataset() {
+        val importState = _learningState.value.datasetImport
+        val preview = importState.stagedPreview ?: return
+        if (importState.isBusy) return
+
+        _learningState.update { state ->
+            state.copy(
+                datasetImport = state.datasetImport.copy(
+                    isBusy = true,
+                    errorMessage = null,
+                    statusMessage = "Committing the corpus revision to app-private storage."
+                )
+            )
+        }
+
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    localDatasetImporter.commit(preview.stageId)
+                }
+                val committedCorpora = withContext(Dispatchers.IO) {
+                    localDatasetImporter.listCommitted().map { it.toLearningUiState() }
+                }
+                _learningState.update { state ->
+                    state.copy(
+                        datasetImport = state.datasetImport.copy(
+                            isBusy = false,
+                            statusMessage = "Corpus revision committed locally. No training session was started.",
+                            stagedPreview = null,
+                            committedCorpora = committedCorpora,
+                            errorMessage = null
+                        )
+                    )
+                }
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                _learningState.update { state ->
+                    state.copy(
+                        datasetImport = state.datasetImport.copy(
+                            isBusy = false,
+                            statusMessage = "The corpus revision was not confirmed as committed.",
+                            errorMessage = exception.message ?: "The staged corpus could not be committed."
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    fun discardStagedLocalDataset() {
+        val importState = _learningState.value.datasetImport
+        val preview = importState.stagedPreview ?: return
+        if (importState.isBusy) return
+
+        _learningState.update { state ->
+            state.copy(
+                datasetImport = state.datasetImport.copy(
+                    isBusy = true,
+                    errorMessage = null,
+                    statusMessage = "Discarding staged corpus data."
+                )
+            )
+        }
+
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    localDatasetImporter.discard(preview.stageId)
+                }
+                _learningState.update { state ->
+                    state.copy(
+                        datasetImport = state.datasetImport.copy(
+                            isBusy = false,
+                            statusMessage = "The staged import was discarded.",
+                            stagedPreview = null,
+                            errorMessage = null
+                        )
+                    )
+                }
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                _learningState.update { state ->
+                    state.copy(
+                        datasetImport = state.datasetImport.copy(
+                            isBusy = false,
+                            errorMessage = exception.message ?: "The staged import could not be discarded."
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    private fun loadLocalCorpora() {
+        viewModelScope.launch {
+            try {
+                val corpora = withContext(Dispatchers.IO) {
+                    localDatasetImporter.listCommitted().map { it.toLearningUiState() }
+                }
+                _learningState.update { state ->
+                    state.copy(
+                        datasetImport = state.datasetImport.copy(committedCorpora = corpora)
+                    )
+                }
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (_: Exception) {
+                _learningState.update { state ->
+                    state.copy(
+                        datasetImport = state.datasetImport.copy(
+                            errorMessage = "Existing local corpus manifests could not be read."
+                        )
+                    )
+                }
             }
         }
     }
@@ -312,6 +540,44 @@ class ArgusViewModel(
         }
         return "Mathematical reasoning result: $n1 $op $n2 = $res"
     }
+}
+
+
+private fun CorpusImportPreview.toLearningUiState(): DatasetImportPreviewUiState {
+    return DatasetImportPreviewUiState(
+        stageId = stageId,
+        corpusId = corpusId,
+        selectedSourceCount = selectedSourceCount,
+        parsedDocumentCount = parsedDocumentCount,
+        acceptedRecordCount = acceptedRecordCount,
+        duplicateRecordCount = duplicateRecordCount,
+        rejectedRecordCount = rejectedRecordCount,
+        skippedFileCount = skippedFileCount,
+        importedBytes = importedBytes,
+        trainRecordCount = trainRecordCount,
+        validationRecordCount = validationRecordCount,
+        testRecordCount = testRecordCount,
+        warnings = warnings
+    )
+}
+
+private fun LocalCorpusSummary.toLearningUiState(): LocalCorpusUiState {
+    return LocalCorpusUiState(
+        corpusId = corpusId,
+        revision = revision,
+        importedAtEpochMillis = importedAtEpochMillis,
+        recordCount = recordCount,
+        trainRecordCount = trainRecordCount,
+        validationRecordCount = validationRecordCount,
+        testRecordCount = testRecordCount,
+        purposeLabels = purposes.map { purpose ->
+            when (purpose) {
+                DatasetPurpose.MODEL_TRAINING -> "Model training"
+                DatasetPurpose.TOKENIZER_FREQUENCY_FITTING -> "Tokenizer frequency fitting"
+                DatasetPurpose.ALIGNED_TOKENIZER_DEVELOPMENT -> "Aligned tokenizer development"
+            }
+        }.sorted()
+    )
 }
 
 private fun com.argus.agi.platform.android.device.DeviceSafetyState.toLearningUiState(): LearningSafetyUiState {
