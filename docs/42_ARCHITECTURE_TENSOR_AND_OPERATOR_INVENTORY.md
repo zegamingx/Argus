@@ -378,7 +378,7 @@ Every candidate row must pin these values before calculating bytes or FLOPs:
 | \(C,B_{req}\) | Inference context and simultaneous active requests |
 | \(s_w,s_g,s_o,s_m,s_{act},s_{logit},s_{KV}\) | Bytes per element for weights, gradients, optimizer state, optional master weights, activations, logits and KV cache |
 | \(R_{accum}\) | Gradient-accumulation count; changes effective batch/update exposure, not the number of simultaneously resident activation graphs |
-| Runtime/backend | Exact CPU/GPU/NPU implementation and operator coverage, including forward, loss, backward, optimizer and serialization |
+| Runtime/backend | Exact CPU reference, Vulkan compute device/driver/queue/features, optional NPU provider, and per-operator forward/loss/backward/optimizer/serialization coverage |
 | Device budget | Measured app/process headroom, storage reserve, baseline resident footprint and evidence confidence; do not substitute total physical RAM |
 
 Training sequence length \(T_{train}\) and inference context \(C\) are different controls and must not be conflated. The tokenizer vocabulary \(V\) is a dependency from G1-D, not a width-scaling knob.
@@ -566,9 +566,10 @@ Use an explicit FFN ratio \(r_{ffn}=F/D\) for the width sweep. Do not silently a
 | X-SERIAL | Training and inference are serialized; parent inference is paused while the child candidate trains | Training peak and inference peak separately fit; durable pause/checkpoint transition; no simultaneous parent-inference allocation assumed |
 | X-OVERLAP | Immutable parent inference continues while an isolated child candidate trains | Combined parent weights/KV/workspace + child training peak + runtime reserve fits; snapshot lifetime and promotion semantics are verified |
 | B-CPU-REFERENCE | Correctness/reference execution on CPU | Exact forward/loss/backward/optimizer support, numerical parity, sustained CPU throughput and process-memory evidence for every required operator |
-| B-ACCELERATOR | A particular GPU/NPU backend executes a declared subset or complete graph | Backend/provider/driver/API/ABI and per-operator forward, loss, backward, optimizer and serialization/recovery coverage; transfer and scratch costs; numerical parity and sustained thermal evidence |
+| B-VULKAN-COMPUTE | GPU compute pipelines via a queried Vulkan driver; does not require an NPU | Actual loader/driver and physical device; API version; compute queue; required core features/extensions/limits; FP32 baseline; optional FP16 arithmetic and storage queried independently; complete per-operator forward/loss/backward/optimizer/recovery coverage; shader/pipeline cache, transfer, synchronization, workspace, numerical parity and sustained thermal evidence |
+| B-NPU-VENDOR | Optional vendor NPU/DSP execution path | Exact SDK/runtime, SoC/driver compatibility, available training operators and dtypes; full train-step parity and state/recovery coverage; a successful inference graph alone is insufficient |
 
-These rows are orthogonal, not a ranked ladder. An accelerator can be used under X-SERIAL without qualifying for X-OVERLAP. A CPU path may be the correctness reference but too slow for a useful workload; a GPU matmul path may be fast but fail admission because softmax, normalization, backward or optimizer operations lack support. A partial accelerator path must state exactly which operations fall back to CPU and include transfer/copy buffers and synchronization in the peak.
+These rows are orthogonal, not a ranked ladder. Vulkan GPU compute does not require an NPU. A device without an NPU may select B-VULKAN-COMPUTE when its actual driver exposes a compute queue and the required features/operators; otherwise it uses the CPU reference/fallback or another separately verified provider. An accelerator can be used under X-SERIAL without qualifying for X-OVERLAP. A CPU path may be the correctness reference but too slow for a useful workload; a GPU matmul path may be fast but fail admission because softmax, normalization, backward or optimizer operations lack support. A partial accelerator path must state exactly which operations fall back to CPU and include transfer/copy buffers and synchronization in the peak. Vulkan is a low-level compute API and does not supply automatic differentiation or optimizer semantics.
 
 #### Bundle identity and comparison protocol
 
@@ -586,7 +587,7 @@ For each feasible tuple, record:
 - Forward/backward/update FLOPs and any operations excluded from the estimate.
 - Training and inference sequence/context lengths, microbatch, accumulation and active request count.
 - Separate Genesis, training, optimizer-update, inference, overlap, checkpoint and migration RAM/storage peaks.
-- CPU/backend operator coverage, numerical tolerance, sustained compute evidence, energy and thermal status.
+- CPU/Vulkan/NPU per-operator coverage, numerical tolerance, feature/driver identity, transfer/scratch cost, sustained compute evidence, energy and thermal status.
 - Tokenizer language-stratum fertility/coverage and the data/objective revision used for any quality proxy.
 - Rejected hard gates and the evidence/confidence attached to every accepted estimate.
 
@@ -693,6 +694,10 @@ G4 must produce one exact candidate bundle per supported profile, including:
 - rejected-alternative log and an architecture ADR.
 
 **Disposition:** no backbone, layer ratio, dimensions, vocabulary, optimizer, precision, initializer or backend is selected. The symbolic contracts enable exact estimates once the product-language policy, tokenizer rights/runtime and G4 model hypotheses are defined. G1-D remains open and G4 remains blocked. No Android implementation or performance support is claimed.
+
+
+7. [Android Vulkan implementation and feature requirements](https://source.android.com/docs/core/graphics/implement-vulkan), [Android Vulkan architecture](https://source.android.com/docs/core/graphics/arch-vulkan), [Vulkan compute shaders](https://docs.vulkan.org/guide/latest/compute_shaders.html), and [Android Vulkan reduced-precision guidance](https://developer.android.com/games/optimize/vulkan-reduced-precision). These define Vulkan compute/driver/precision capability checks; they do not establish Argus kernel or device performance support.
+8. [Android NNAPI migration guide](https://developer.android.com/ndk/guides/neuralnetworks/migration-guide) and [LiteRT Android hardware acceleration](https://developers.google.com/edge/litert/android/java). NNAPI NDK API deprecation and current inference acceleration guidance; neither source is proof of a complete Argus training backend.
 
 ## 9. Primary audited references
 
