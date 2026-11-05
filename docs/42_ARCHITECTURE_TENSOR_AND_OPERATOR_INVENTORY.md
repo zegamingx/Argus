@@ -606,7 +606,7 @@ Compare feasible candidates in separate parameter-, token/data-exposure-, comput
 The model-shape sweep can be completed analytically before physical-device testing, but a profile cannot be marked VERIFIED or assigned a supported device class until the relevant E1–E7 measurements exist. Proposed candidate labels are not support promises.
 
 
-### 7.2.8 Vulkan training operator readiness and routing contract
+### 7.2.9 Vulkan training operator readiness and routing contract
 
 This matrix defines the minimum operator-level investigation for a Vulkan training backend. It is a design and verification contract, not a statement that Argus kernels already exist or that a particular Android GPU can execute them. Every row begins as **UNVERIFIED** until the exact kernel, dtype, shape range, numerical tolerance, memory behavior and recovery behavior have evidence on the target driver.
 
@@ -641,7 +641,7 @@ This matrix defines the minimum operator-level investigation for a Vulkan traini
 
 For an 8 GB Android device, this matrix does not imply that 8 GB is available to the model or that Vulkan memory is independent of system pressure. Profile admission must use measured process and GPU allocations plus Android headroom, and must evaluate Genesis, training, inference and checkpoint phases separately. A device such as the Infinix Smart 10 Plus may be considered a candidate for later capability probing, but its RAM/SoC specification alone cannot establish Vulkan compute availability, a usable training graph or a supported Argus profile.
 
-### 7.2.9 Closed-form MHA reference sensitivity
+### 7.2.10 Closed-form MHA reference sensitivity
 
 For the document 43 reference graph, a useful simplified sensitivity form is available once \(V,D,L,F\) are supplied. The assumptions for this expression are explicit:
 
@@ -714,7 +714,7 @@ where \(N_{pairs}\) is the actual evaluated query-key pair count per sequence. A
 The formulas show why \(V\), \(D\), \(L\), \(F\), context, microbatch and precision must be evaluated together. They do not establish a numeric model profile, sustained tokens/second, a RAM threshold or Android device support.
 
 
-### 7.2.10 Structural-growth and sparse-topology resource accounting
+### 7.2.11 Structural-growth and sparse-topology resource accounting
 
 Architecture evolution introduces a second resource problem beyond selecting the first profile: the device must create, train, evaluate and either promote or discard a child generation without corrupting the active parent. A growth policy is not admitted by parameter count alone.
 
