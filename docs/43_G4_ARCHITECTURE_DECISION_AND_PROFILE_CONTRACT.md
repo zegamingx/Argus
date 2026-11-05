@@ -67,6 +67,10 @@ The final manifest should be machine-readable. The field names below are a propo
 | training_resource_envelope | Persistent weights/gradients/optimizer state, activations, logits, state/workspace, data staging and checkpoint-overlap estimate |
 | inference_resource_envelope | Parameters, output logits, KV/recurrent carry per active request, scratch, batching and concurrency assumptions |
 | reserve_policy | Application/system safety reserve and source of the chosen margin |
+| resource_estimator_revision | Exact document 42 worksheet/formula revision and calculator implementation version when implemented |
+| phase_peak_worksheet_ids | Separate tokenizer-preparation, Genesis, training-forward/backward, optimizer-update, inference and checkpoint/migration liveness worksheets |
+| device_process_headroom_evidence | App/process limit, baseline resident footprint, measured allocation headroom, storage reserve, sampling conditions and confidence |
+| sustained_compute_evidence | Exact backend/operator profile, measured sustained throughput/energy/thermal conditions; UNKNOWN before a matching device/backend run |
 | admission_reason | Why this exact bundle is inside or outside the capability envelope |
 
 Do not add all lifetime phases as if every allocation were live simultaneously. Compute phase-specific peak liveness, then include true overlap such as candidate checkpoint publication or simultaneous active inference.
@@ -158,7 +162,7 @@ Require family-correct tensor initialization and complete parameter-group invent
 
 ### Gate D — Analytical resource admission
 
-Use document 42 to fill exact parameter, gradient, optimizer, activation, logit, KV/recurrent-state, scratch, data-staging and checkpoint-overlap costs. Compute Genesis preparation and post-readiness training peaks separately. Reject candidates that cannot meet hard memory/storage/runtime requirements under the declared reserve.
+Use document 42 to fill exact parameter, gradient, optimizer, activation, logit, KV/recurrent-state, scratch, data-staging and checkpoint-overlap costs. For the Transformer-first control, use the first-pass parameter, FLOP, logits, saved-activation, KV and phase-liveness worksheet in document 42 section 7.2. Compute tokenizer preparation, first Genesis, post-readiness training, inference and checkpoint/migration peaks separately. Bind every estimate to the tokenizer vocabulary, graph tensor inventory, dtype policy, microbatch/context and actual backend assumptions. Reject candidates that cannot meet hard memory/storage/runtime requirements under the declared reserve. A missing backend/workspace or measured process-headroom value must remain UNKNOWN, not zero.
 
 ### Gate E — Matched comparative evidence
 
@@ -266,10 +270,10 @@ G4 closure does not authorize coding, builds, Actions, artifact upload or physic
 
 ## 9. Current disposition
 
-- **G1-D:** OPEN. The owner-created Indonesian `ArgusID.txt` and `DigiTransID.zip` assets are identified as the primary frequency-corpus candidates. The initial sweep is bounded to T0 raw bytes, T1 byte-level BPE, T2 SentencePiece BPE and T3 SentencePiece Unigram; T1-P PA-BPE remains conditional and T4 WordPiece is deferred from the minimum sweep. The importer-generated SHA-256/split manifest and explicit tokenizer-frequency purpose are not yet recorded; the product-language/unsupported-language policy and final tokenizer/runtime/API/ABI profile contract also remain unresolved.
+- **G1-D:** OPEN. The owner-created Indonesian `ArgusID.txt` and `DigiTransID.zip` assets and owner-created English `Argus_story_Eng.txt` are available as separate starter-corpus sources. Importer-generated SHA-256/split manifests and the explicit tokenizer-frequency purpose are not yet recorded; the product-language/unsupported-language policy and final tokenizer/runtime/API/ABI profile contract also remain unresolved. The initial tokenizer sweep remains T0 raw bytes, T1 byte-level BPE, T2 SentencePiece BPE and T3 SentencePiece Unigram; T1-P PA-BPE is conditional and T4 WordPiece is deferred from the minimum sweep.
 - **G2:** CLOSED only for the four-family comparison shortlist.
 - **G3:** CLOSED only for the component disposition planning baseline; DEFER remains DEFER.
-- **G4:** BLOCKED. A Transformer-first, single-family profile portfolio is the preliminary engineering recommendation for owner review, not a selected ADR. Document 39 now defines a bounded semantic reference and staged component-ablation order, but the exact tokenizer, graph/component selections, profile resource envelopes, optimizer/precision and final comparative rejection record remain incomplete.
+- **G4:** BLOCKED. A Transformer-first, single-family profile portfolio remains a preliminary engineering recommendation, not a selected ADR. Documents 39 and 42 now define the semantic reference, staged ablations, first-pass Transformer parameter/FLOP/memory equations and phase-specific resource-sweep method. Exact tokenizer/vocabulary, graph dimensions/components, per-device process/storage inputs, backend workspace/throughput evidence, optimizer/precision and final comparative rejection record remain incomplete.
 - **Backbone/profile/component:** none approved for implementation planning.
 - **Implementation/build/CI/physical testing:** not performed or authorized by this document.
 
