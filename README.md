@@ -1,6 +1,6 @@
 <div align="center">
-<video control src="public/assets/Reference_Booting.mp4" />
-</div>>
+  <video controls width="80%" src="https://raw.githubusercontent.com/zegamingx/Argus/main/public/assets/Reference_Booting.mp4"></video>
+</div>
 # ARGUS
 
 ### One Origin. Independent Evolution.
