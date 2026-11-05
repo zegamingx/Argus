@@ -68,14 +68,14 @@ data class DatasetImportPreviewUiState(
     val corpusId: String,
     val selectedSourceCount: Int,
     val parsedDocumentCount: Int,
-    val acceptedRecordCount: Int,
-    val duplicateRecordCount: Int,
-    val rejectedRecordCount: Int,
+    val acceptedRecordCount: Long,
+    val duplicateRecordCount: Long,
+    val rejectedRecordCount: Long,
     val skippedFileCount: Int,
     val importedBytes: Long,
-    val trainRecordCount: Int,
-    val validationRecordCount: Int,
-    val testRecordCount: Int,
+    val trainRecordCount: Long,
+    val validationRecordCount: Long,
+    val testRecordCount: Long,
     val warnings: List<String>
 )
 
@@ -83,9 +83,9 @@ data class LocalCorpusUiState(
     val corpusId: String,
     val revision: Int,
     val importedAtEpochMillis: Long,
-    val recordCount: Int,
-    val trainRecordCount: Int,
-    val validationRecordCount: Int,
-    val testRecordCount: Int,
+    val recordCount: Long,
+    val trainRecordCount: Long,
+    val validationRecordCount: Long,
+    val testRecordCount: Long,
     val purposeLabels: List<String>
 )

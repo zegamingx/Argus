@@ -1,24 +1,37 @@
 package com.argus.agi.platform.android.storage
 
 import android.content.Context
+import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteStatement
 import android.net.Uri
 import android.provider.OpenableColumns
 import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONTokener
+import java.io.BufferedInputStream
+import java.io.BufferedOutputStream
+import java.io.BufferedReader
 import java.io.BufferedWriter
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.FilterInputStream
+import java.io.IOException
 import java.io.InputStream
-import java.nio.ByteBuffer
+import java.io.InputStreamReader
+import java.io.Reader
+import java.nio.charset.CharacterCodingException
 import java.nio.charset.CodingErrorAction
 import java.nio.charset.StandardCharsets
+import java.security.DigestInputStream
 import java.security.MessageDigest
 import java.text.Normalizer
 import java.util.Locale
 import java.util.UUID
+import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlin.math.roundToInt
 
 enum class DatasetPurpose(val manifestValue: String) {
@@ -32,14 +45,14 @@ data class CorpusImportPreview(
     val corpusId: String,
     val selectedSourceCount: Int,
     val parsedDocumentCount: Int,
-    val acceptedRecordCount: Int,
-    val duplicateRecordCount: Int,
-    val rejectedRecordCount: Int,
+    val acceptedRecordCount: Long,
+    val duplicateRecordCount: Long,
+    val rejectedRecordCount: Long,
     val skippedFileCount: Int,
     val importedBytes: Long,
-    val trainRecordCount: Int,
-    val validationRecordCount: Int,
-    val testRecordCount: Int,
+    val trainRecordCount: Long,
+    val validationRecordCount: Long,
+    val testRecordCount: Long,
     val warnings: List<String>
 )
 
@@ -47,81 +60,87 @@ data class LocalCorpusSummary(
     val corpusId: String,
     val revision: Int,
     val importedAtEpochMillis: Long,
-    val recordCount: Int,
-    val trainRecordCount: Int,
-    val validationRecordCount: Int,
-    val testRecordCount: Int,
+    val recordCount: Long,
+    val trainRecordCount: Long,
+    val validationRecordCount: Long,
+    val testRecordCount: Long,
     val purposes: Set<DatasetPurpose>
 )
 
 /**
- * Imports user-selected general-corpus files into app-private storage.
- *
- * Supported inputs are UTF-8 TXT, Markdown, JSONL and NDJSON files, either
- * selected individually or contained in a ZIP archive. Archive entries are
- * read as streams and are never extracted using archive-provided paths.
+ * Streams local sources into app-private staging. Text is decoded incrementally,
+ * ZIP entries are processed directly from ZipInputStream, and deduplication is
+ * disk-backed. No source file or archive entry is loaded as a whole byte array.
  */
 class LocalDatasetImporter(context: Context) {
 
     private val appContext: Context = context.applicationContext
 
-    fun stage(
+    suspend fun stage(
         uris: List<Uri>,
         purposes: Set<DatasetPurpose>
     ): CorpusImportPreview {
-        val sources = uris.map { uri ->
-            ImportSource(
-                displayName = queryDisplayName(uri),
-                mimeType = appContext.contentResolver.getType(uri),
-                openStream = { appContext.contentResolver.openInputStream(uri) }
+        require(uris.size <= MAX_SELECTED_SOURCES) {
+            "The import accepts at most " + MAX_SELECTED_SOURCES + " selected files at once."
+        }
+        val sources = ArrayList<ImportSource>(uris.size)
+        for (uri in uris) {
+            sources.add(
+                ImportSource(
+                    displayName = queryDisplayName(uri),
+                    mimeType = appContext.contentResolver.getType(uri),
+                    openStream = { appContext.contentResolver.openInputStream(uri) }
+                )
             )
         }
         return stageSources(sources, purposes)
     }
 
-    fun stageBundledArgusId(purposes: Set<DatasetPurpose>): CorpusImportPreview {
-        val source = ImportSource(
-            displayName = "ArgusID.txt",
-            mimeType = "text/plain",
-            openStream = { appContext.assets.open(BUNDLED_ARGUS_ID_ASSET) }
+    suspend fun stageBundledArgusId(purposes: Set<DatasetPurpose>): CorpusImportPreview {
+        return stageSources(
+            listOf(
+                ImportSource(
+                    displayName = "ArgusID.txt",
+                    mimeType = "text/plain",
+                    openStream = { appContext.assets.open(BUNDLED_ARGUS_ID_ASSET) }
+                )
+            ),
+            purposes
         )
-        return stageSources(listOf(source), purposes)
     }
 
-    fun stageBundledDigiTransId(purposes: Set<DatasetPurpose>): CorpusImportPreview {
-        val source = ImportSource(
-            displayName = "DigiTransID.zip",
-            mimeType = "application/zip",
-            openStream = { appContext.assets.open(BUNDLED_DIGITRANSID_ASSET) }
+    suspend fun stageBundledDigiTransId(purposes: Set<DatasetPurpose>): CorpusImportPreview {
+        return stageSources(
+            listOf(
+                ImportSource(
+                    displayName = "DigiTransID.zip",
+                    mimeType = "application/zip",
+                    openStream = { appContext.assets.open(BUNDLED_DIGITRANSID_ASSET) }
+                )
+            ),
+            purposes
         )
-        return stageSources(listOf(source), purposes)
     }
 
-    private fun stageSources(
+    private suspend fun stageSources(
         sources: List<ImportSource>,
         purposes: Set<DatasetPurpose>
     ): CorpusImportPreview {
         require(sources.isNotEmpty()) { "Select at least one local dataset file." }
         require(purposes.isNotEmpty()) { "Select at least one dataset purpose." }
         require(sources.size <= MAX_SELECTED_SOURCES) {
-            "The import accepts at most $MAX_SELECTED_SOURCES selected files at once."
+            "The import accepts at most " + MAX_SELECTED_SOURCES + " selected files at once."
         }
 
         val stageId = UUID.randomUUID().toString()
         val corpusId = UUID.randomUUID().toString()
         val stageDirectory = File(File(appContext.filesDir, STAGING_DIRECTORY), stageId)
-        if (!stageDirectory.mkdirs()) {
+        if (!stageDirectory.mkdirs() && !stageDirectory.isDirectory) {
             throw IllegalStateException("Could not create the local corpus staging directory.")
         }
 
         try {
-            return stageInto(
-                sources = sources,
-                purposes = purposes,
-                stageId = stageId,
-                corpusId = corpusId,
-                stageDirectory = stageDirectory
-            )
+            return stageInto(sources, purposes, stageId, corpusId, stageDirectory)
         } catch (exception: Exception) {
             stageDirectory.deleteRecursively()
             throw exception
@@ -154,7 +173,6 @@ class LocalDatasetImporter(context: Context) {
         if (!stageDirectory.renameTo(revisionDirectory)) {
             throw IllegalStateException("Could not commit the staged corpus to local storage.")
         }
-
         return summaryFromManifest(manifest)
     }
 
@@ -191,7 +209,7 @@ class LocalDatasetImporter(context: Context) {
             .toList()
     }
 
-    private fun stageInto(
+    private suspend fun stageInto(
         sources: List<ImportSource>,
         purposes: Set<DatasetPurpose>,
         stageId: String,
@@ -202,126 +220,181 @@ class LocalDatasetImporter(context: Context) {
         val finalRecordsFile = File(stageDirectory, RECORDS_FILE)
         val sourceMetadata = JSONArray()
         val documentMetadata = linkedMapOf<String, DocumentMetadata>()
-        val seenRecordDigests = HashSet<String>()
         val warnings = mutableListOf<String>()
-        var acceptedRecords = 0
-        var duplicateRecords = 0
-        var rejectedRecords = 0
+        val storageGuard = StorageGuard(stageDirectory)
+
+        var acceptedRecords = 0L
+        var duplicateRecords = 0L
+        var rejectedRecords = 0L
         var skippedFiles = 0
         var importedBytes = 0L
-        var expandedArchiveBytes = 0L
         var archiveEntryCount = 0
 
-        BufferedWriter(rawRecordsFile.writer(Charsets.UTF_8)).use { writer ->
-            sources.forEach { source ->
-                val sourceName = source.displayName
-                val mimeType = source.mimeType
-                val archive = isZip(sourceName, mimeType)
-                val sourceBytes = source.openStream()?.use { input ->
-                    readBounded(input, if (archive) MAX_ARCHIVE_BYTES else MAX_DOCUMENT_BYTES)
-                } ?: throw IllegalStateException("Could not open the selected file: $sourceName")
+        val deduplicationDatabaseFile = File(stageDirectory, DEDUPLICATION_DATABASE_FILE)
+        val deduplicationDatabase = SQLiteDatabase.openOrCreateDatabase(
+            deduplicationDatabaseFile,
+            null
+        )
+        var insertDigest: SQLiteStatement? = null
+        var transactionStarted = false
 
-                val sourceDigest = sha256(sourceBytes)
-                sourceMetadata.put(
-                    JSONObject()
-                        .put("name", sourceName)
-                        .put("mimeType", mimeType ?: JSONObject.NULL)
-                        .put("sizeBytes", sourceBytes.size)
-                        .put("sha256", sourceDigest)
-                        .put("archive", archive)
-                )
+        try {
+            deduplicationDatabase.execSQL(
+                "CREATE TABLE record_digests (digest TEXT NOT NULL PRIMARY KEY)"
+            )
+            insertDigest = deduplicationDatabase.compileStatement(
+                "INSERT OR IGNORE INTO record_digests (digest) VALUES (?)"
+            )
+            deduplicationDatabase.beginTransaction()
+            transactionStarted = true
 
-                if (archive) {
-                    ZipInputStream(ByteArrayInputStream(sourceBytes)).use { zip ->
-                        while (true) {
-                            val entry = zip.nextEntry ?: break
-                            archiveEntryCount += 1
-                            if (archiveEntryCount > MAX_ARCHIVE_ENTRIES) {
-                                throw IllegalArgumentException(
-                                    "The selected ZIP files contain more than $MAX_ARCHIVE_ENTRIES entries."
+            val digestStatement = insertDigest
+                ?: throw IllegalStateException("The corpus deduplication statement is unavailable.")
+
+            rawRecordsFile.bufferedWriter(Charsets.UTF_8).use { rawWriter ->
+                for ((sourceIndex, source) in sources.withIndex()) {
+                    currentCoroutineContext().ensureActive()
+                    val sourceName = source.displayName
+                    val archive = isZip(sourceName, source.mimeType)
+
+                    if (archive) {
+                        val archiveFile = File(
+                            stageDirectory,
+                            "archive-" + sourceIndex.toString().padStart(3, '0') + ".zip"
+                        )
+                        val sourceInfo = source.openStream()?.use { input ->
+                            spoolArchive(input, archiveFile, storageGuard)
+                        } ?: throw IllegalStateException(
+                            "Could not open the selected file: " + sourceName
+                        )
+
+                        sourceMetadata.put(
+                            JSONObject()
+                                .put("name", sourceName)
+                                .put("mimeType", source.mimeType ?: JSONObject.NULL)
+                                .put("sizeBytes", sourceInfo.sizeBytes)
+                                .put("sha256", sourceInfo.sha256)
+                                .put("archive", true)
+                        )
+
+                        val archiveResult = processArchive(
+                            archiveFile = archiveFile,
+                            sourceName = sourceName,
+                            startingEntryCount = archiveEntryCount,
+                            stageDirectory = stageDirectory,
+                            rawWriter = rawWriter,
+                            insertDigest = digestStatement,
+                            documentMetadata = documentMetadata,
+                            warnings = warnings,
+                            storageGuard = storageGuard
+                        )
+                        archiveEntryCount = archiveResult.entryCount
+                        acceptedRecords += archiveResult.acceptedRecords
+                        duplicateRecords += archiveResult.duplicateRecords
+                        rejectedRecords += archiveResult.rejectedRecords
+                        skippedFiles += archiveResult.skippedFiles
+                        importedBytes += archiveResult.importedBytes
+                        archiveFile.delete()
+                    } else if (!isSupportedTextFile(sourceName)) {
+                        skippedFiles += 1
+                        sourceMetadata.put(
+                            JSONObject()
+                                .put("name", sourceName)
+                                .put("mimeType", source.mimeType ?: JSONObject.NULL)
+                                .put("archive", false)
+                                .put("status", "skipped_unsupported_type")
+                        )
+                        addWarning(
+                            warnings,
+                            "Skipped " + sourceName +
+                                " because only TXT, Markdown, JSONL, NDJSON and ZIP are supported."
+                        )
+                    } else {
+                        val parsedFile = File(
+                            stageDirectory,
+                            "parsed-source-" + sourceIndex.toString().padStart(3, '0') + ".jsonl"
+                        )
+                        val digest = MessageDigest.getInstance("SHA-256")
+                        val sourceInput = source.openStream()
+                            ?: throw IllegalStateException(
+                                "Could not open the selected file: " + sourceName
+                            )
+                        val countedInput = CountingInputStream(
+                            DigestInputStream(sourceInput, digest)
+                        )
+                        val parsed = try {
+                            parseDocument(
+                                input = countedInput,
+                                extension = extensionOf(sourceName),
+                                displayName = sourceName,
+                                parsedRecordsFile = parsedFile,
+                                warnings = warnings,
+                                storageGuard = storageGuard
+                            )
+                        } finally {
+                            countedInput.close()
+                        }
+                        val sourceDigest = digestToHex(digest.digest())
+                        sourceMetadata.put(
+                            JSONObject()
+                                .put("name", sourceName)
+                                .put("mimeType", source.mimeType ?: JSONObject.NULL)
+                                .put("sizeBytes", countedInput.bytesRead)
+                                .put("sha256", sourceDigest)
+                                .put("archive", false)
+                        )
+                        importedBytes += countedInput.bytesRead
+
+                        val documentResult = if (parsed.isValid) {
+                            val parsedRecords = parsed.file
+                                ?: throw IllegalStateException("The parsed document file is missing.")
+                            try {
+                                ingestParsedRecords(
+                                    parsedRecordsFile = parsedRecords,
+                                    sourceDocumentDigest = sourceDigest,
+                                    displayName = sourceName,
+                                    mediaType = source.mimeType,
+                                    sourceSizeBytes = countedInput.bytesRead,
+                                    rawWriter = rawWriter,
+                                    insertDigest = digestStatement,
+                                    documentMetadata = documentMetadata,
+                                    storageGuard = storageGuard
                                 )
+                            } finally {
+                                parsedRecords.delete()
                             }
+                        } else {
+                            IngestResult(0L, 0L, 0L, false)
+                        }
 
-                            if (entry.isDirectory) {
-                                zip.closeEntry()
-                                continue
-                            }
-
-                            val entryName = entry.name
-                            val remainingExpandedBytes = MAX_TOTAL_EXPANDED_BYTES - expandedArchiveBytes
-                            if (remainingExpandedBytes <= 0L) {
-                                throw IllegalArgumentException("The ZIP contents exceed the local import size limit.")
-                            }
-                            val entryBytes = readBounded(
-                                input = zip,
-                                maxBytes = minOf(MAX_DOCUMENT_BYTES, remainingExpandedBytes)
+                        acceptedRecords += documentResult.acceptedRecords
+                        duplicateRecords += documentResult.duplicateRecords
+                        rejectedRecords += parsed.rejectedRecords + documentResult.rejectedRecords
+                        if (!documentResult.documentAccepted) {
+                            skippedFiles += 1
+                            addWarning(
+                                warnings,
+                                "No usable records were found in " + sourceName + "."
                             )
-                            expandedArchiveBytes += entryBytes.size
-
-                            if (!isSafeArchivePath(entryName)) {
-                                skippedFiles += 1
-                                addWarning(warnings, "Skipped an unsafe archive path.")
-                                zip.closeEntry()
-                                continue
-                            }
-
-                            if (!isSupportedTextFile(entryName)) {
-                                skippedFiles += 1
-                                addWarning(warnings, "Skipped unsupported archive entry: $entryName")
-                                zip.closeEntry()
-                                continue
-                            }
-
-                            importedBytes += entryBytes.size
-                            val result = processTextDocument(
-                                displayName = "$sourceName!/$entryName",
-                                mediaType = mimeTypeForName(entryName),
-                                bytes = entryBytes,
-                                writer = writer,
-                                seenRecordDigests = seenRecordDigests,
-                                documentMetadata = documentMetadata,
-                                warnings = warnings
-                            )
-                            acceptedRecords += result.acceptedRecords
-                            duplicateRecords += result.duplicateRecords
-                            rejectedRecords += result.rejectedRecords
-                            if (!result.documentAccepted) {
-                                skippedFiles += 1
-                            }
-                            zip.closeEntry()
                         }
                     }
-                } else if (isSupportedTextFile(sourceName)) {
-                    importedBytes += sourceBytes.size
-                    if (importedBytes > MAX_TOTAL_EXPANDED_BYTES) {
-                        throw IllegalArgumentException("The selected files exceed the local import size limit.")
-                    }
-                    val result = processTextDocument(
-                        displayName = sourceName,
-                        mediaType = mimeType,
-                        bytes = sourceBytes,
-                        writer = writer,
-                        seenRecordDigests = seenRecordDigests,
-                        documentMetadata = documentMetadata,
-                        warnings = warnings
-                    )
-                    acceptedRecords += result.acceptedRecords
-                    duplicateRecords += result.duplicateRecords
-                    rejectedRecords += result.rejectedRecords
-                    if (!result.documentAccepted) {
-                        skippedFiles += 1
-                    }
-                } else {
-                    skippedFiles += 1
-                    addWarning(
-                        warnings,
-                        "Skipped $sourceName because only TXT, Markdown, JSONL, NDJSON and ZIP are supported."
-                    )
                 }
+            }
+
+            deduplicationDatabase.setTransactionSuccessful()
+        } finally {
+            try {
+                if (transactionStarted) {
+                    deduplicationDatabase.endTransaction()
+                }
+            } finally {
+                insertDigest?.close()
+                deduplicationDatabase.close()
+                deduplicationDatabaseFile.delete()
             }
         }
 
-        if (acceptedRecords == 0 || documentMetadata.isEmpty()) {
+        if (acceptedRecords == 0L || documentMetadata.isEmpty()) {
             throw IllegalArgumentException(
                 "No usable text records were found. Supported formats are TXT, Markdown, JSONL, NDJSON and ZIP."
             )
@@ -331,7 +404,8 @@ class LocalDatasetImporter(context: Context) {
         val splitCounts = writeFinalRecords(
             rawRecordsFile = rawRecordsFile,
             finalRecordsFile = finalRecordsFile,
-            splitByDocument = splitByDocument
+            splitByDocument = splitByDocument,
+            storageGuard = storageGuard
         )
         rawRecordsFile.delete()
 
@@ -398,76 +472,457 @@ class LocalDatasetImporter(context: Context) {
         )
     }
 
-    private fun processTextDocument(
+    private suspend fun spoolArchive(
+        input: InputStream,
+        targetFile: File,
+        storageGuard: StorageGuard
+    ): SourceInfo {
+        val digest = MessageDigest.getInstance("SHA-256")
+        var sizeBytes = 0L
+        val digestInput = DigestInputStream(input, digest)
+        BufferedOutputStream(FileOutputStream(targetFile), STREAM_BUFFER_SIZE).use { output ->
+            val buffer = ByteArray(STREAM_BUFFER_SIZE)
+            while (true) {
+                currentCoroutineContext().ensureActive()
+                val readCount = digestInput.read(buffer)
+                if (readCount < 0) break
+                storageGuard.beforeWrite(readCount.toLong())
+                output.write(buffer, 0, readCount)
+                sizeBytes += readCount.toLong()
+            }
+        }
+        return SourceInfo(sizeBytes, digestToHex(digest.digest()))
+    }
+
+    private suspend fun processArchive(
+        archiveFile: File,
+        sourceName: String,
+        startingEntryCount: Int,
+        stageDirectory: File,
+        rawWriter: BufferedWriter,
+        insertDigest: SQLiteStatement,
+        documentMetadata: MutableMap<String, DocumentMetadata>,
+        warnings: MutableList<String>,
+        storageGuard: StorageGuard
+    ): ArchiveResult {
+        var entryCount = startingEntryCount
+        var acceptedRecords = 0L
+        var duplicateRecords = 0L
+        var rejectedRecords = 0L
+        var skippedFiles = 0
+        var importedBytes = 0L
+
+        FileInputStream(archiveFile).use { fileInput ->
+            ZipInputStream(
+                BufferedInputStream(fileInput, STREAM_BUFFER_SIZE)
+            ).use { zip ->
+                while (true) {
+                    currentCoroutineContext().ensureActive()
+                    val entry: ZipEntry = zip.nextEntry ?: break
+                    entryCount += 1
+                    if (entryCount > MAX_ARCHIVE_ENTRIES) {
+                        throw IllegalArgumentException(
+                            "The selected ZIP files contain more than " +
+                                MAX_ARCHIVE_ENTRIES + " entries in total."
+                        )
+                    }
+
+                    if (entry.isDirectory) {
+                        zip.closeEntry()
+                        continue
+                    }
+
+                    val entryName = entry.name
+                    if (!isSafeArchivePath(entryName)) {
+                        drainZipEntry(zip)
+                        skippedFiles += 1
+                        addWarning(warnings, "Skipped an unsafe archive path.")
+                        zip.closeEntry()
+                        continue
+                    }
+
+                    if (!isSupportedTextFile(entryName)) {
+                        drainZipEntry(zip)
+                        skippedFiles += 1
+                        addWarning(
+                            warnings,
+                            "Skipped unsupported archive entry: " + entryName
+                        )
+                        zip.closeEntry()
+                        continue
+                    }
+
+                    val entryIndex = entryCount.toString().padStart(5, '0')
+                    val parsedRecordsFile = File(
+                        stageDirectory,
+                        "parsed-archive-entry-" + entryIndex + ".jsonl"
+                    )
+                    val entryDigest = MessageDigest.getInstance("SHA-256")
+                    val countedEntryInput = CountingInputStream(
+                        DigestInputStream(zip, entryDigest)
+                    )
+                    val parsed = parseDocument(
+                        input = countedEntryInput,
+                        extension = extensionOf(entryName),
+                        displayName = sourceName + "!/" + entryName,
+                        parsedRecordsFile = parsedRecordsFile,
+                        warnings = warnings,
+                        storageGuard = storageGuard
+                    )
+                    val entrySizeBytes = countedEntryInput.bytesRead
+                    val documentDigest = digestToHex(entryDigest.digest())
+                    importedBytes += entrySizeBytes
+
+                    val displayName = sourceName + "!/" + entryName
+                    val documentResult = if (parsed.isValid) {
+                        val parsedRecords = parsed.file
+                            ?: throw IllegalStateException("The parsed archive entry file is missing.")
+                        try {
+                            ingestParsedRecords(
+                                parsedRecordsFile = parsedRecords,
+                                sourceDocumentDigest = documentDigest,
+                                displayName = displayName,
+                                mediaType = mimeTypeForName(entryName),
+                                sourceSizeBytes = entrySizeBytes,
+                                rawWriter = rawWriter,
+                                insertDigest = insertDigest,
+                                documentMetadata = documentMetadata,
+                                storageGuard = storageGuard
+                            )
+                        } finally {
+                            parsedRecords.delete()
+                        }
+                    } else {
+                        IngestResult(0L, 0L, 0L, false)
+                    }
+
+                    acceptedRecords += documentResult.acceptedRecords
+                    duplicateRecords += documentResult.duplicateRecords
+                    rejectedRecords += parsed.rejectedRecords + documentResult.rejectedRecords
+                    if (!documentResult.documentAccepted) {
+                        skippedFiles += 1
+                        addWarning(warnings, "No usable records were found in " + displayName + ".")
+                    }
+                    zip.closeEntry()
+                }
+            }
+        }
+
+        return ArchiveResult(
+            entryCount = entryCount,
+            acceptedRecords = acceptedRecords,
+            duplicateRecords = duplicateRecords,
+            rejectedRecords = rejectedRecords,
+            skippedFiles = skippedFiles,
+            importedBytes = importedBytes
+        )
+    }
+
+    private suspend fun parseDocument(
+        input: CountingInputStream,
+        extension: String,
+        displayName: String,
+        parsedRecordsFile: File,
+        warnings: MutableList<String>,
+        storageGuard: StorageGuard
+    ): ParsedFile {
+        val decoder = StandardCharsets.UTF_8.newDecoder()
+            .onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT)
+        val reader = BufferedReader(
+            InputStreamReader(input, decoder),
+            STREAM_BUFFER_SIZE
+        )
+
+        return try {
+            var rejectedRecords = 0L
+            parsedRecordsFile.bufferedWriter(Charsets.UTF_8).use { writer ->
+                rejectedRecords = when (extension) {
+                    "txt", "md" -> parsePlainText(reader, writer, storageGuard)
+                    "jsonl", "ndjson" -> parseJsonLines(
+                        reader = reader,
+                        writer = writer,
+                        displayName = displayName,
+                        warnings = warnings,
+                        storageGuard = storageGuard
+                    )
+                    else -> 1L
+                }
+            }
+            ParsedFile(parsedRecordsFile, true, rejectedRecords)
+        } catch (exception: CharacterCodingException) {
+            drainInput(input)
+            parsedRecordsFile.delete()
+            addWarning(warnings, "Skipped " + displayName + " because it is not valid UTF-8.")
+            ParsedFile(null, false, 1L)
+        }
+    }
+
+    private suspend fun parsePlainText(
+        reader: Reader,
+        writer: BufferedWriter,
+        storageGuard: StorageGuard
+    ): Long {
+        val paragraph = StringBuilder()
+        val buffer = CharArray(STREAM_BUFFER_SIZE)
+        var lineHasContent = false
+        var previousWasCarriageReturn = false
+
+        suspend fun emitWholeParagraph() {
+            if (paragraph.isEmpty()) return
+            writeCandidate(paragraph.toString(), writer, storageGuard)
+            paragraph.setLength(0)
+        }
+
+        suspend fun emitLongParagraphChunk() {
+            if (paragraph.length <= MAX_TEXT_RECORD_CHARACTERS) return
+            var splitAt = MAX_TEXT_RECORD_CHARACTERS
+            val minimumBoundary = MAX_TEXT_RECORD_CHARACTERS * 3 / 4
+            while (splitAt > minimumBoundary && !paragraph[splitAt - 1].isWhitespace()) {
+                splitAt -= 1
+            }
+            if (splitAt <= minimumBoundary) {
+                splitAt = MAX_TEXT_RECORD_CHARACTERS
+            }
+            if (
+                splitAt < paragraph.length &&
+                Character.isHighSurrogate(paragraph[splitAt - 1]) &&
+                Character.isLowSurrogate(paragraph[splitAt])
+            ) {
+                splitAt -= 1
+            }
+            val chunk = paragraph.substring(0, splitAt)
+            paragraph.delete(0, splitAt)
+            writeCandidate(chunk, writer, storageGuard)
+        }
+
+        suspend fun completeLine() {
+            if (lineHasContent) {
+                paragraph.append('\n')
+                lineHasContent = false
+            } else {
+                emitWholeParagraph()
+            }
+        }
+
+        while (true) {
+            val readCount = reader.read(buffer)
+            if (readCount < 0) break
+            currentCoroutineContext().ensureActive()
+
+            for (index in 0 until readCount) {
+                val character = buffer[index]
+                when (character) {
+                    '\r' -> {
+                        completeLine()
+                        previousWasCarriageReturn = true
+                    }
+                    '\n' -> {
+                        if (previousWasCarriageReturn) {
+                            previousWasCarriageReturn = false
+                        } else {
+                            completeLine()
+                        }
+                    }
+                    else -> {
+                        previousWasCarriageReturn = false
+                        paragraph.append(character)
+                        if (!character.isWhitespace()) {
+                            lineHasContent = true
+                        }
+                        emitLongParagraphChunk()
+                    }
+                }
+            }
+        }
+
+        if (lineHasContent || paragraph.isNotEmpty()) {
+            emitWholeParagraph()
+        }
+        return 0L
+    }
+
+    private suspend fun parseJsonLines(
+        reader: Reader,
+        writer: BufferedWriter,
+        displayName: String,
+        warnings: MutableList<String>,
+        storageGuard: StorageGuard
+    ): Long {
+        val line = StringBuilder()
+        val buffer = CharArray(STREAM_BUFFER_SIZE)
+        var oversizedLine = false
+        var previousWasCarriageReturn = false
+        var invalidLines = 0L
+
+        suspend fun emitLine() {
+            if (oversizedLine) {
+                invalidLines += 1L
+            } else if (line.isNotBlank()) {
+                val extracted = extractJsonLine(line.toString())
+                if (extracted.isNullOrBlank()) {
+                    invalidLines += 1L
+                } else {
+                    writeCandidate(extracted, writer, storageGuard)
+                }
+            }
+            line.setLength(0)
+            oversizedLine = false
+        }
+
+        while (true) {
+            val readCount = reader.read(buffer)
+            if (readCount < 0) break
+            currentCoroutineContext().ensureActive()
+
+            for (index in 0 until readCount) {
+                val character = buffer[index]
+                when (character) {
+                    '\r' -> {
+                        emitLine()
+                        previousWasCarriageReturn = true
+                    }
+                    '\n' -> {
+                        if (previousWasCarriageReturn) {
+                            previousWasCarriageReturn = false
+                        } else {
+                            emitLine()
+                        }
+                    }
+                    else -> {
+                        previousWasCarriageReturn = false
+                        if (!oversizedLine) {
+                            if (line.length < MAX_JSONL_LINE_CHARACTERS) {
+                                line.append(character)
+                            } else {
+                                oversizedLine = true
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (line.isNotEmpty() || oversizedLine) {
+            emitLine()
+        }
+        if (invalidLines > 0L) {
+            addWarning(
+                warnings,
+                displayName + " contains " + invalidLines +
+                    " empty, oversized or unsupported JSONL rows."
+            )
+        }
+        return invalidLines
+    }
+
+    private fun extractJsonLine(source: String): String? {
+        val trimmed = source.trim()
+        if (trimmed.isEmpty()) return null
+
+        return runCatching {
+            val value = JSONTokener(trimmed).nextValue()
+            when (value) {
+                is JSONObject -> {
+                    val fields = listOf(
+                        "text",
+                        "content",
+                        "body",
+                        "article",
+                        "document",
+                        "prompt",
+                        "completion",
+                        "response",
+                        "answer",
+                        "input",
+                        "output"
+                    )
+                    fields.mapNotNull { key ->
+                        val field = value.opt(key)
+                        (field as? String)?.takeIf { it.isNotBlank() }
+                    }.distinct().joinToString("\n").takeIf { it.isNotBlank() }
+                }
+                is String -> value
+                else -> null
+            }
+        }.getOrNull()
+    }
+
+    private suspend fun writeCandidate(
+        source: String,
+        writer: BufferedWriter,
+        storageGuard: StorageGuard
+    ) {
+        val normalized = normalizeText(source)
+        if (normalized.isBlank()) return
+
+        val serializedRecord = JSONObject().put("text", normalized).toString()
+        storageGuard.beforeWrite(serializedRecord.length.toLong() * 2L)
+        writer.write(serializedRecord)
+        writer.newLine()
+    }
+
+    private suspend fun ingestParsedRecords(
+        parsedRecordsFile: File,
+        sourceDocumentDigest: String,
         displayName: String,
         mediaType: String?,
-        bytes: ByteArray,
-        writer: BufferedWriter,
-        seenRecordDigests: MutableSet<String>,
+        sourceSizeBytes: Long,
+        rawWriter: BufferedWriter,
+        insertDigest: SQLiteStatement,
         documentMetadata: MutableMap<String, DocumentMetadata>,
-        warnings: MutableList<String>
-    ): DocumentResult {
-        val digest = sha256(bytes)
-        val decodedText = decodeUtf8(bytes)
-        if (decodedText == null) {
-            addWarning(warnings, "Skipped $displayName because it is not valid UTF-8.")
-            return DocumentResult(0, 0, 1, false)
-        }
+        storageGuard: StorageGuard
+    ): IngestResult {
+        var accepted = 0L
+        var duplicates = 0L
+        var rejected = 0L
+        var processedSinceCancellationCheck = 0
 
-        val extension = extensionOf(displayName)
-        val parsedRecords = when (extension) {
-            "txt", "md" -> ParsedRecords(splitTextDocument(decodedText), 0)
-            "jsonl", "ndjson" -> parseJsonLines(decodedText, displayName, warnings)
-            else -> ParsedRecords(emptyList(), 1)
-        }
-        val candidates = parsedRecords.records
-
-        var accepted = 0
-        var duplicates = 0
-        var rejected = parsedRecords.rejectedRecords
-        val normalizedCandidates = candidates.mapNotNull { candidate ->
-            val normalized = normalizeText(candidate)
-            if (normalized.isBlank()) {
-                rejected += 1
-                null
-            } else {
-                normalized
-            }
-        }
-        rejected += candidates.size - normalizedCandidates.size
-
-        normalizedCandidates.forEach { text ->
-            val recordDigest = sha256(text.toByteArray(Charsets.UTF_8))
-            if (recordDigest in seenRecordDigests) {
-                duplicates += 1
-            } else {
-                if (seenRecordDigests.size >= MAX_UNIQUE_RECORDS) {
-                    throw IllegalArgumentException(
-                        "The corpus exceeds the current limit of $MAX_UNIQUE_RECORDS unique records."
-                    )
+        parsedRecordsFile.bufferedReader(Charsets.UTF_8).use { reader ->
+            while (true) {
+                val line = reader.readLine() ?: break
+                if (line.isBlank()) continue
+                if (processedSinceCancellationCheck >= CANCELLATION_CHECK_RECORD_INTERVAL) {
+                    currentCoroutineContext().ensureActive()
+                    processedSinceCancellationCheck = 0
                 }
-                seenRecordDigests.add(recordDigest)
+                processedSinceCancellationCheck += 1
+
+                val text = runCatching {
+                    JSONObject(line).optString("text")
+                }.getOrNull()
+                if (text.isNullOrBlank()) {
+                    rejected += 1L
+                    continue
+                }
+
+                val recordDigest = sha256Text(text)
+                insertDigest.clearBindings()
+                insertDigest.bindString(1, recordDigest)
+                if (insertDigest.executeInsert() < 0L) {
+                    duplicates += 1L
+                    continue
+                }
+
                 val record = JSONObject()
                     .put("recordId", recordDigest)
-                    .put("sourceDocumentId", digest)
+                    .put("sourceDocumentId", sourceDocumentDigest)
                     .put("sourceName", displayName)
                     .put("text", text)
-                writer.write(record.toString())
-                writer.newLine()
-                accepted += 1
+                val serializedRecord = record.toString()
+                storageGuard.beforeWrite(serializedRecord.length.toLong() * 2L)
+                rawWriter.write(serializedRecord)
+                rawWriter.newLine()
+                accepted += 1L
             }
         }
 
-        if (accepted == 0 && duplicates == 0) {
-            addWarning(warnings, "No usable records were found in $displayName.")
-        }
-
-        val existing = documentMetadata[digest]
-        if (existing == null && (accepted > 0 || duplicates > 0)) {
-            documentMetadata[digest] = DocumentMetadata(
-                digest = digest,
+        val existing = documentMetadata[sourceDocumentDigest]
+        if (existing == null && (accepted > 0L || duplicates > 0L)) {
+            documentMetadata[sourceDocumentDigest] = DocumentMetadata(
+                digest = sourceDocumentDigest,
                 displayName = displayName,
-                sizeBytes = bytes.size.toLong(),
+                sizeBytes = sourceSizeBytes,
                 mediaType = mediaType,
                 recordCount = accepted
             )
@@ -475,81 +930,12 @@ class LocalDatasetImporter(context: Context) {
             existing.recordCount += accepted
         }
 
-        return DocumentResult(
+        return IngestResult(
             acceptedRecords = accepted,
             duplicateRecords = duplicates,
             rejectedRecords = rejected,
-            documentAccepted = accepted > 0 || duplicates > 0
+            documentAccepted = accepted > 0L || duplicates > 0L
         )
-    }
-
-    private fun parseJsonLines(
-        source: String,
-        displayName: String,
-        warnings: MutableList<String>
-    ): ParsedRecords {
-        val records = mutableListOf<String>()
-        var invalidLines = 0
-        source.lineSequence().forEach { line ->
-            val trimmed = line.trim()
-            if (trimmed.isEmpty()) {
-                return@forEach
-            }
-            val extracted = runCatching {
-                val value = JSONTokener(trimmed).nextValue()
-                when (value) {
-                    is JSONObject -> {
-                        val fields = listOf(
-                            "text",
-                            "content",
-                            "body",
-                            "article",
-                            "document",
-                            "prompt",
-                            "completion",
-                            "response",
-                            "answer",
-                            "input",
-                            "output"
-                        )
-                        fields.mapNotNull { key ->
-                            val field = value.opt(key)
-                            (field as? String)?.takeIf { it.isNotBlank() }
-                        }.distinct().joinToString("\n")
-                    }
-                    is String -> value
-                    else -> ""
-                }
-            }.getOrNull()
-
-            if (extracted.isNullOrBlank()) {
-                invalidLines += 1
-            } else {
-                records.add(extracted)
-            }
-        }
-        if (invalidLines > 0) {
-            addWarning(warnings, "$displayName contains $invalidLines empty or unsupported JSONL rows.")
-        }
-        return ParsedRecords(records, invalidLines)
-    }
-
-    private fun splitTextDocument(source: String): List<String> {
-        val normalizedLineEndings = source.replace("\r\n", "\n").replace('\r', '\n')
-        return normalizedLineEndings
-            .split(Regex("\n[\\t ]*\n+"))
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-    }
-
-    private fun normalizeText(source: String): String {
-        val nfc = Normalizer.normalize(source, Normalizer.Form.NFC)
-        return nfc
-            .replace("\r\n", "\n")
-            .replace('\r', '\n')
-            .lineSequence()
-            .joinToString("\n") { it.trimEnd() }
-            .trim()
     }
 
     private fun createDocumentSplits(
@@ -557,7 +943,7 @@ class LocalDatasetImporter(context: Context) {
         warnings: MutableList<String>
     ): Map<String, String> {
         val ordered = documentIds.sortedBy { documentId ->
-            sha256("$SPLIT_SEED:$documentId".toByteArray(Charsets.UTF_8))
+            sha256Text(SPLIT_SEED + ":" + documentId)
         }
         if (ordered.size < 3) {
             addWarning(
@@ -578,31 +964,41 @@ class LocalDatasetImporter(context: Context) {
         return result
     }
 
-    private fun writeFinalRecords(
+    private suspend fun writeFinalRecords(
         rawRecordsFile: File,
         finalRecordsFile: File,
-        splitByDocument: Map<String, String>
+        splitByDocument: Map<String, String>,
+        storageGuard: StorageGuard
     ): SplitCounts {
-        var train = 0
-        var validation = 0
-        var test = 0
+        var train = 0L
+        var validation = 0L
+        var test = 0L
+        var processedSinceCancellationCheck = 0
+
         rawRecordsFile.bufferedReader(Charsets.UTF_8).use { reader ->
             finalRecordsFile.bufferedWriter(Charsets.UTF_8).use { writer ->
                 while (true) {
                     val line = reader.readLine() ?: break
-                    if (line.isBlank()) {
-                        continue
+                    if (line.isBlank()) continue
+                    if (processedSinceCancellationCheck >= CANCELLATION_CHECK_RECORD_INTERVAL) {
+                        currentCoroutineContext().ensureActive()
+                        processedSinceCancellationCheck = 0
                     }
+                    processedSinceCancellationCheck += 1
+
                     val record = JSONObject(line)
                     val documentId = record.optString("sourceDocumentId")
                     val split = splitByDocument[documentId] ?: "train"
                     record.put("split", split)
-                    writer.write(record.toString())
+                    val serializedRecord = record.toString()
+                    storageGuard.beforeWrite(serializedRecord.length.toLong() * 2L)
+                    writer.write(serializedRecord)
                     writer.newLine()
+
                     when (split) {
-                        "validation" -> validation += 1
-                        "test" -> test += 1
-                        else -> train += 1
+                        "validation" -> validation += 1L
+                        "test" -> test += 1L
+                        else -> train += 1L
                     }
                 }
             }
@@ -623,10 +1019,10 @@ class LocalDatasetImporter(context: Context) {
             corpusId = manifest.optString("corpusId"),
             revision = manifest.optInt("revision", 1),
             importedAtEpochMillis = manifest.optLong("importedAtEpochMillis"),
-            recordCount = counts.optInt("acceptedRecords"),
-            trainRecordCount = counts.optInt("trainRecords"),
-            validationRecordCount = counts.optInt("validationRecords"),
-            testRecordCount = counts.optInt("testRecords"),
+            recordCount = counts.optLong("acceptedRecords"),
+            trainRecordCount = counts.optLong("trainRecords"),
+            validationRecordCount = counts.optLong("validationRecords"),
+            testRecordCount = counts.optLong("testRecords"),
             purposes = purposes
         )
     }
@@ -683,38 +1079,40 @@ class LocalDatasetImporter(context: Context) {
         return segments.none { it == ".." || it == "." }
     }
 
-    private fun readBounded(input: InputStream, maxBytes: Long): ByteArray {
-        val output = ByteArrayOutputStream()
-        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-        var totalBytes = 0L
+    private suspend fun drainInput(input: InputStream) {
+        val buffer = ByteArray(STREAM_BUFFER_SIZE)
         while (true) {
-            val readCount = input.read(buffer)
-            if (readCount < 0) {
-                break
-            }
-            totalBytes += readCount
-            if (totalBytes > maxBytes) {
-                throw IllegalArgumentException(
-                    "A selected file or archive entry exceeds the configured local import limit."
-                )
-            }
-            output.write(buffer, 0, readCount)
+            currentCoroutineContext().ensureActive()
+            if (input.read(buffer) < 0) break
         }
-        return output.toByteArray()
     }
 
-    private fun decodeUtf8(bytes: ByteArray): String? {
-        return runCatching {
-            val decoder = StandardCharsets.UTF_8.newDecoder()
-                .onMalformedInput(CodingErrorAction.REPORT)
-                .onUnmappableCharacter(CodingErrorAction.REPORT)
-            decoder.decode(ByteBuffer.wrap(bytes)).toString().removePrefix("\uFEFF")
-        }.getOrNull()
+    private suspend fun drainZipEntry(input: ZipInputStream) {
+        val buffer = ByteArray(STREAM_BUFFER_SIZE)
+        while (true) {
+            currentCoroutineContext().ensureActive()
+            if (input.read(buffer) < 0) break
+        }
     }
 
-    private fun sha256(bytes: ByteArray): String {
-        val digest = MessageDigest.getInstance("SHA-256").digest(bytes)
-        return digest.joinToString("") { byte ->
+    private fun normalizeText(source: String): String {
+        val nfc = Normalizer.normalize(source, Normalizer.Form.NFC)
+        return nfc
+            .replace("\r\n", "\n")
+            .replace('\r', '\n')
+            .lineSequence()
+            .joinToString("\n") { it.trimEnd() }
+            .trim()
+    }
+
+    private fun sha256Text(source: String): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+            .digest(source.toByteArray(Charsets.UTF_8))
+        return digestToHex(digest)
+    }
+
+    private fun digestToHex(bytes: ByteArray): String {
+        return bytes.joinToString("") { byte ->
             String.format(Locale.US, "%02x", byte.toInt() and 0xff)
         }
     }
@@ -735,9 +1133,15 @@ class LocalDatasetImporter(context: Context) {
         val openStream: () -> InputStream?
     )
 
-    private data class ParsedRecords(
-        val records: List<String>,
-        val rejectedRecords: Int
+    private data class SourceInfo(
+        val sizeBytes: Long,
+        val sha256: String
+    )
+
+    private data class ParsedFile(
+        val file: File?,
+        val isValid: Boolean,
+        val rejectedRecords: Long
     )
 
     private data class DocumentMetadata(
@@ -745,21 +1149,65 @@ class LocalDatasetImporter(context: Context) {
         val displayName: String,
         val sizeBytes: Long,
         val mediaType: String?,
-        var recordCount: Int
+        var recordCount: Long
     )
 
-    private data class DocumentResult(
-        val acceptedRecords: Int,
-        val duplicateRecords: Int,
-        val rejectedRecords: Int,
+    private data class IngestResult(
+        val acceptedRecords: Long,
+        val duplicateRecords: Long,
+        val rejectedRecords: Long,
         val documentAccepted: Boolean
     )
 
-    private data class SplitCounts(
-        val train: Int,
-        val validation: Int,
-        val test: Int
+    private data class ArchiveResult(
+        val entryCount: Int,
+        val acceptedRecords: Long,
+        val duplicateRecords: Long,
+        val rejectedRecords: Long,
+        val skippedFiles: Int,
+        val importedBytes: Long
     )
+
+    private data class SplitCounts(
+        val train: Long,
+        val validation: Long,
+        val test: Long
+    )
+
+    private class CountingInputStream(input: InputStream) : FilterInputStream(input) {
+        var bytesRead: Long = 0L
+            private set
+
+        override fun read(): Int {
+            val value = super.read()
+            if (value >= 0) {
+                bytesRead += 1L
+            }
+            return value
+        }
+
+        override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
+            val count = super.read(buffer, offset, length)
+            if (count > 0) {
+                bytesRead += count.toLong()
+            }
+            return count
+        }
+    }
+
+    private class StorageGuard(private val directory: File) {
+        private var bytesSinceLastCheck = 0L
+
+        fun beforeWrite(estimatedBytes: Long) {
+            bytesSinceLastCheck += estimatedBytes
+            if (bytesSinceLastCheck >= STORAGE_CHECK_INTERVAL_BYTES) {
+                if (directory.usableSpace <= 0L) {
+                    throw IOException("The device has no free storage left for the local corpus import.")
+                }
+                bytesSinceLastCheck = 0L
+            }
+        }
+    }
 
     companion object {
         private const val BUNDLED_ARGUS_ID_ASSET = "corpus/ArgusID.txt"
@@ -769,19 +1217,21 @@ class LocalDatasetImporter(context: Context) {
         private const val MANIFEST_FILE = "manifest.json"
         private const val RAW_RECORDS_FILE = "raw-records.jsonl"
         private const val RECORDS_FILE = "records.jsonl"
-        private const val IMPORTER_VERSION = "1.0.0"
-        private const val MANIFEST_SCHEMA_VERSION = 1
+        private const val DEDUPLICATION_DATABASE_FILE = "record-deduplication.db"
+        private const val IMPORTER_VERSION = "2.0.0"
+        private const val MANIFEST_SCHEMA_VERSION = 2
         private const val SPLIT_ALGORITHM = "sha256-source-document-v1"
         private const val SPLIT_SEED = "argus-local-corpus-split-v1"
         private const val VALIDATION_RATIO = 0.10
         private const val TEST_RATIO = 0.10
         private const val MAX_SELECTED_SOURCES = 64
-        private const val MAX_ARCHIVE_ENTRIES = 512
-        private const val MAX_UNIQUE_RECORDS = 250_000
+        private const val MAX_ARCHIVE_ENTRIES = 4096
         private const val MAX_WARNINGS = 100
-        private const val MAX_ARCHIVE_BYTES = 128L * 1024L * 1024L
-        private const val MAX_DOCUMENT_BYTES = 32L * 1024L * 1024L
-        private const val MAX_TOTAL_EXPANDED_BYTES = 512L * 1024L * 1024L
+        private const val MAX_TEXT_RECORD_CHARACTERS = 262_144
+        private const val MAX_JSONL_LINE_CHARACTERS = 1_048_576
+        private const val STREAM_BUFFER_SIZE = 64 * 1024
+        private const val CANCELLATION_CHECK_RECORD_INTERVAL = 256
+        private const val STORAGE_CHECK_INTERVAL_BYTES = 4L * 1024L * 1024L
         private val SUPPORTED_TEXT_EXTENSIONS = setOf("txt", "md", "jsonl", "ndjson")
     }
 }

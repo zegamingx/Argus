@@ -51,7 +51,7 @@ A local import becomes a corpus revision only after parsing, validation, duplica
 The processing path is:
 
 ~~~text
-User-selected local files / bounded archive
+User-selected local files / streamed archive
                   |
                   v
          File and archive validation
@@ -83,6 +83,8 @@ Validation should identify malformed encodings, empty/duplicate records, broken 
 Train, validation and test partitions are deterministic and disjoint at the record/document level. A record must never appear in more than one split after deduplication. Validation and test partitions are never passed to the optimizer. Split policy and seed are included in the manifest so a corpus revision can be reproduced.
 
 Tokenizer-dependent token counts and tokenized shards are finalized against the exact tokenizer fingerprint selected for the model generation. An imported corpus may be used for tokenizer-frequency input only when tokenizer frequency fitting was selected as an import purpose. An aligned development split is required only for tokenizer algorithms/configurations that use it; if the user does not import an appropriate aligned set, Argus must use a valid no-development-data variant or exclude that candidate. Until G1-D is closed, the importer preserves validated raw text and record-based split membership without inventing tokenizer identity or final token counts.
+
+The current Android importer reads ordinary TXT/Markdown/JSONL/NDJSON sources incrementally. ZIP sources are streamed to an app-private temporary file for full-archive hashing, then parsed entry-by-entry through `ZipInputStream`; archive paths are never extracted. It imposes no fixed byte-size limit per source or for aggregate expanded content. Storage availability controls whether staging can finish. Memory use is bounded by stream buffers and individual record handling: long TXT paragraphs are emitted in 262,144-character chunks, while a single JSONL row above 1,048,576 characters is rejected with a warning. Record digests are indexed in a temporary SQLite database, so deduplication does not retain the complete set of hashes in heap. A selection is limited to 64 source files and 4,096 total ZIP entries. This is an import/staging implementation only; it does not tokenize data, fit tokenizer merges, train model weights or create a training session.
 
 ### 3.1 Minimum corpus manifest
 

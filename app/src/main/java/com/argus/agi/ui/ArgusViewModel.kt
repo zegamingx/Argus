@@ -164,7 +164,7 @@ class ArgusViewModel(
     }
 
     private fun stageDataset(
-        importAction: (Set<DatasetPurpose>) -> CorpusImportPreview
+        importAction: suspend (Set<DatasetPurpose>) -> CorpusImportPreview
     ) {
         val currentImportState = _learningState.value.datasetImport
         if (currentImportState.isBusy) return
@@ -192,7 +192,7 @@ class ArgusViewModel(
                 datasetImport = state.datasetImport.copy(
                     isBusy = true,
                     errorMessage = null,
-                    statusMessage = "Reading the selected corpus and preparing a local preview.",
+                    statusMessage = "Streaming selected files and preparing a local preview.",
                     stagedPreview = null
                 )
             )
