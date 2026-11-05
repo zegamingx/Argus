@@ -62,7 +62,7 @@ class ArgusStartupViewModel(
 
             try {
                 val hardwareInfo = withContext(Dispatchers.IO) {
-                    container.hardwareProfile.getHardwareInfo()
+                    container.getHardwareProfileSnapshot()
                 }
 
                 _uiState.value = ArgusStartupUiState(
