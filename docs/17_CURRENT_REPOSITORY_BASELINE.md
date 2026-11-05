@@ -4,6 +4,7 @@
 **Behavioral/source-logic baseline:** `4d8104d4400dcd858e648d7b08ac0718385733d3`  
 **Latest structural migration checkpoint:** `b0441af8df127897f3ef579c22116d85337feea6`  
 **Latest source-continuity cross-check:** `09c72df12371670fc0417d47f5a0e6644537aa60`  
+**Latest startup/bootstrap source HEAD:** `0a3f7a1c4ac38fd60b8fc9d457a5bd7c518a6ee1`  
 **Inspection date:** 2026-11-05
 
 The Kotlin implementation and build configuration were behaviorally unchanged by the initial package migration, but source paths, package declarations and manifest component names did change. The source-logic observations below remain based on `4d8104d`; current physical paths are recorded at structural checkpoint `b0441af8`. No build or test was run for the migration, so compilation and manifest/component resolution remain unverified.
@@ -83,3 +84,17 @@ Reinspect before implementation planning and whenever source/build dependencies 
 ### Current learning-path delta — 2026-11-05
 
 Commits `6df8603` and `9802085` removed the legacy `TrainingManager` worker and the raw-text `ArgusNeuralEngine.trainStep(String)` entry point. The current app has no autonomous learning worker. The Learning UI and foreground notification expose the capability as unavailable until the approved-candidate, session-admission and recovery contracts are implemented. No build or test was run for these commits.
+
+
+### Current startup-flow delta — 2026-11-05
+
+The app entry now uses `ArgusStartupViewModel` to perform two concrete startup operations before constructing the feature `ArgusViewModel`:
+
+1. Read the preliminary Android hardware profile on `Dispatchers.IO`.
+2. Construct the existing experimental `ArgusNeuralEngine` on `Dispatchers.Default`.
+
+The resulting hardware profile is cached by `ArgusContainer` and passed into the feature ViewModel, avoiding a second hardware-profile read on the UI thread. The startup UI reports only these real operations and opens the current prototype workspace after the runtime constructor returns. Startup failure is surfaced with a retry action.
+
+This is **not Local Knowledge Genesis**: it does not select an approved architecture/tokenizer bundle, commit a complete initial model generation, or schedule general foundation learning. The UI does not emit `GENESIS_READY` or claim that background learning has started. The prototype limitation is stated on the boot screen.
+
+No Gradle build, automated test, emulator test or physical-device test was run for these changes. Compilation and Android runtime behavior therefore remain unverified.
