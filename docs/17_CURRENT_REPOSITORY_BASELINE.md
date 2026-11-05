@@ -98,3 +98,9 @@ The resulting hardware profile is cached by `ArgusContainer` and passed into the
 This is **not Local Knowledge Genesis**: it does not select an approved architecture/tokenizer bundle, commit a complete initial model generation, or schedule general foundation learning. The UI does not emit `GENESIS_READY` or claim that background learning has started. The prototype limitation is stated on the boot screen.
 
 No Gradle build, automated test, emulator test or physical-device test was run for these changes. Compilation and Android runtime behavior therefore remain unverified.
+
+### Startup side-effect boundary — 2026-11-05
+
+The startup entry no longer starts `ArgusForegroundService` or requests camera/notification permissions merely because the preliminary runtime constructor completed. Those actions must be initiated by the feature or user action that actually needs them. This prevents prototype startup from implying that background learning or sensory capture has begun, and avoids requesting permissions before the user enters the relevant feature.
+
+The startup coordinator still performs only preliminary hardware-profile retrieval and construction of the experimental `ArgusNeuralEngine`. It is not Genesis and does not publish a committed model generation.
