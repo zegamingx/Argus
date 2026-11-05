@@ -195,7 +195,7 @@ The component matrix in document 35 assigns exactly one primary ADOPT, MODIFY, C
 These dispositions define ownership, research direction and the evidence required before later selection. ADOPT/MODIFY does not authorize copying or coding an external implementation. CUSTOM identifies Argus-owned contracts, not completed code. DEFER remains open by design and must not be silently converted. REJECT applies to the current product boundary and may be reconsidered only through a documented product-scope change. G3 closure does not select an architecture or optimizer, settle tokenizer/product-language rights, authorize implementation/builds/workflows, or establish physical Android support.
 
 ### ADR-027 — User-controlled local dataset import as the primary general-corpus path
-**Status:** Accepted product direction; importer, parser, manifest and training-session implementation remain open.
+**Status:** Accepted product direction; the initial local importer, parser and manifest path are implemented. Final workflow/API ownership and training-session implementation remain open.
 
 The initial general-corpus intake is a user-initiated import of locally selected dataset files. Argus must not make bundled Small C4, autonomous web acquisition, curated article catalogs or item-by-item external license research prerequisites for this path.
 
