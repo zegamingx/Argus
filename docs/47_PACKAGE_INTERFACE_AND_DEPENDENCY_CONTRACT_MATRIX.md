@@ -274,7 +274,7 @@ This table maps the inspected files from document 46 to the contract work requir
 |---|---|---|
 | `ArgusApp.kt` | Android Application host delegates to process-scoped `app/bootstrap/ArgusContainer` through `ArgusRuntimeOwner`; no global companion-object service locator remains | Keep Application entry in `app/entry`; construct and bind dependencies in `app/bootstrap` |
 | `MainActivity.kt` | Hosts Activity, creates the shared transitional ViewModel through `ArgusViewModelFactory`, and starts the foreground service; navigation composition is delegated to `app/navigation` | `app/entry` hosts Activity; `app/navigation` wires feature destinations and state; service lifecycle remains an Android adapter |
-| `ArgusViewModel.kt` | Still coordinates multiple features and reaches concrete model, data and platform implementations. Chat, Settings, Learning and Perception now have feature-owned immutable UI state projections; Settings no longer receives InstalledAppItem, SearchResultItem or WorldEntity, and Learning/Perception no longer receive their legacy training/device/hardware records directly. | Split feature ViewModels after workflow APIs are implemented; each consumes its feature state and sends commands through the owning application workflow API |
+| `ArgusViewModel.kt` | Still coordinates multiple features and reaches concrete model, data and platform implementations. Chat, Settings, Learning and Perception have feature-owned immutable UI state projections. Known raw-string auto-enqueue calls from chat prompts, file/image selection and web search results have been removed; file/image inference and the complete intake route remain unimplemented. | Split feature ViewModels after workflow APIs are implemented; each consumes its feature state and sends commands through the owning application workflow API. Do not wrap the raw-string `TrainingManager` API as an approved learning workflow. |
 | `ArgusNeuralEngine.kt` | Combines numerical operations, tokenizer mutation/usage, Android Context and checkpoint file I/O | Core model/inference/training contracts; `engine/reference` numerical implementation; `data/model` persistence; `platform/android/storage` platform file/key access |
 | `Tokenizer.kt` | Concrete mutable tokenizer is colocated with experimental engine | `core/tokenizer` identity/API; selected implementation only in `engine/tokenizer` after G1-D |
 | `TrainingManager.kt` | Queue, coroutine worker, device guard, engine update and world-model update combined | `application/learning` coordinator; `core/training` session contracts; device provider/admission; engine backend; repository checkpoint transaction |
@@ -364,7 +364,7 @@ The package-interface mapping is complete enough for a bounded contract review w
 - Package-to-interface/consumer/provider mapping: documented as a proposal.
 - Root/UI/service cycle removal: planned, not implemented or verified.
 - Personal capture intake: design contract documented in document 48; PC-IMPL-01–PC-IMPL-07 are Phase 5 bindings and do not block tokenizer/architecture design or unrelated foundation implementation.
-- UI state, notification navigation and composition strategy: design contracts closed; feature-specific Kotlin declarations and Android wiring remain implementation work.
+- UI state, notification navigation and composition strategy: design contracts closed; immutable UI state declarations now exist for all four features. Feature-specific ViewModels and workflow/API wiring remain implementation work.
 - Exact feature-specific Kotlin signatures: implementation bindings; no additional package-level contract gap is identified here.
 - Compute provider selection: deferred for accelerated execution; CPU reference remains the correctness baseline.
 - Durable storage schema and session/report partition: open under PC-OPEN-04/09.
@@ -386,3 +386,6 @@ The package-interface mapping is complete enough for a bounded contract review w
 - 2026-11-05 — Updated the prototype map for feature-owned Learning and Perception UI-state projections. This is presentation-boundary progress only; application workflow command ownership and per-feature ViewModels remain open.
 
 - 2026-11-05 — Updated the existing-prototype mapping to record the Chat feature's immutable `ChatUiState` projection. Application inference workflow ownership remains open.
+
+
+- 2026-11-05 — Removed the known direct raw-string training auto-enqueue calls from chat, file/image selection and Settings web-search results. This is a narrow guard only: the legacy `TrainingManager` raw-string API/worker and the application knowledge/learning workflow gaps remain open. No new workflow API was claimed; no build/test result is claimed.

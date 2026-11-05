@@ -438,11 +438,16 @@ If this document conflicts with accepted product constraints in document 01 or t
 - Consent, review, retention, revocation and deletion obligations: **defined; concrete wording, durations and storage bindings remain open**.
 - Replacement capture surface: **not selected**.
 - AccessibilityService dependency severance: **not authorized or performed**.
-- Source movement, package creation, Kotlin/API implementation and Gradle changes: **not authorized**.
+- Full personal-intake workflow/API implementation and Gradle changes: **not implemented or authorized by this contract**. A narrow UI safeguard against known raw-string auto-enqueue paths is recorded below.
+- Legacy UI auto-enqueue safeguard: the identified chat prompt, file/image selection and Settings web-result paths no longer call the raw-string training queue. File/image selection explicitly reports that inference/intake is not connected. This prevents those observed paths from silently becoming training input; it does not create consent, retention, review or training authorization.
+- Legacy learning implementation: `TrainingManager.enqueueData(source, title, content)` and its worker remain in the prototype. They are not an approved candidate-manifest API and must not be used to bypass this contract. Full `application/knowledge` intake and `application/learning` admission remain unimplemented.
 - Build, tests, GitHub Actions, artifact publication and device execution: **not performed**.
 
-**Next work:** reconcile the proposed application/knowledge intake owner and application/learning handoff against the final package contract in document 47, then resolve PC-IMPL-01 through PC-IMPL-07 only where required for the selected first capture surface. Do not broaden the work into a new capture implementation or severance refactor during this documentation phase.
+**Next work:** implement the selected first-surface intake only after its consent, retention, provenance and review bindings are concrete. The raw-string queue safeguard is not a substitute for PC-IMPL-01 through PC-IMPL-07, the immutable approved-candidate handoff or the independent learning-admission recheck. Keep capture implementation and AccessibilityService severance separately bounded.
 
 ## 14. Change history
 
 - 2026-11-05 — Initial PC-OPEN-01 personal capture and experience intake contract prepared against `main` at `fab7da5a0ce86d7265a7be152f550a4b524741cd`. Reconciled with documents 01, 13, 21, 22, 36, 45 and 47. Documentation only; no source, build configuration, test, workflow or device experiment was changed.
+
+
+- 2026-11-05 — Recorded a narrow source safeguard: identified chat, file/image and Settings web-result paths in `ArgusViewModel` no longer enqueue raw strings into `TrainingManager`. The legacy raw-string queue/worker remains explicitly non-compliant with the approved-candidate contract; no consent, review, retention or learning workflow is claimed. No build/test result is claimed.

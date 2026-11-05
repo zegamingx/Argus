@@ -1,8 +1,6 @@
 package com.argus.agi.ui
 
 import android.app.Application
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -26,16 +24,12 @@ import com.argus.agi.platform.android.device.HardwareProfile
 import com.argus.agi.platform.android.capture.ExcludedAppsManager
 import com.argus.agi.data.acquisition.WebSearchEngine
 import com.argus.agi.application.runtime.AccessibilityRuntime
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.BufferedReader
-import java.io.InputStreamReader
 
 class ArgusViewModel(
     application: Application,
@@ -174,32 +168,17 @@ class ArgusViewModel(
             thinkingSb.append("Self-Reflection: ").append(reflection.reasoningNote)
             thinkingSb.append(" | Confidence: ").append(String.format("%.0f%%", reflection.confidenceScore * 100))
 
-            // 4. Turn unresolved questions into user-reviewable learning candidates.
+            // 4. Retrieve evidence for unresolved questions without treating it as training data.
             if (!reflection.isConfident || reflection.suggestedAction == "AUTO_LEARN_QUERY") {
-                thinkingSb.append("\n-> Starting on-device web retrieval and adding results to the learning queue.")
+                thinkingSb.append("\n-> Retrieving web sources for this response. Results are not automatically retained or used for training.")
 
-                // Perform real web search to gather true information
                 val webItems = webSearchEngine.search(text)
                 if (webItems.isNotEmpty()) {
-                    val learnedText = webItems.joinToString("\n") { "${it.title}: ${it.snippet}" }
-                    // Enqueue to training manager immediately!
-                    trainingManager.enqueueData(
-                        source = "Chat Inquiry Learner",
-                        title = "Question: ${text.take(30)}",
-                        content = "Query: $text. Retrieved knowledge: $learnedText"
-                    )
-
                     finalAnswer = "I am researching this topic using on-device web retrieval:\n\n" +
                             webItems.take(2).joinToString("\n\n") { "• **${it.title}**\n${it.snippet}" } +
-                            "\n\n*These results have been added to the local learning queue for review.*"
+                            "\n\n*These results are shown for this response only. They have not been added to the training queue.*"
                 } else {
-                    // Enqueue the query itself to be learned
-                    trainingManager.enqueueData(
-                        source = "Chat Unresolved",
-                        title = "Inquiry: ${text.take(30)}",
-                        content = text
-                    )
-                    finalAnswer = "This topic is new to the model. The question has been added to the local learning queue for evaluation."
+                    finalAnswer = "The local model could not resolve this topic, and web retrieval returned no results. No training candidate has been created. Personal learning remains unavailable until the explicit consent-and-review intake workflow is implemented."
                 }
             }
 
@@ -214,54 +193,18 @@ class ArgusViewModel(
     }
 
     fun importFileContent(uri: Uri) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val cr = getApplication<Application>().contentResolver
-                cr.openInputStream(uri)?.use { stream ->
-                    val reader = BufferedReader(InputStreamReader(stream))
-                    val content = reader.readText()
-                    val fileName = "Document (${content.length} characters)"
-
-                    withContext(Dispatchers.Main) {
-                        sendMessage("Analyzing the imported document...", uri, isImage = false)
-                    }
-
-                    // Enqueue directly into on-device training
-                    trainingManager.enqueueData(
-                        source = "File Import",
-                        title = fileName,
-                        content = content.take(1500)
-                    )
-                }
-            } catch (_: Exception) {}
-        }
+        sendMessage(
+            text = "A document was selected. The current prototype does not yet route file content through the personal-experience intake and inference workflows. The document has not been durably retained or added to training.",
+            attachedUri = uri
+        )
     }
 
     fun importImageContent(uri: Uri) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val cr = getApplication<Application>().contentResolver
-                cr.openInputStream(uri)?.use { stream ->
-                    val bitmap = BitmapFactory.decodeStream(stream)
-                    if (bitmap != null) {
-                        val w = bitmap.width
-                        val h = bitmap.height
-                        val desc = "Image $w x $h px imported for on-device visual perception."
-
-                        withContext(Dispatchers.Main) {
-                            sendMessage(desc, uri, isImage = true)
-                        }
-
-                        // Enqueue visual token stimulus into training
-                        trainingManager.enqueueData(
-                            source = "Image Vision Import",
-                            title = "Visual $w x $h",
-                            content = "Visual perception frame. Resolution: $w x $h. Local visual analysis."
-                        )
-                    }
-                }
-            } catch (_: Exception) {}
-        }
+        sendMessage(
+            text = "An image was selected. The current prototype does not yet connect image pixels to a vision-inference or personal-experience intake workflow. The image has not been durably retained or added to training.",
+            attachedUri = uri,
+            isImage = true
+        )
     }
 
     fun updateCameraFrame(luminance: Float) {
@@ -275,19 +218,12 @@ class ArgusViewModel(
     fun searchWebDirectly(query: String) {
         viewModelScope.launch {
             val results = webSearchEngine.search(query)
+            // Retrieval results remain display evidence; they are not training inputs.
             _settingsState.value = _settingsState.value.copy(
                 searchResults = results.map { item ->
                     SearchResultUiItem(title = item.title, snippet = item.snippet)
                 }
             )
-            if (results.isNotEmpty()) {
-                val textToTrain = results.joinToString(" ") { it.snippet }
-                trainingManager.enqueueData(
-                    source = "Web Search Tool",
-                    title = "Web: $query",
-                    content = textToTrain
-                )
-            }
         }
     }
 

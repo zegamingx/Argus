@@ -15,7 +15,7 @@ The original audit remains the pre-migration dependency baseline. The repository
 
 The current structural findings are:
 
-- `ArgusViewModel` still directly reaches chat, neural execution, training, memory, hardware, file import, network search, app exclusion and AccessibilityService action contracts. It remains cross-feature and imports concrete model, data and platform implementations.
+- `ArgusViewModel` still directly reaches chat, neural execution, training controls/status, memory, hardware, file/image attachment intents, network search, app exclusion and AccessibilityService action contracts. It remains cross-feature and imports concrete model, data and platform implementations. The known chat/file/image/web-result raw-string auto-enqueue calls have been removed; workflow ownership and the legacy queue API remain unresolved.
 - The pre-migration `root → ui → service → root` cycle is retained as historical evidence. The later `app/bootstrap/ArgusContainer` and `ArgusRuntimeOwner` ingress removed the static `ArgusApp` service-locator path and the service's static live-instance action path. This is not complete dependency inversion: the app entry still starts the Android foreground service, the runtime facade is transitional, and the ViewModel still reaches concrete adapters.
 - `ArgusContainer` is now the process-scoped composition root. It constructs the legacy model, training, device, hardware, capture and acquisition implementations; constructor injection is explicit and no DI framework is used.
 - `application/runtime/ArgusRuntime.kt` currently groups training, device, hardware, capture and accessibility runtime ports. Its interface ownership must be refined into workflow/contract owners rather than expanded as a generic service registry.
@@ -129,7 +129,7 @@ Target paths below refer to document 45. They are design destinations, not exist
 
 | Current file | Current responsibility | Target owner | Finding |
 |---|---|---|---|
-| `ui/ArgusViewModel.kt` | `ChatMessage`, chat/generation, training, benchmark, file/image import, camera context, web search, accessibility click, app exclusion and UI state flows | Split into `feature/*/presentation`; workflows in `application` | Highest-priority presentation coupling. It creates concrete services and directly reaches engine, memory, training, ContentResolver, Bitmap decoding, web search and AccessibilityService. Split into feature state holders; UI should depend on use-case contracts. Avoid exposing Android `Uri` as a core contract. |
+| `ui/ArgusViewModel.kt` | Chat/generation, training controls/status, benchmark, file/image attachment intents, camera context, web search, accessibility click, app exclusion and feature UI state projections | Split into `feature/*/presentation`; workflows in `application` | Highest-priority presentation coupling. It still reaches engine, memory, training, web search and platform adapters. File/image selection is now display-only and the known UI raw-string auto-enqueue paths are removed; file/image content is not yet routed into inference or the intake workflow. Split feature state holders only after workflow APIs exist; UI should depend on use-case contracts. Avoid exposing Android `Uri` as a core contract. |
 | `ui/screens/ChatScreen.kt` | Chat rendering, message item, attachment picker, clipboard and Toast | `feature/chat/presentation` | Feature ownership is clear. Keep picker/clipboard interaction at the presentation edge; decoding, conversation orchestration and model work belong behind use cases. |
 | `ui/screens/NeuralCoreScreen.kt` | Training status, queue cards, metrics and loss chart | `feature/learning/presentation` | Imports `TrainingData` from `model/`, coupling UI to an implementation DTO. Replace with stable UI state/domain projections. |
 | `ui/screens/PerceptionScreen.kt` | Perception UI, permissions, CameraX provider/analysis/preview, Android settings and accessibility state | `feature/perception/presentation` + `platform/android/permissions` + `platform/android/capture` | Direct CameraX lifecycle integration and import of `ArgusAccessibilityService` cross the feature/platform boundary. Preview may be hosted by UI; capture/session ownership and service state should be exposed through contracts. |
@@ -427,6 +427,16 @@ The following changes supersede the corresponding pre-migration observations abo
 - `feature/chat/presentation/ChatMessage.kt` now owns the chat presentation message type. `ArgusViewModel` imports the feature-owned type; the ViewModel itself remains transitional and cross-feature.
 
 These are source-level observations. They do not establish that the contracts are complete, that Android process/service lifecycle is correct, or that the project compiles.
+
+### 11.4 Raw-string auto-enqueue safeguard (2026-11-05)
+
+The current `ArgusViewModel` no longer calls `TrainingManager.enqueueData` from the identified UI pathways:
+
+- Chat reflection no longer submits the user's prompt or retrieved web snippets to the training queue.
+- File and image selection no longer decodes or submits attachment content to the training queue. The chat surface now states that file/image inference and personal-intake routing are not implemented.
+- Settings web search continues to display retrieval results but does not submit snippets as training text.
+
+This is a narrow admission safeguard, not an implementation of personal learning. `TrainingManager.enqueueData(source, title, content)` remains a raw-string API and its autonomous worker remains in the legacy model class. No immutable approved candidate manifest, purpose-specific consent check, review workflow, revocation check or learning-session admission has been implemented. The raw-string API must not be treated as a compliant personal-training boundary. No build or test was run for this change.
 
 ## 12. Change history
 
