@@ -606,6 +606,41 @@ Compare feasible candidates in separate parameter-, token/data-exposure-, comput
 The model-shape sweep can be completed analytically before physical-device testing, but a profile cannot be marked VERIFIED or assigned a supported device class until the relevant E1–E7 measurements exist. Proposed candidate labels are not support promises.
 
 
+### 7.2.8 Vulkan training operator readiness and routing contract
+
+This matrix defines the minimum operator-level investigation for a Vulkan training backend. It is a design and verification contract, not a statement that Argus kernels already exist or that a particular Android GPU can execute them. Every row begins as **UNVERIFIED** until the exact kernel, dtype, shape range, numerical tolerance, memory behavior and recovery behavior have evidence on the target driver.
+
+| Operator family | Required training role | Vulkan implementation candidate | Main admission risks and routing rule |
+|---|---|---|---|
+| Embedding lookup | Forward token-to-vector gather | Storage-buffer indexed gather; optionally fuse adjacent embedding-side transforms | Random-read behavior, vocabulary/table residency and bounds correctness. Prefer GPU when the embedding table and subsequent operations remain GPU-resident; otherwise CPU reference is valid. |
+| Embedding gradient | Accumulate token-row gradients | Atomic accumulation or sorted/indexed segmented reduction | Repeated token IDs create contention; atomics may be nondeterministic. Define accumulation precision and deterministic mode explicitly. CPU fallback must account for full gradient transfer, not only token IDs. |
+| Dense projections and FFN GEMM | Forward and backward matrix products | Tiled compute-shader GEMM with shape-specialized workgroups | Register/shared-memory pressure, alignment, subgroup and workgroup limits, occupancy, precision and tail handling. This is a central accelerator candidate, but GEMM coverage alone does not qualify a training backend. |
+| Attention score and value products | QKᵀ, scaling, masking and probability-value aggregation | Tiled matrix kernels; optional fused/tiled attention variant | Context-dependent scratch and bandwidth, causal-mask correctness, head dimensions and numerical stability. Do not assume FlashAttention-equivalent behavior or memory savings without a separately validated kernel. |
+| Softmax and cross-entropy | Stable attention softmax and vocabulary loss | Row-wise max/sum reductions; fused log-sum-exp or chunked vocabulary-loss path | Reduction order, overflow/underflow, masking, ignored targets and exact loss normalization. Full vocabulary logits can dominate memory; any chunked/fused path must preserve the declared objective and gradient. |
+| RoPE and positional transforms | Forward and backward position-dependent rotation | Elementwise/vectorized compute shader | Position indexing, interleaving convention, odd/tail dimensions and exact inverse-gradient behavior. |
+| LayerNorm / RMSNorm | Forward statistics and backward reductions | Multi-stage row reductions plus elementwise affine transform | Reduction precision, epsilon placement, small/large row sizes and deterministic parity. Keep normalization on the same device as adjacent blocks when possible. |
+| GELU / gated activations | FFN activation and backward | Elementwise or fused projection-activation kernels | Exact versus approximate GELU definition, activation variant and derivative parity must match the model contract. |
+| Residual, scaling and dropout-free transforms | Forward and backward elementwise paths | Fused elementwise kernels | Fusion is useful only when it reduces memory traffic without changing operation order beyond the approved numerical tolerance. Any stochastic operation would need an explicit reproducible RNG contract. |
+| Backward projection and attention gradients | dX, dW, dQ, dK and dV | GEMM plus reduction kernels | Gradient accumulation order, workspace, intermediate liveness and parity with the CPU reference. Forward-only support is insufficient. |
+| Gradient accumulation, reduction and clipping | Combine microbatches, compute global norm and clip | Buffer reductions and norm/scale kernels | Global synchronization, overflow checks and accumulation precision. The clip norm must cover exactly the trainable parameter set and match the optimizer contract. |
+| Optimizer update | AdamW or the subsequently selected optimizer | Elementwise update kernels over weights, gradients and optimizer state | Optimizer-state memory, bias correction, decoupled weight decay, update ordering and atomic step semantics. A backend is not training-capable until the selected optimizer is implemented and parity-tested. |
+| Checkpoint staging and commit | Durable model/optimizer/data-cursor state | GPU-to-host staging followed by the existing durable checkpoint protocol | Device-local memory is not durable storage. A checkpoint must include a coherent update boundary and required optimizer/cursor state; partial transfer or failed write must not publish a new committed generation. |
+
+#### Routing and tensor-residency rules
+
+1. Route a graph segment, not isolated scalar operations, whenever possible. Keep weights, activations and gradients resident on one backend across adjacent supported operators.
+2. Before accepting a mixed Vulkan/CPU graph, enumerate every partition boundary and include tensor copies, staging buffers, synchronization, layout conversion and duplicate live allocations in the peak-memory worksheet.
+3. Prefer a complete CPU segment over repeated GPU↔CPU ping-pong when the transfer and synchronization cost exceeds the measured acceleration. The planner must use measured per-shape costs, not a vendor or API label.
+4. A kernel may be selected only for a declared shape, dtype, layout and feature envelope. Unsupported shapes must take an explicit validated route or reject the profile; they must not silently compile an untested generic variant.
+5. FP32 is the numerical reference path. FP16 arithmetic, 16-bit storage, mixed-precision accumulation and any reduced-precision optimizer state are separate decisions with separate feature checks and convergence/parity evidence.
+6. Backend coverage is a graph property: all required forward, loss, backward, gradient, clipping, optimizer and state-commit operations must be covered by verified providers. If one required operation is unsupported, the profile is either explicitly mixed-backend and fully costed or not admitted.
+7. If a device is lost, a queue submission fails, or a numerical check invalidates a step, discard the uncommitted step and recover from the last durable checkpoint. Do not advance the committed optimizer step or data cursor for partially executed work.
+8. Measure cold pipeline creation separately from warm execution; include shader/pipeline cache identity, cache invalidation on driver changes, sustained thermal throughput, GPU allocation peaks and process-wide memory pressure.
+
+**Readiness vocabulary:** `UNVERIFIED` means no implementation evidence; `PROTOTYPE` means a kernel exists but has not passed the complete declared test envelope; `PARITY-VERIFIED` means CPU/GPU correctness and numerical tolerances pass for the declared envelope; `PROFILE-ADMITTED` additionally means memory, transfer, sustained throughput, thermal and recovery gates pass on the exact device/driver profile. No operator or device is assigned a higher state by this document.
+
+For an 8 GB Android device, this matrix does not imply that 8 GB is available to the model or that Vulkan memory is independent of system pressure. Profile admission must use measured process and GPU allocations plus Android headroom, and must evaluate Genesis, training, inference and checkpoint phases separately. A device such as the Infinix Smart 10 Plus may be considered a candidate for later capability probing, but its RAM/SoC specification alone cannot establish Vulkan compute availability, a usable training graph or a supported Argus profile.
+
 ### 7.2.9 Closed-form MHA reference sensitivity
 
 For the document 43 reference graph, a useful simplified sensitivity form is available once \(V,D,L,F\) are supplied. The assumptions for this expression are explicit:
