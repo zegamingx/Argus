@@ -63,14 +63,16 @@ The final manifest should be machine-readable. The field names below are a propo
 |---|---|
 | capability_evidence | Measured/reported RAM availability, ABI/ISA, supported APIs/drivers, storage availability, OS constraints and evidence source/date |
 | runtime_condition_policy | Thermal, battery, charging, foreground/background, memory-pressure and cancellation policy |
-| genesis_resource_envelope | Separate peak RAM/storage/CPU-time/energy budget for tokenizer resolution, model allocation, initialization and atomic initial commit |
-| training_resource_envelope | Persistent weights/gradients/optimizer state, activations, logits, state/workspace, data staging and checkpoint-overlap estimate |
+| genesis_resource_envelope | Separate peak RAM/storage/CPU-time/energy budget for tokenizer resolution, model allocation, initialization and atomic initial commit; initial Genesis does not include later optimizer/gradient state |
+| training_resource_envelope | Persistent candidate weights/gradients/optimizer state, activations, logits, state/workspace, data staging, concurrent parent-inference overlap and checkpoint-overlap estimate |
 | inference_resource_envelope | Parameters, output logits, KV/recurrent carry per active request, scratch, batching and concurrency assumptions |
 | reserve_policy | Application/system safety reserve and source of the chosen margin |
 | resource_estimator_revision | Exact document 42 worksheet/formula revision and calculator implementation version when implemented |
 | phase_peak_worksheet_ids | Separate tokenizer-preparation, Genesis, training-forward/backward, optimizer-update, inference and checkpoint/migration liveness worksheets |
 | device_process_headroom_evidence | App/process limit, baseline resident footprint, measured allocation headroom, storage reserve, sampling conditions and confidence |
 | sustained_compute_evidence | Exact backend/operator profile, measured sustained throughput/energy/thermal conditions; UNKNOWN before a matching device/backend run |
+| generation_overlap_policy | Full-copy, verified copy-on-write/shared immutable payload, or serialized inference/training policy; all coexistence assumptions stated |
+| checkpoint_retention_policy | Last-known-good, staged candidate, journal and rollback retention/release rules with peak storage overlap |
 | admission_reason | Why this exact bundle is inside or outside the capability envelope |
 
 Do not add all lifetime phases as if every allocation were live simultaneously. Compute phase-specific peak liveness, then include true overlap such as candidate checkpoint publication or simultaneous active inference.
