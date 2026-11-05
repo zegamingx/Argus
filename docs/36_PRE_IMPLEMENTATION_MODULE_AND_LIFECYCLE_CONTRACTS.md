@@ -34,6 +34,9 @@ Every implementation must preserve these invariants:
 8. **Fail closed:** missing permission, invalid identity, checksum mismatch, unsupported operator, corrupt checkpoint or unknown required policy state cannot be treated as success.
 9. **Bounded execution:** all long-running operations have cancellation, resource admission, durable state and visible status.
 10. **No false capability claims:** constructed, initialized, training, trained, evaluated, promoted and device-verified are different facts.
+11. **Generation-scoped structural evolution:** a change to the model graph, dimensions, module inventory or parameterization is staged as a child generation. A committed active generation is never widened, deepened or structurally rewritten in place.
+12. **Checkpointed sparse topology:** any dynamic connectivity change occurs only in candidate state at a declared safe boundary; the topology, active-parameter optimizer state, update schedule and RNG identity are part of exact recovery.
+13. **Local evolution:** architecture selection, growth decisions, weights, optimizer state and topology remain within one installation. Federated aggregation and cross-instance parameter exchange are outside the accepted product boundary.
 
 ## 3. Logical module boundaries
 
@@ -116,12 +119,14 @@ The following are minimum logical records. A concrete serialization (Proto, Data
 | InstanceManifest | instance ID, schema version, creation time, local storage namespace, initial policy version | Created once per installation; never reused across instances |
 | DeviceCapabilityProfile | profile ID, Android build/API, ABI/ISA, memory class and measured baseline/headroom evidence; CPU features; GPU/Vulkan loader and driver identity, reported API version, compute queue, queried features/extensions/limits and precision/storage capabilities; optional NPU/DSP provider/runtime/driver/operator evidence; tokenizer-training capability evidence; telemetry availability, confidence and unknown fields | Timestamped, source-labelled and versioned; unknown is not converted to supported; contains stable capability evidence rather than a live workload snapshot |
 | RuntimeConditionProfile | sample ID/time, current available memory/pressure, OS thermal status, battery/charging/power-saver state, current storage reserve, foreground/background and scheduler constraints | Short-lived observation with source/confidence; re-read for workload admission and never treated as a permanent hardware capability |
-| ModelConfig | architecture family/version, graph/module config, dimensions, tensor dtypes/layouts, context/state shape, precision, selected configuration-profile ID, backend/operator routing map, Vulkan shader/kernel contract where selected and explicit CPU/NPU fallback constraints | Canonical fingerprint; unresolved architecture fields remain placeholders until ADR selection |
+| ModelConfig | architecture family/version, graph/module config, dimensions, tensor dtypes/layouts, context/state shape, precision, selected configuration-profile ID, backend/operator routing map, Vulkan shader/kernel contract where selected, explicit CPU/NPU fallback constraints, and any declared sparse connectivity format/capacity | Canonical fingerprint; unresolved architecture fields remain placeholders until ADR selection; a changed graph or tensor shape produces a new configuration fingerprint |
 | TokenizerManifest | tokenizer ID/revision, profile ID, preparation mode (precomputed/local-trained/algorithmic), algorithm/trainer/runtime versions, normalization/pre-tokenizer/decoder, vocabulary and special IDs, artifact digest, trainer configuration, seed-corpus manifest digest and provenance/license | Immutable within one generation; referenced by digest; no private content is embedded in the manifest |
-| ModelGenerationManifest | instance ID, generation ID, parent generation, ModelConfig fingerprint, TokenizerManifest digest, initialization policy/version/seed metadata, tensor inventory, checksums, schema/storage versions | Immutable after commit; complete tensor inventory and digest verified before ACTIVE |
+| ModelGenerationManifest | instance ID, generation ID, parent generation, ModelConfig fingerprint, TokenizerManifest digest, initialization policy/version/seed metadata, tensor inventory, optional evolution-transition and sparse-topology digests, checksums, schema/storage versions | Immutable after commit; complete tensor inventory and digest verified before ACTIVE |
+| ArchitectureEvolutionManifest | transition ID, parent generation ID/digest, child ModelConfig fingerprint, mutation class, reason/evidence window, inherited/transformed/new tensor mapping, initialization and optimizer-state migration policy, resource envelope, validation policy and rollback parent | Immutable for one transition; child cannot be promoted without validating the exact transition and parent |
+| SparseTopologyState | candidate generation/session, parameter-group IDs, logical tensor shapes, sparse format/pattern, capacity and active count, mask/index payload digest, topology revision/update sequence, growth-prune schedule, RNG and active-parameter optimizer-state identity | Checkpointed atomically with model/optimizer/cursor state; absent for dense profiles; a density/topology change cannot be inferred from zero-valued dense tensors |
 | TrainingSessionManifest | session ID, target candidate generation, parent digest, objective/loss version, trainable parameter groups, optimizer/schedule, precision, dataset manifest digest, sampler/cursor policy, accumulation/update semantics, RNG policy, sequence/document reset and recurrent-state carry policy, chunk size and BPTT mode where applicable, resource profile | Immutable session definition; changes to mathematical semantics require a new session/revision |
 | RecurrentStateManifest | exact model/candidate generation and training-session identity, architecture/state-layout fingerprint, state component IDs, sequence/document identity, chunk cursor, tensor shapes/dtypes/layouts/checksums, reset/carry policy, state-production optimizer-update index | Conditional record for stateful Mamba-2/RWKV-style streams; absent only when the declared training mode resets at independent-sequence boundaries; never store a partial set of required state components |
-| CheckpointManifest | checkpoint ID, session ID, candidate generation, parent digest, model/optimizer/scheduler/scaler/RNG state, data cursor/sampler, committed update sequence, optional recurrent-state manifest and payload digests, checksum and storage version | Atomic transaction; data cursor, optimizer/model state and any required recurrent carry must refer to one consistent commit boundary; exact-resume validation before use |
+| CheckpointManifest | checkpoint ID, session ID, candidate generation, parent digest, model/optimizer/scheduler/scaler/RNG state, data cursor/sampler, committed update sequence, optional recurrent-state and sparse-topology manifests/payload digests, checksum and storage version | Atomic transaction; model, optimizer, topology, data cursor and any required recurrent carry must refer to one consistent commit boundary; exact-resume validation before use |
 | SourceRegistryEntry | source ID/version, endpoint/connector type, jurisdiction/region, source owner, terms/license evidence, allowed operation scopes, rate limits, review date and status | Default NOT-ACTIVATED; operation-specific permission |
 | KnowledgeRecord | record ID, source/item revision, canonical URI or stable source identity, retrieved time, content digest, language/domain, rights state, attribution, retention scope, extraction version and sensitivity | Retrieval/retention rights recorded separately from training rights |
 | TrainingCandidateManifest | candidate ID, general/personal partition, exact record IDs/revisions, rights/consent approvals, preprocessing/split/dedup version, tokenizer fingerprint if tokenized, checksum | Immutable after approval; revoked/held/deleted inputs excluded |
@@ -195,6 +200,79 @@ Requirements:
 - A failed candidate never damages the active generation or last-known-good generation.
 - Read snapshots remain stable for their lifetime; promotion changes the active pointer, not an existing inference snapshot.
 - Instance ID and generation ID are verified on every read/write.
+
+### 5.2.1 Generation-scoped structural evolution and sparse topology
+
+Argus may be designed to evolve model structure over an installation's lifetime, but the initial architecture-selection contract and the later growth mechanism are separate decisions. Growth is not an in-place edit to the active model and does not occur merely because new data arrived or a device reports more currently available RAM.
+
+Conceptual contracts:
+
+~~~text
+GrowthController.assess(
+    activeGeneration,
+    evaluationHistory,
+    learningDiagnostics,
+    capabilityProfile,
+    runtimeConditionProfile,
+    growthBudget
+) -> GrowthDecision
+
+ArchitectureEvolutionPlanner.plan(
+    activeGeneration,
+    growthDecision,
+    approvedMutationCatalog
+) -> ArchitectureEvolutionManifest
+
+SparseTopologyController.proposeUpdate(
+    candidateState,
+    topologyPolicy,
+    gradientEvidence
+) -> SparseTopologyUpdate
+
+ModelGenerationRepository.createCandidate(
+    parentGeneration,
+    evolutionManifest,
+    trainingSession
+) -> CandidateGeneration
+~~~
+
+**Structural expansion and topology evolution are different operations:**
+
+| Mutation class | Meaning | Identity/lifecycle requirement |
+|---|---|---|
+| Additive module expansion | Add a bounded adapter, expert, residual branch or other explicitly declared module | New child ModelConfig and tensor inventory; parent remains immutable; router semantics and extra inference cost must be evaluated |
+| Width/depth expansion | Change hidden dimensions, block count, FFN width, head/group shape or block map | New child generation and complete tensor/state mapping; all affected projection, normalization, embedding/head and cache/state shapes must be accounted for |
+| Fixed-budget sparse rewiring | Prune and regrow connections while keeping the declared active-parameter budget approximately/factually fixed | Candidate session owns topology revisions; each safe-boundary checkpoint includes the exact mask/index representation and optimizer state for active parameters |
+| Sparse-capacity growth | Increase the number of active connections beyond the previous active budget within an explicit maximum capacity | A separately budgeted capacity mutation; new optimizer state and topology revision are created; this is not the same claim as fixed-budget RigL-style rewiring |
+
+**Growth trigger requirements:**
+
+- New data, higher advertised RAM, a transient rise in free memory or a single validation fluctuation is not sufficient evidence to expand.
+- The controller must use a versioned evaluation window and repeated evidence that the current capacity is a material bottleneck. It must first rule out data quality/coverage, tokenizer mismatch, objective errors, optimization instability, inadequate training exposure, evaluation leakage and backend faults.
+- Growth policy must state which metric indicates capacity saturation, the persistence/confidence rule, the maximum added parameter/active-edge budget, the cooldown/reassessment interval and the conditions that defer or reject growth.
+- Resource admission uses stable device capabilities and current runtime conditions separately. A temporary resource improvement may permit scheduling of an already-approved child operation; it does not silently redefine the selected architecture.
+- If the parent-plus-candidate, inference overlap, staging, optimizer state, topology-update workspace and checkpoint/rollback peaks do not fit, growth is deferred or rejected. The active generation is never modified to evade the memory gate.
+
+**Child-generation transition requirements:**
+
+1. Record the exact parent generation digest, reason/evidence window, mutation type, child graph/configuration fingerprint and resource worksheet before allocating the new tensors.
+2. Preserve unchanged tensors exactly where the mapping contract permits. Any transformed tensor requires a deterministic, versioned mapping. New tensors require a family-correct initializer and recorded seed/PRNG policy.
+3. Preserve tokenizer identity and token IDs for a structural-only expansion. A tokenizer or vocabulary change is a separate migration with new embedding/output dimensions and its own compatibility gate.
+4. Copy optimizer state only when parameter identity, shape, dtype and update semantics are compatible. Transformed or new parameters require explicit state migration or a documented fresh-state policy. Newly introduced or regrown parameters must use a validated optimizer warm-up policy; silently inheriting stale moments is prohibited.
+5. Train and evaluate the child as an isolated candidate. Compare general and personal evaluation partitions, regression/forgetting measures, inference routing, memory, latency, energy and thermal behavior against the parent.
+6. Promote only through the existing evaluation/promotion transaction. Keep the parent as last-known-good until promotion and retention policy permit release. Failed migration or candidate evaluation rolls back without damaging the parent.
+7. Preserve per-installation ownership. The growth controller may operate autonomously within its approved local policy; it must not upload weights, gradients, optimizer state or personal training data for cross-user aggregation.
+
+**Sparse-training constraints:**
+
+- A dense tensor containing zeros is still dense storage. Sparsity saves memory only when values and required metadata are stored in a genuinely sparse/structured representation and gradient/optimizer state is bounded to active parameters or another explicitly costed scheme.
+- Fixed-budget dynamic sparse training changes which connections are active; it does not automatically increase the number of active parameters. Monotonic density/capacity growth is a separate algorithm and resource policy.
+- Unstructured sparsity may reduce arithmetic counts without delivering real acceleration on hardware. Prefer evaluating hardware-executable structured patterns (for example a declared N:M or block pattern), but never assume the Android GPU, Vulkan driver or NPU supports a sparse pattern without a matching kernel and measured speedup.
+- The memory worksheet must include sparse values, indices/masks/pattern metadata, active gradients, optimizer states, topology scores/temporary gradients, rewire scratch, activations, backend conversions and checkpoint serialization. If topology scoring requires dense or broad inactive-gradient work, include that temporary peak.
+- A topology update is applied only at a declared safe update boundary. If validation, numerical checks, checkpointing or device execution fails, discard the uncommitted topology revision and resume from the last durable topology/model/optimizer/cursor checkpoint.
+- Record deterministic topology-update schedule, tie-breaking, pruning/growth score definition, RNG, optimizer warm-up, density scaling, pattern constraints and backend/kernel identity. An inference-only sparse kernel is not sufficient evidence for sparse training support.
+
+**Research disposition:** treat additive module/expert expansion as the lower-blast-radius structural-growth candidate for investigation, not as an approved architecture. Progressive columns, DEN-style selective expansion and function-preserving network morphism are evidence sources with different assumptions; their results do not establish Transformer-from-random-initialization growth on Android. Keep width/depth mutation as a higher-cost alternative because it touches many tensor and runtime shapes. Structured dynamic sparse training is a separate research candidate and is not a required first-generation feature.
 
 ### 5.3 Tokenizer
 
@@ -618,6 +696,8 @@ The following are deliberately later tests. Their methods and acceptance criteri
 | Lifecycle/concurrency | Process death, background restriction, duplicate job, cancellation at safe boundary, competing inference/acquisition/training budgets | Sections 6 and 9 |
 | Runtime/backend | CPU-reference parity; Vulkan loader/driver/compute-queue and per-feature discovery; FP32 fallback and optional FP16 arithmetic/storage validation; full training-operator coverage; actual graph partition/transfer/fallback report; device-loss and checkpoint-safe recovery; optional NPU provider behavior | Sections 5.4, 5.5.1, 11 and documents 08/15/21/42 |
 | Candidate evaluation | Fixed digest, reproducible evaluation, regression failure, promotion race, rollback to last-known-good | Sections 5.2 and 6.2 |
+| Structural evolution | Parent immutability, tensor mapping, initialization, optimizer-state migration, parent/candidate peak memory, candidate validation, promotion and rollback | Sections 5.2 and 5.2.1 |
+| Dynamic sparse topology | Fixed-budget rewiring versus active-capacity growth, exact topology checkpoint/resume, optimizer warm-up, sparse representation accounting, deterministic update and backend parity | Section 5.2.1 and document 42 |
 | Device feasibility | E1–E7 on named representative physical devices after implementation; no broad support claim before pass | Document 33 |
 
 ## 15. Open decisions that remain legitimately open
@@ -634,6 +714,8 @@ This document intentionally does not close decisions that depend on architecture
 8. Minimum supported Android device tier, numeric memory/session/energy budget and thermal admission thresholds.
 9. User consent wording, review defaults and the model-lineage policy after personal-data revocation.
 10. Promotion thresholds and general-capability regression policy.
+11. Structural-growth trigger metrics, allowed Transformer mutation catalog, growth/cooldown budgets and parent-child resource admission.
+12. Sparse format, active-density/capacity policy, topology-update cadence, inactive-gradient scoring strategy, optimizer-state warm-up and Android sparse-kernel support.
 
 A decision may remain open without making the surrounding module boundary or lifecycle contract incomplete. Every open item must have an owner, required evidence, decision forum/ADR and latest acceptable resolution point before the dependent implementation work.
 
@@ -652,5 +734,20 @@ The pre-implementation contract baseline is ready for review when:
 - Requirements in document 01 map to a contract and a planned verification family.
 - The later verification suite is explicitly separated from documentation completion.
 - No statement implies these contracts already exist in the prototype.
+
+
+
+## 17. Architecture-growth and dynamic-sparsity evidence
+
+The following primary research establishes that the mechanisms exist, while their transfer to Argus's locally initialized Android language model remains unproven:
+
+1. Rusu et al., [Progressive Neural Networks](https://arxiv.org/abs/1606.04671), 2016. Adds a new column for each task, freezes previous columns and uses lateral connections. It is a continual-transfer architecture, not a drop-in incremental Transformer block-growth algorithm; retained columns also accumulate inference/storage cost.
+2. Yoon et al., [Lifelong Learning with Dynamically Expandable Networks](https://arxiv.org/abs/1708.01547), 2017. Selectively retrains shared units and expands/splits units when sequential-task capacity is insufficient. Its task-incremental benchmarks do not prove general-purpose language-model growth on phones.
+3. Wei et al., [Network Morphism](https://proceedings.mlr.press/v48/wei16.html), ICML 2016. Studies depth/width and other network transformations intended to preserve the parent function. The reported scope is classic and convolutional networks; Transformer-specific equivalence and optimizer migration require separate derivation and verification.
+4. Evci et al., [Rigging the Lottery: Making All Tickets Winners](https://proceedings.mlr.press/v119/evci20a.html), ICML 2020. Dynamic topology updates can train sparse networks under a fixed parameter/computation budget. Fixed-budget rewiring must not be described as monotonic capacity growth.
+5. Lasby et al., [Dynamic Sparse Training with Structured Sparsity](https://proceedings.iclr.cc/paper_files/paper/2024/hash/8c5f30296296d2ae402ebbd09aaa9c12-Abstract-Conference.html), ICLR 2024. Structured RigL targets hardware-executable N:M-like patterns and reports acceleration on its evaluated CPU/GPU systems; those measurements are not Android Mali/Vulkan evidence.
+6. Xiao et al., [Memory-Efficient LLM Training with Dynamic Sparsity: From Stability to Practical Scaling](https://proceedings.mlr.press/v306/xiao26t.html), ICML 2026. Reports topology-update loss spikes from newly regrown parameters under naive Adam state and proposes optimizer warm-up, density-aware learning-rate scaling and active-only gradient/optimizer state. It is not a mobile-device benchmark; its optimizer findings are a required risk to investigate, not a ready-made Argus optimizer.
+7. Wang et al., [CoPE: Continual Probe-guided Expansion for Large Vision-Language Models](https://proceedings.mlr.press/v306/wang26le.html), ICML 2026. Uses probe experts to decide when/where to add experts and a task locator for routing across eight VQA tasks. It is adjacent evidence for selective expert expansion, not proof of random-init local language pretraining or mobile feasibility.
+8. Zhang et al., [Grow-on-Demand: Sparse and Adaptive Expert Expansion for Continual Instruction Tuning](https://doi.org/10.1609/aaai.v40i34.40077), AAAI 2026. Adds experts only when a demand detector calls for them during continual instruction tuning. Treat its scope as task-adaptation evidence; it does not settle Argus's from-scratch Genesis or local-device training requirements.
 
 **Current disposition:** this document supplies the missing architecture-neutral contract draft. It does not by itself close the overall documentation phase, accept the architecture/tokenizer ADRs, approve corpus sources, authorize implementation or establish empirical Android feasibility.
