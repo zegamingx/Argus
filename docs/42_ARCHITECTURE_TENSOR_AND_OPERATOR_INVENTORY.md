@@ -553,7 +553,7 @@ Do not start by naming profiles “low”, “mid” or “high” from total RA
 | ML — depth proxy | \(D_0,L_1,F_0\), \(L_1>L_0\) | Effect of depth while width is held fixed | Keep \(V,D_0,d_h\), context, tokenizer, FFN ratio, data exposure and graph semantics fixed; count every attention and FFN residual branch for initialization |
 | MWL — combined candidate | \(D_1,L_1,F_1\) | Interaction of width and depth after their independent effects are understood | Admit only after MW and ML have separate resource/quality evidence; re-run exact tensor, initialization, optimizer, activation and checkpoint estimates |
 
-This is a controlled hypothesis matrix, not four approved model profiles. \(D_0,D_1,L_0,L_1,F_0,F_1\) must be selected by the analytical search; no numeric value is implied here. The minimum scaling comparison needs at least two widths or depths within the same architecture family when evaluating width/depth parameterization transfer. A combined width+depth candidate must not be used as the only evidence for either effect.
+This is a controlled hypothesis matrix, not four approved model profiles. \(D_0,D_1,L_0,L_1,F_0,F_1\) must be selected by the analytical search; no numeric value is implied here. A width-transfer comparison requires at least two distinct widths; a depth-scaling comparison requires at least two distinct depths. Keep the other dimension fixed for each isolated comparison. A combined width+depth candidate must not be used as the only evidence for either effect.
 
 For the MHA reference, enforce \(D=H_qd_h\) and \(H_{kv}=H_q\). If a chosen width is not divisible by the pinned head dimension, reject that shape or declare a different explicit head-dimension hypothesis. GQA/MQA are separate attention ablations, not a hidden width adjustment. Keep vocabulary \(V\) fixed for within-tokenizer width/depth comparisons. A different tokenizer/vocabulary creates a separate profile family because it changes embedding/head tensors, logits, sequence fertility and checkpoint compatibility.
 
@@ -603,6 +603,79 @@ Compare feasible candidates in separate parameter-, token/data-exposure-, comput
 7. If no tuple passes, stop Genesis with a typed, recoverable reason. Never fall back to a smaller language contract, different tokenizer IDs or a silently different optimizer.
 
 The model-shape sweep can be completed analytically before physical-device testing, but a profile cannot be marked VERIFIED or assigned a supported device class until the relevant E1–E7 measurements exist. Proposed candidate labels are not support promises.
+
+
+### 7.2.9 Closed-form MHA reference sensitivity
+
+For the document 43 reference graph, a useful simplified sensitivity form is available once \(V,D,L,F\) are supplied. The assumptions for this expression are explicit:
+
+- Decoder-only MHA with \(D_q=D_{kv}=D\) and \(H_{kv}=H_q\).
+- RoPE; no learned absolute-position table.
+- Dense two-projection GELU FFN with \(F=r_{ffn}D\).
+- Pre-LN with two affine LayerNorms per block and one affine final LayerNorm.
+- Tied token embedding/output head.
+- No projection biases, adapters or optional learned tensors in this simplified expression.
+
+Under those assumptions:
+
+\[
+P_{MHA,tied}\approx VD + L\left(4D^2+2DF+4D\right)+2D
+\]
+
+Substituting \(F=r_{ffn}D\):
+
+\[
+P_{MHA,tied}\approx VD +(4+2r_{ffn})LD^2 +(4L+2)D
+\]
+
+An untied output head adds another \(VD\). Any declared biases, adapters, extra normalization parameters or other learned tensors must be added from the exact ordered tensor inventory; the expression is a sensitivity aid, not the authoritative count.
+
+For the four shape candidates, apply the same formula without changing \(V\) or \(r_{ffn}\) inside the width/depth comparison:
+
+\[
+P_{M0}\approx VD_0 +(4+2r_{ffn})L_0D_0^2 +(4L_0+2)D_0
+\]
+
+\[
+P_{MW}\approx VD_1 +(4+2r_{ffn})L_0D_1^2 +(4L_0+2)D_1
+\]
+
+\[
+P_{ML}\approx VD_0 +(4+2r_{ffn})L_1D_0^2 +(4L_1+2)D_0
+\]
+
+\[
+P_{MWL}\approx VD_1 +(4+2r_{ffn})L_1D_1^2 +(4L_1+2)D_1
+\]
+
+This makes the scaling effects visible: block matrices scale approximately with \(LD^2\), while the tied embedding/head parameter term scales with \(VD\). When \(V\) is large, the embedding/head can remain a material fraction even for a shallow/narrow proxy. A width increase therefore cannot be evaluated from block parameters alone.
+
+For this MHA reference, the inference KV cache simplifies to:
+
+\[
+M_{KV}=2LB_{req}CDs_{KV}
+\]
+
+For an explicitly selected GQA ratio \(\rho_{kv}=H_{kv}/H_q\), use:
+
+\[
+M_{KV,GQA}=2LB_{req}CD\rho_{kv}s_{KV}
+\]
+
+The GQA expression is a separate ablation; it must not be used to understate the MHA reference cache.
+
+The forward matrix-operation estimate also simplifies to:
+
+\[
+F_{forward,matmul}\approx
+L\left((8+4r_{ffn})B_\mu T_{train}D^2
++4B_\mu D N_{pairs}\right)
++2B_\mu T_{train}DV
+\]
+
+where \(N_{pairs}\) is the actual evaluated query-key pair count per sequence. A dense masked implementation may use \(T_{train}^2\); an ideal causal-only calculation uses \(T_{train}(T_{train}+1)/2\). The corresponding first training estimate remains approximately three times forward matrix work for forward plus backward, excluding softmax, normalization, activation, loss, optimizer, rematerialization and runtime inefficiency.
+
+The formulas show why \(V\), \(D\), \(L\), \(F\), context, microbatch and precision must be evaluated together. They do not establish a numeric model profile, sustained tokens/second, a RAM threshold or Android device support.
 
 
 ## 8. G4 deliverables and current disposition
