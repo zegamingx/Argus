@@ -540,6 +540,71 @@ The memory/storage worksheet must follow the actual generation transaction rathe
 These rules align with documents 19 (Genesis-to-training and P0 checkpoint contract), 20 (initial generation commit and post-readiness learning) and 36 (ModelGenerationRepository, CheckpointManifest, immutable inference snapshots and storage transactions). The repository interface names in document 36 are logical contracts, not proof that full-copy or copy-on-write storage has been implemented.
 
 
+### 7.2.8 Profile-candidate matrix: model shape and execution envelope
+
+Do not start by naming profiles “low”, “mid” or “high” from total RAM or a SoC list. Build a bounded matrix from a fixed tokenizer/graph contract and measured process budgets. The matrix has two independent axes: **model-shape candidates** and **execution envelopes**. A product profile is created only from a reviewed, feasible combination of both axes plus tokenizer, precision, optimizer and backend fingerprints.
+
+#### Model-shape candidate sweep
+
+| Candidate | Symbolic shape | What it isolates | Mandatory controls |
+|---|---|---|---|
+| M0 — reference proxy | \(D_0,L_0,F_0\) | Smallest analytical/reference point admitted by the declared objective and exact tensor constraints | Fixed \(V\), tokenizer fingerprint, head dimension, objective, data split, context, precision reference and operator graph |
+| MW — width proxy | \(D_1,L_0,F_1\), \(D_1>D_0\) | Effect of width/parameter scale while depth is held fixed | Keep \(V,L_0,d_h\), context, data exposure and graph semantics fixed; derive \(H_q=D_1/d_h\) and \(F_1=r_{ffn}D_1\) only after declaring the FFN ratio |
+| ML — depth proxy | \(D_0,L_1,F_0\), \(L_1>L_0\) | Effect of depth while width is held fixed | Keep \(V,D_0,d_h\), context, tokenizer, FFN ratio, data exposure and graph semantics fixed; count every attention and FFN residual branch for initialization |
+| MWL — combined candidate | \(D_1,L_1,F_1\) | Interaction of width and depth after their independent effects are understood | Admit only after MW and ML have separate resource/quality evidence; re-run exact tensor, initialization, optimizer, activation and checkpoint estimates |
+
+This is a controlled hypothesis matrix, not four approved model profiles. \(D_0,D_1,L_0,L_1,F_0,F_1\) must be selected by the analytical search; no numeric value is implied here. The minimum scaling comparison needs at least two widths or depths within the same architecture family when evaluating width/depth parameterization transfer. A combined width+depth candidate must not be used as the only evidence for either effect.
+
+For the MHA reference, enforce \(D=H_qd_h\) and \(H_{kv}=H_q\). If a chosen width is not divisible by the pinned head dimension, reject that shape or declare a different explicit head-dimension hypothesis. GQA/MQA are separate attention ablations, not a hidden width adjustment. Keep vocabulary \(V\) fixed for within-tokenizer width/depth comparisons. A different tokenizer/vocabulary creates a separate profile family because it changes embedding/head tensors, logits, sequence fertility and checkpoint compatibility.
+
+Use an explicit FFN ratio \(r_{ffn}=F/D\) for the width sweep. Do not silently assume that one published model's FFN multiplier is the Argus default. If a later profile chooses SwiGLU, produce a parameter-matched gated width \(F_g\) rather than reusing the dense FFN intermediate width.
+
+#### Execution-envelope candidates
+
+| Envelope | Workload policy | Required admission evidence |
+|---|---|---|
+| X-SERIAL | Training and inference are serialized; parent inference is paused while the child candidate trains | Training peak and inference peak separately fit; durable pause/checkpoint transition; no simultaneous parent-inference allocation assumed |
+| X-OVERLAP | Immutable parent inference continues while an isolated child candidate trains | Combined parent weights/KV/workspace + child training peak + runtime reserve fits; snapshot lifetime and promotion semantics are verified |
+| B-CPU-REFERENCE | Correctness/reference execution on CPU | Exact forward/loss/backward/optimizer support, numerical parity, sustained CPU throughput and process-memory evidence for every required operator |
+| B-ACCELERATOR | A particular GPU/NPU backend executes a declared subset or complete graph | Backend/provider/driver/API/ABI and per-operator forward, loss, backward, optimizer and serialization/recovery coverage; transfer and scratch costs; numerical parity and sustained thermal evidence |
+
+These rows are orthogonal, not a ranked ladder. An accelerator can be used under X-SERIAL without qualifying for X-OVERLAP. A CPU path may be the correctness reference but too slow for a useful workload; a GPU matmul path may be fast but fail admission because softmax, normalization, backward or optimizer operations lack support. A partial accelerator path must state exactly which operations fall back to CPU and include transfer/copy buffers and synchronization in the peak.
+
+#### Bundle identity and comparison protocol
+
+An eventual immutable profile is:
+
+\[
+Profile=(M_{shape},X_{execution},B_{backend},Tokenizer,Precision,Optimizer,DataObjective,CheckpointPolicy)
+\]
+
+Every tuple member is versioned and fingerprinted. Reject unsupported tuples rather than silently changing one field at runtime.
+
+For each feasible tuple, record:
+- Exact \(P\), parameter tensor inventory and parameterization/initializer manifest.
+- Weight, gradient, optimizer, master-weight, logits and saved-activation bytes.
+- Forward/backward/update FLOPs and any operations excluded from the estimate.
+- Training and inference sequence/context lengths, microbatch, accumulation and active request count.
+- Separate Genesis, training, optimizer-update, inference, overlap, checkpoint and migration RAM/storage peaks.
+- CPU/backend operator coverage, numerical tolerance, sustained compute evidence, energy and thermal status.
+- Tokenizer language-stratum fertility/coverage and the data/objective revision used for any quality proxy.
+- Rejected hard gates and the evidence/confidence attached to every accepted estimate.
+
+Compare feasible candidates in separate parameter-, token/data-exposure-, compute-, memory- and quality-matched views as required by document 43 Gate E. Do not reduce all dimensions to one untraceable “device score”.
+
+#### Deterministic selection rule
+
+1. Filter by accepted language/data eligibility and exact tokenizer artifact/runtime.
+2. Filter by complete graph correctness and backend/operator coverage for the required training path.
+3. Filter by Genesis peak, training peak, inference peak, any required overlap peak, storage and checkpoint/rollback reserve.
+4. Filter by sustained compute/thermal/power constraints when those are product requirements; UNKNOWN does not pass a required gate.
+5. Rank only the remaining feasible tuples using the approved product priority and maintenance/quality trade-offs.
+6. Persist the chosen immutable profile/tokenizer/model fingerprints before allocating vocabulary-dependent model tensors.
+7. If no tuple passes, stop Genesis with a typed, recoverable reason. Never fall back to a smaller language contract, different tokenizer IDs or a silently different optimizer.
+
+The model-shape sweep can be completed analytically before physical-device testing, but a profile cannot be marked VERIFIED or assigned a supported device class until the relevant E1–E7 measurements exist. Proposed candidate labels are not support promises.
+
+
 ## 8. G4 deliverables and current disposition
 
 G4 must produce one exact candidate bundle per supported profile, including:
