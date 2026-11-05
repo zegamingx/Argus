@@ -97,7 +97,7 @@ At minimum, separate these fixture strata:
 
 | Stratum | Required content |
 |---|---|
-| Initial corpus language | Indonesian and English text from the owner-provided local corpus, with exact source/sample records and separate per-language reporting; additional product languages only when their exact fixture content and scope are approved |
+| Initial corpus language | Indonesian and English text from the owner-created local corpus, with exact source/sample records and separate per-language reporting; additional product languages only when their exact fixture content and scope are approved |
 | Additional language/script stress | Selected Latin and non-Latin scripts that expose Unicode, combining-mark and script-boundary behavior; these tests do not automatically create product-language support commitments |
 | General knowledge domains | Representative samples from the approved knowledge taxonomy, including explanatory prose and domain vocabulary |
 | Technical text | Code, identifiers, package names, paths, API symbols, URLs, markup and mixed alphanumeric strings |
@@ -135,12 +135,12 @@ No fixed language proportions, corpus token quota or universal corpus size is ap
 
 ### 4.4 Repository-bundled starter corpus fixtures
 
-The repository now contains three owner-provided starter corpus assets: two Indonesian sources and one English source. They are initial frequency-corpus candidates and must remain separately identifiable by language and source; their presence does not establish product-wide language coverage or an approved bilingual product-language policy.
+The repository now contains three owner-created starter corpus assets: two Indonesian sources and one English source. They are initial frequency-corpus candidates and must remain separately identifiable by language and source; their presence does not establish product-wide language coverage or an approved bilingual product-language policy.
 
 | Asset | Immutable repository identity in the reviewed `main` snapshot | Content/role | Current readiness |
 |---|---|---|---|
 | `app/src/main/assets/corpus/ArgusID.txt` | 13,182,863 bytes; Git blob `4afef2b74e1b9745d361e96d574ca0103771246f` | Owner-authored mixed-topic Indonesian text | Available as a bundled local-import source; importer-generated SHA-256 and selected workflow-purpose record are still required |
-| `app/src/main/assets/corpus/DigiTransID.zip` | 94,226-byte archive; Git blob `abdc59d91a3c5e41b18c747f8fc7df2b0ead44c2`; 16 UTF-8 TXT entries and 258,654 expanded bytes in the audited archive | Owner-provided Indonesian prose covering digital transformation, organizations, AI governance, computing infrastructure and research capability | Available as a bundled local-import source; importer-generated archive/entry SHA-256 and selected workflow-purpose record are still required |
+| `app/src/main/assets/corpus/DigiTransID.zip` | 94,226-byte archive; Git blob `abdc59d91a3c5e41b18c747f8fc7df2b0ead44c2`; 16 UTF-8 TXT entries and 258,654 expanded bytes in the audited archive | Owner-authored Indonesian prose covering digital transformation, organizations, AI governance, computing infrastructure and research capability | Available as a bundled local-import source; importer-generated archive/entry SHA-256 and selected workflow-purpose record are still required |
 | `app/src/main/assets/corpus/Argus_story_Eng.txt` | 24,000,000 bytes; Git blob `6c59774acb4278033fefbedf59f83984e4ee3c86` | English story-like text; 1,306 chapter headings, 376,017 lines, approximately 4,274,907 word tokens and 1,781 case-folded word types in a simple lexical scan | Available as a bundled local-import source and English tokenizer-diagnostic candidate; importer-generated SHA-256, selected workflow-purpose record, split manifest and content-quality disposition remain required |
 
 **English corpus screening boundary.** The first-pass scan of `Argus_story_Eng.txt` gives approximately 0.00042 case-folded word types per word token and frequent repeated sentence-opening patterns. Samples from the beginning, middle and end contain recurring grammatical and semantic anomalies, including verbs applied to unrelated objects and incomplete/missing prepositional constructions. These are screening observations, not a formal language-quality score or a finding about authorship. Until document-level quality review is complete, treat this asset as a tokenizer encoding/fertility diagnostic and a provisional English frequency-corpus candidate—not as representative English prose, a general-language benchmark, or evidence of English model competence. Record its eventual quality disposition; do not silently discard it.
