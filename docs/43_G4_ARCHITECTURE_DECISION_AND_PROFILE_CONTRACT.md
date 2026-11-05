@@ -187,6 +187,23 @@ A multi-family portfolio must be justified by evidence that the extra family mat
 
 The initial profile portfolio must be finite and maintainable. Do not generate arbitrary architecture settings from every SoC label. Device capability selects an already approved compatible profile; the runtime governor adjusts only workload controls inside that profile/session.
 
+### 5.1 Preliminary design recommendation — not an owner-approved ADR
+
+**Preferred first-generation candidate for G4 review: Option A, one decoder-only Transformer family with a small, versioned device-profile portfolio.** This is an engineering-risk recommendation, not a claim that Transformer is universally faster, more capable or more memory-efficient than SSM/recurrent alternatives.
+
+Reasons for placing Transformer first:
+
+1. A conventional causal Transformer has the most direct correctness-first CPU reference path among the retained candidates. Its core forward/loss/backward/optimizer contract is comparatively straightforward to specify and gradient-check before accelerator work.
+2. The current Android evidence base is strongest around Transformer-family mobile deployment, native mobile LLM fine-tuning and mobile GPU tensor-layout optimization. This is adjacent evidence only: MobileFineTuner and FBLayout are fine-tuning/runtime evidence, not proof of random-initialization Android pretraining.
+3. MobileLLM provides sub-billion Transformer design evidence, including deep/thin layouts and embedding sharing, but its from-scratch training used 32 NVIDIA A100 GPUs. It informs candidate structure and parameter allocation, not mobile throughput or feasibility.
+4. Mamba-2 and RWKV-7 remain viable research families, but each adds specialized scan/recurrent update, backward, state serialization and reset/carry obligations that do not yet have an equally mature Argus Android implementation path. A hybrid inherits both operator/state surfaces and therefore has the highest first-generation integration burden.
+
+**Recommended initial portfolio policy:** maintain one Transformer family across a finite set of device/resource profiles. Adapt width, depth, context, precision and workload envelope only through reviewed immutable profile definitions. Do not create a per-SoC architecture fork. Keep Mamba-2 and RWKV-7 as future evolution candidates; admit them when a complete local-initialization, CPU-reference, backward, optimizer, state/checkpoint and resource contract demonstrates a concrete capability or coverage gain. Keep hybrid as a later composition candidate rather than combining families in the first generation.
+
+This does not reverse the accepted Argus growth direction. A future architecture may add or reorganize modules through a new, versioned child generation with explicit tensor/state migration, validation and rollback. An active generation must never change its architecture or tensor identity in place.
+
+**Evidence boundary:** the recommendation lowers initial implementation and verification risk; it does not establish random-init training quality, sustained Android feasibility, device support, or the final model dimensions. The exact tokenizer, vocabulary, graph components, initializer, optimizer, precision and per-device dimensions remain gated by G1-D and the remaining G4 contracts.
+
 ## 6. Device-adaptive profile selection and fallback
 
 Use the profile-selection method proposed in document 34:
@@ -247,11 +264,11 @@ G4 closure does not authorize coding, builds, Actions, artifact upload or physic
 
 ## 9. Current disposition
 
-- **G1-D:** OPEN. The tokenizer proposal, rights evidence leads, runtime paths and deterministic selection method exist, but owner language policy, use-specific data permissions/manifests and per-profile runtime decisions remain unresolved.
+- **G1-D:** OPEN. The owner-created local corpus path is identified, and the format-specific runtime evidence has been refreshed through 2026-11-05. The product-language/unsupported-language policy, exact imported tokenizer-frequency manifest and selected workflow purpose, final retained tokenizer/runtime/API/ABI bundle, and immutable per-profile artifact contract remain unresolved.
 - **G2:** CLOSED only for the four-family comparison shortlist.
 - **G3:** CLOSED only for the component disposition planning baseline; DEFER remains DEFER.
-- **G4:** BLOCKED. This framework prepares the decision; it does not make it.
-- **Backbone/profile/component:** none selected.
+- **G4:** BLOCKED. A Transformer-first, single-family profile portfolio is the preliminary engineering recommendation for owner review, not a selected ADR. The exact tokenizer, graph/component contracts, profile resource envelopes, optimizer/precision and final comparative rejection record remain incomplete.
+- **Backbone/profile/component:** none approved for implementation planning.
 - **Implementation/build/CI/physical testing:** not performed or authorized by this document.
 
 ## 10. Source-of-truth documents
