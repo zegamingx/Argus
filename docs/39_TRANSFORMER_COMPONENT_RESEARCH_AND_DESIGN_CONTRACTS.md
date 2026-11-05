@@ -1,6 +1,6 @@
 # Transformer Component Research and Pre-G4 Contracts
 
-**Status:** Comparative evidence synthesis; no component selected for Argus  
+**Status:** Comparative evidence synthesis with a bounded Transformer reference/ablation protocol; no component selected for Argus  
 **Last reviewed:** 2026-11-04  
 **Scope:** Attention semantics, positional representation, feed-forward blocks, normalization/residual placement, depth/width and token embeddings/output head  
 **Dependencies:** Documents 34, 35, 38 and 40  
@@ -217,6 +217,32 @@ For every component ablation, the comparison manifest must pin:
 - quality measures relevant to both next-token modeling and retrieval/copying/in-context behavior.
 
 No one matching method is sufficient. Report parameter-matched, token/data-exposure-matched, compute-matched and memory-matched results separately. Record where candidates cannot be compared under equal compute because their operators have different implementation maturity.
+
+### 8.1 Bounded first-pass reference and ablation order
+
+To avoid an unbounded factorial search, use a single transparent Transformer semantic reference before evaluating optional components. This is a **comparison control**, not an adopted Argus architecture:
+
+| Component | First-pass semantic/control choice | Candidate ablation(s) | Boundary |
+|---|---|---|---|
+| Backbone | Decoder-only causal Transformer | None in this document; family comparison remains in G4 | Only used if the Transformer-first recommendation remains the selected family |
+| Attention | MHA | At least one valid GQA ratio; MQA only if its measured cache benefit justifies the quality risk | MHA is the semantic control, not the expected low-memory winner |
+| Position | RoPE with fully pinned frequency/base and indexing rules | ALiBi under the same tokenizer and sequence-packing profile | No context extrapolation claim without held-out longer-context evaluation |
+| FFN | Dense GELU FFN | Parameter-matched SwiGLU | Match parameter and compute budgets separately; do not reuse identical intermediate width |
+| Normalization | Pre-LN + LayerNorm | Pre-LN + RMSNorm first; placement variants only if stability evidence warrants them | Keep norm operator and residual placement as separate experimental factors |
+| Embedding/output | Explicitly declared tied and untied variants | Compare both after vocabulary and hidden width are fixed | Do not select from weight bytes alone; include logit and training-state cost |
+| Initialization | Conventional fan-aware correctness control from document 40 | Depth/residual-scaled or μP only when the selected graph/profile meets their assumptions | Exact tensor-role rules and optimizer compatibility still require a manifest |
+| Optimizer | AdamW reference/control from document 37 | Lion as the primary memory-sensitive candidate | This does not select AdamW or Lion for production |
+| Precision | FP32 correctness reference for mathematical parity | Lower-precision profile only after finite/gradient/update parity is established | Device/backend precision support is a separate G4 profile gate |
+
+**Staged comparison sequence:**
+
+1. Establish the reference graph with deterministic tensor shapes, causal masking, loss masking, document resets and FP32 numerical checks. Do not proceed if the CPU reference fails finite-value or gradient checks.
+2. Ablate one architecture component at a time while holding tokenizer fingerprint, corpus manifest, splits, parameterization, initialization seed set and training objective fixed.
+3. Re-run promising components under parameter-matched and compute-matched views; do not assume one comparison can satisfy both.
+4. Compose only the best-supported component candidates into a small number of complete profile bundles. Recalculate the full tensor inventory and memory worksheet from document 42 after each composition.
+5. Record a rejected alternative and its reason. A component is not selected merely because its isolated ablation improves one metric.
+
+This staged protocol is deliberately bounded: it does not require testing every Cartesian combination of MHA/GQA/MQA × RoPE/ALiBi × GELU/SwiGLU × LayerNorm/RMSNorm × Pre/Post/Peri-LN. The exact profile decision remains a reviewed G4 deliverable, and all unverified results remain post-implementation verification obligations.
 
 ## 9. Current position and required outputs
 
