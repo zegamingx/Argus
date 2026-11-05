@@ -9,7 +9,6 @@ import java.io.FileOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.exp
-import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sqrt
@@ -66,17 +65,8 @@ class ArgusNeuralEngine(private val context: Context) {
     // Final Head: vocabSize x dModel
     private var wHead: Array<FloatArray> = Array(tokenizer.vocabSize) { randomVector(dModel, 0.05f) }
 
-    // Adam optimizer moment states for LoRA and Head
-    private val mHead: Array<FloatArray> = Array(tokenizer.vocabSize) { FloatArray(dModel) }
-    private val vHead: Array<FloatArray> = Array(tokenizer.vocabSize) { FloatArray(dModel) }
-    private val mEmbed: Array<FloatArray> = Array(tokenizer.vocabSize) { FloatArray(dModel) }
-    private val vEmbed: Array<FloatArray> = Array(tokenizer.vocabSize) { FloatArray(dModel) }
-
+    // Retained as the legacy checkpoint header value; no optimizer is active in this prototype.
     private var adamStep = 0
-    private val learningRate = 0.003f
-    private val beta1 = 0.9f
-    private val beta2 = 0.999f
-    private val epsilon = 1e-8f
 
     init {
         loadCheckpointIfExists()
@@ -224,65 +214,6 @@ class ArgusNeuralEngine(private val context: Context) {
         }
 
         return logits
-    }
-
-    /**
-     * Trains the model on an input text chunk using real Cross-Entropy loss & Adam optimizer step.
-     * Returns the exact computed loss value.
-     */
-    @Synchronized
-    fun trainStep(text: String): Float {
-        if (text.isBlank()) return 0f
-        val tokens = tokenizer.encode(text, autoRegister = true)
-        if (tokens.size < 2) return 0f
-
-        val seq = tokens.take(maxSeqLen)
-        val seqLen = seq.size
-        val logits = forward(seq)
-
-        // Compute real cross-entropy loss over positions 0 until seqLen - 1
-        var totalLoss = 0f
-        var counted = 0
-
-        adamStep++
-        val lr = learningRate / (1f + 0.0001f * adamStep)
-
-        for (t in 0 until seqLen - 1) {
-            val target = seq[t + 1]
-            if (target !in 0 until logits[t].size) continue
-
-            val logitRow = logits[t]
-            val maxL = logitRow.maxOrNull() ?: 0f
-            var sumExp = 0f
-            for (v in logitRow) sumExp += exp(v - maxL)
-            val logProb = (logitRow[target] - maxL) - ln(max(sumExp, 1e-9f))
-            val loss = -logProb
-            totalLoss += loss
-            counted++
-
-            // Backprop gradient for target token vs logits: dL/dz = softmax(z) - 1(v == target)
-            val targetProb = exp(logProb)
-            val gradTarget = -(1.0f - targetProb)
-
-            // Update wHead for target token via Adam
-            val emb = if (seq[t] in 0 until wEmbed.size) wEmbed[seq[t]] else null
-            if (emb != null && target in 0 until wHead.size) {
-                for (d in 0 until dModel) {
-                    val g = gradTarget * emb[d]
-                    val m = beta1 * mHead[target][d] + (1 - beta1) * g
-                    val vVal = beta2 * vHead[target][d] + (1 - beta2) * (g * g)
-                    mHead[target][d] = m
-                    vHead[target][d] = vVal
-
-                    val mHat = m / (1f - Math.pow(beta1.toDouble(), adamStep.toDouble()).toFloat())
-                    val vHat = vVal / (1f - Math.pow(beta2.toDouble(), adamStep.toDouble()).toFloat())
-                    wHead[target][d] -= lr * mHat / (sqrt(vHat) + epsilon)
-                }
-            }
-        }
-
-        saveCheckpoint()
-        return if (counted > 0) totalLoss / counted else 0f
     }
 
     /**
