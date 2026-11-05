@@ -440,7 +440,7 @@ If this document conflicts with accepted product constraints in document 01 or t
 - AccessibilityService dependency severance: **not authorized or performed**.
 - Full personal-intake workflow/API implementation and Gradle changes: **not implemented or authorized by this contract**. A narrow UI safeguard against known raw-string auto-enqueue paths is recorded below.
 - Legacy UI auto-enqueue safeguard: the identified chat prompt, file/image selection and Settings web-result paths no longer call the raw-string training queue. File/image selection explicitly reports that inference/intake is not connected. This prevents those observed paths from silently becoming training input; it does not create consent, retention, review or training authorization.
-- Legacy learning implementation: `TrainingManager.enqueueData(source, title, content)` and its worker remain in the prototype. They are not an approved candidate-manifest API and must not be used to bypass this contract. Full `application/knowledge` intake and `application/learning` admission remain unimplemented.
+- Legacy training path: `TrainingManager.kt`, its raw-string queue/worker and `ArgusNeuralEngine.trainStep(String)` have been removed from the current source tree. No replacement `application/learning` coordinator, candidate-manifest reader or `application/knowledge` intake exists. This retirement prevents the old automatic path from running; it does not implement consent, retention, review or training authorization.
 - Build, tests, GitHub Actions, artifact publication and device execution: **not performed**.
 
 **Next work:** implement the selected first-surface intake only after its consent, retention, provenance and review bindings are concrete. The raw-string queue safeguard is not a substitute for PC-IMPL-01 through PC-IMPL-07, the immutable approved-candidate handoff or the independent learning-admission recheck. Keep capture implementation and AccessibilityService severance separately bounded.
@@ -450,4 +450,7 @@ If this document conflicts with accepted product constraints in document 01 or t
 - 2026-11-05 — Initial PC-OPEN-01 personal capture and experience intake contract prepared against `main` at `fab7da5a0ce86d7265a7be152f550a4b524741cd`. Reconciled with documents 01, 13, 21, 22, 36, 45 and 47. Documentation only; no source, build configuration, test, workflow or device experiment was changed.
 
 
-- 2026-11-05 — Recorded a narrow source safeguard: identified chat, file/image and Settings web-result paths in `ArgusViewModel` no longer enqueue raw strings into `TrainingManager`. The legacy raw-string queue/worker remains explicitly non-compliant with the approved-candidate contract; no consent, review, retention or learning workflow is claimed. No build/test result is claimed.
+- 2026-11-05 — Recorded the final containment state: identified chat, file/image and Settings web-result paths no longer enqueue raw strings; the legacy `TrainingManager` worker and `ArgusNeuralEngine.trainStep(String)` were then removed. No consent, review, retention or learning workflow is claimed. No build/test result is claimed.
+
+
+- 2026-11-05 — Updated the implementation disposition after retirement of the raw-string training worker and engine entry point. Learning remains unavailable until a reviewed immutable-candidate intake and independent learning-admission workflow is implemented. This does not close PC-IMPL-01 through PC-IMPL-07.

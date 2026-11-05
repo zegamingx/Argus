@@ -17,9 +17,9 @@ The current structural findings are:
 
 - `ArgusViewModel` still directly reaches chat, neural execution, training controls/status, memory, hardware, file/image attachment intents, network search, app exclusion and AccessibilityService action contracts. It remains cross-feature and imports concrete model, data and platform implementations. The known chat/file/image/web-result raw-string auto-enqueue calls have been removed; workflow ownership and the legacy queue API remain unresolved.
 - The pre-migration `root → ui → service → root` cycle is retained as historical evidence. The later `app/bootstrap/ArgusContainer` and `ArgusRuntimeOwner` ingress removed the static `ArgusApp` service-locator path and the service's static live-instance action path. This is not complete dependency inversion: the app entry still starts the Android foreground service, the runtime facade is transitional, and the ViewModel still reaches concrete adapters.
-- `ArgusContainer` is now the process-scoped composition root. It constructs the legacy model, training, device, hardware, capture and acquisition implementations; constructor injection is explicit and no DI framework is used.
+- `ArgusContainer` is now the process-scoped composition root. It constructs the current model, device, hardware, capture and acquisition prototypes; the legacy training worker has been removed. Constructor injection is explicit and no DI framework is used.
 - `application/runtime/ArgusRuntime.kt` currently groups training, device, hardware, capture and accessibility runtime ports. Its interface ownership must be refined into workflow/contract owners rather than expanded as a generic service registry.
-- `TrainingManager` combines queue state, worker lifecycle, device admission, model execution and memory updates.
+- The former `TrainingManager` queue/worker has been removed. No application-owned Learning coordinator currently exists; the feature and foreground notification report this capability as unavailable.
 - `ArgusNeuralEngine` combines numerical execution, tokenizer mutation, benchmark reporting and Android checkpoint file I/O.
 - Android service and device classes now reside under `platform/android/*` and access the process runtime through narrow interfaces; feature presentation still performs some direct CameraX, Settings and permission operations.
 - `ExcludedAppsManager` remains a mixed Android installed-app discovery/exclusion-state prototype.
@@ -104,9 +104,9 @@ Target paths below refer to document 45. They are design destinations, not exist
 
 | Current file | Current responsibility | Target owner | Finding |
 |---|---|---|---|
-| `model/ArgusNeuralEngine.kt` | `BenchmarkResult`, model parameters, forward/training/generation, benchmark and checkpoint load/save | `engine/reference`; contracts in `core/model`, `core/inference`, `core/training`; persistence in `data/model` | Combines numerical execution, tokenizer growth, benchmark reporting and Android `Context`/file I/O. High-priority ownership split. Experimental, not a selected production engine. |
+| `model/ArgusNeuralEngine.kt` | `BenchmarkResult`, model parameters, forward/generation, benchmark and checkpoint load/save | `engine/reference`; contracts in `core/model`, `core/inference`; persistence in `data/model` | Combines numerical inference, tokenizer growth, benchmark reporting and Android `Context`/file I/O. Its raw-text `trainStep` entry point was removed on 2026-11-05; no supported training backend is currently exposed. Experimental, not a selected production engine. |
 | `model/Tokenizer.kt` | `Tokenizer`, special-token inventory, token maps, encode/decode and token registration | `core/tokenizer` contract + selected `engine/tokenizer` implementation | Tokenizer identity/API must be distinct from implementation. Mutable runtime vocabulary registration remains gated by G1-D; do not freeze it through a package move. |
-| `model/TrainingManager.kt` | `TrainingStatus`, `TrainingData`, queue/state flows, coroutine worker, device-safety check, neural step and world-model update | `application/learning` + `core/training`; Android scheduling in `platform/android/lifecycle`; numerical step in `engine/reference` or the later selected engine | Mixes workflow orchestration, queue state, resource admission and numerical execution. Imports `sensor.DeviceGuard`, reversing intended dependency direction. |
+| Former `model/TrainingManager.kt` (removed 2026-11-05) | Legacy `TrainingStatus`, `TrainingData`, raw-string queue, constructor-started worker, device check and `trainStep` dispatch | Future `application/learning` + `core/training`; `platform/android/lifecycle` only schedules/observes workflow-owned sessions | Retired because the prototype accepted raw strings and trained without approved immutable manifests, review or learning admission. No replacement coordinator or training worker currently exists. |
 | `model/WorldModel.kt` | `WorldEntity`, `ReflectionEvaluation`, in-memory entities, screen/camera context and response reflection | `core/knowledge` + `data/knowledge`; updates through application use cases | Memory/knowledge concept sits in `model/` and accepts Android `Context`. Domain records/policy and durable repository ownership are not separated. |
 
 ### 4.3 Current `sensor/` package
@@ -171,9 +171,9 @@ ArgusViewModel
   ├── sensor hardware/device/search/exclusion classes
   └── AccessibilityService static action
 
-TrainingManager
-  ├── ArgusNeuralEngine
-  ├── sensor.DeviceGuard
+Former TrainingManager (retired 2026-11-05)
+  ├── ArgusNeuralEngine.trainStep(String) (retired)
+  ├── sensor.DeviceGuard (historical dependency)
   └── WorldModel
 
 ArgusAccessibilityService
@@ -205,7 +205,7 @@ The matrix below records observed source edges at the current audit baseline. It
 | `com.argus.agi.ui.screens.PerceptionScreen` | `service.ArgusAccessibilityService` and CameraX/Android settings APIs | `PerceptionScreen.kt:9–13, 69, 84–89` | The screen reads a concrete service static instance. Preview hosting may remain at the UI edge, but capture/session ownership and service state need narrow contracts. |
 | `com.argus.agi.service.ArgusAccessibilityService` | root `ArgusApp` and `sensor.ExcludedAppsManager` | `ArgusAccessibilityService.kt:7–8, 35, 42, 79–80` | Android callback code constructs a platform adapter and reaches application state through globals. |
 | `com.argus.agi.service.ArgusForegroundService` | root `ArgusApp`, `MainActivity` and training/device state | `ArgusForegroundService.kt:12–14, 58, 110–147` | The service reads global workflow objects and imports the concrete Activity for notification navigation. |
-| `com.argus.agi.model.TrainingManager` | `sensor.DeviceGuard` | `TrainingManager.kt:3–4, 35–42, 143` | Dependency inversion: the training coordinator imports an Android-oriented sensor implementation for admission/safety. Depend on a device/resource contract instead. |
+| Former `com.argus.agi.model.TrainingManager` (retired) | `sensor.DeviceGuard` | Historical source at the pre-retirement baseline | This dependency finding is resolved by removing the class, not by implementing learning admission. Future resource admission must depend on provider-neutral device contracts. |
 | `model.ArgusNeuralEngine` and `model.WorldModel` | Android `Context` and file APIs | `ArgusNeuralEngine.kt:3–9, 26`; `WorldModel.kt:3–10, 27` | Engine/domain-adjacent code is not platform-independent; persistence and Android access must be separated from numerical/domain behavior. |
 
 `ArgusViewModel` also directly constructs `ExcludedAppsManager(application)` and `WebSearchEngine()` rather than receiving application-facing ports from the composition root. The `sensor` package has no observed imports back into `model`, `service` or `ui` in the audited production files; the problematic edge is `model` → `sensor`, not a reciprocal `sensor` dependency.
@@ -260,9 +260,9 @@ The graph does not imply one Gradle module for every box. The contract-owner, pe
 | ID | Finding | Priority | Consequence | Required design correction |
 |---|---|---|---|---|
 | STR-001 | `ArgusViewModel` spans features and directly owns service/engine/data access | HIGH | Broad blast radius; UI tests require concrete services | Split feature ViewModels; move workflows into application use cases; pass typed contracts |
-| STR-002 | `TrainingManager` combines queue, worker, device admission, engine and memory | HIGH | Training lifecycle cannot be isolated from Android/numerical implementation | Separate learning coordinator/session lifecycle, scheduler, resource admission, repositories and engine |
+| STR-002 | Legacy raw-string `TrainingManager` worker and `trainStep(String)` path (retired 2026-11-05) | HIGH | The unsafe prototype path is gone, but no usable Learning workflow exists | Implement `application/learning` over immutable approved candidate manifests, resource admission, candidate-only state, checkpoint/recovery and evaluation contracts |
 | STR-003 | `ArgusNeuralEngine` owns Android Context and checkpoint file I/O | HIGH | Numerical engine is tied to Android storage | Operate on explicit model/session state; persistence belongs in `data/model` |
-| STR-004 | `model/TrainingManager` imports `sensor.DeviceGuard` | HIGH | Lower-level training depends on platform-oriented package | Define device/admission contracts in core/application; Android observations stay in platform |
+| STR-004 | Former `TrainingManager` imported `sensor.DeviceGuard` (class retired 2026-11-05) | RESOLVED BY RETIREMENT | The old dependency no longer exists; no learning admission is implemented | Do not restore this class. Future admission must consume `core/device` evidence through `application/learning` |
 | STR-005 | Services access global `ArgusApp` objects; AccessibilityService has a static instance path | HIGH | Platform entry points bypass explicit dependency/lifecycle boundaries | Application-owned service facades, explicit lifecycle and policy checks |
 | STR-006 | Perception/settings screens directly use CameraX, Android settings and service implementation | MEDIUM | Feature presentation is coupled to platform internals | Platform adapters and application-facing contracts |
 | STR-007 | `WorldModel` is in `model/` and accepts Android Context | MEDIUM | Knowledge domain and persistence are conflated | Split domain contracts from data repository/platform updates |
@@ -406,10 +406,10 @@ The project-owner-authorized migration at commit [`b0441af8`](https://github.com
 | Device observations | `app/src/main/java/com/argus/agi/platform/android/device/` |
 | Foreground service | `app/src/main/java/com/argus/agi/platform/android/lifecycle/` |
 | Web-search connector | `app/src/main/java/com/argus/agi/data/acquisition/WebSearchEngine.kt` |
-| Legacy model prototype | `app/src/main/java/com/argus/agi/model/` (four mixed classes remain) |
+| Legacy model prototype | `app/src/main/java/com/argus/agi/model/` (three mixed classes remain; legacy TrainingManager removed) |
 | Transitional cross-feature ViewModel | `app/src/main/java/com/argus/agi/ui/ArgusViewModel.kt` |
 
-The package migration also updated imports in ArgusApp, ArgusViewModel, TrainingManager and the perception screen, plus manifest FQCNs for Application, Activity and services. It did not establish the application workflow APIs, remove global service access, eliminate the entry/UI/platform dependency cycle, separate exclusion persistence from PackageManager discovery, or split numerical execution from Android file I/O. The current code paths must therefore be read alongside the outstanding ownership findings, not treated as completed layer isolation.
+The package migration initially updated imports in ArgusApp, ArgusViewModel, TrainingManager and the perception screen, plus manifest FQCNs for Application, Activity and services. The former TrainingManager was subsequently removed; the other workflow APIs, residual dependency boundaries, exclusion persistence and numerical/platform separation remain open. The current code paths must therefore be read alongside the outstanding ownership findings, not treated as completed layer isolation.
 
 No build, test, GitHub Actions run or device verification was performed for this checkpoint. Compilation and manifest resolution remain unverified.
 
@@ -436,7 +436,20 @@ The current `ArgusViewModel` no longer calls `TrainingManager.enqueueData` from 
 - File and image selection no longer decodes or submits attachment content to the training queue. The chat surface now states that file/image inference and personal-intake routing are not implemented.
 - Settings web search continues to display retrieval results but does not submit snippets as training text.
 
-This is a narrow admission safeguard, not an implementation of personal learning. `TrainingManager.enqueueData(source, title, content)` remains a raw-string API and its autonomous worker remains in the legacy model class. No immutable approved candidate manifest, purpose-specific consent check, review workflow, revocation check or learning-session admission has been implemented. The raw-string API must not be treated as a compliant personal-training boundary. No build or test was run for this change.
+This was a narrow interim admission safeguard, not an implementation of personal learning. The subsequent retirement of the legacy manager and raw-text engine entry point is recorded in Section 11.5. No immutable approved candidate manifest, purpose-specific consent check, review workflow, revocation check or learning-session admission has been implemented. No build or test was run for this change.
+
+### 11.5 Legacy training path retirement (2026-11-05)
+
+The following prototype execution path has been removed from the current source tree:
+
+- `model/TrainingManager.kt`, including its constructor-started coroutine worker, raw-string `enqueueData(source, title, content)` API, queue-consumption loop, device check and model-update dispatch.
+- `ArgusNeuralEngine.trainStep(String)`, which accepted raw text, dynamically registered tokens and applied the incomplete prototype output-head update.
+- Unused Adam moment buffers and hyperparameter fields that existed only for the removed `trainStep` implementation.
+- Composition-root construction/injection of the manager, ViewModel pause/clear commands, and foreground/UI Pause/Resume controls.
+
+The Learning feature retains its presentation surface and benchmark/device diagnostics, but it reports the learning workflow as unavailable. The foreground notification is read-only and no longer suggests that approved context sources are being monitored or that a pause/resume command controls a training session.
+
+This is **retirement, not remediation of the old training algorithm**. No `application/learning` coordinator, approved-candidate manifest reader, policy/consent repository, optimizer/session checkpoint lifecycle or replacement worker has been implemented. Training must remain unavailable until those contracts are implemented and verified. The neural inference/benchmark prototype remains experimental. No build or test was run for this change.
 
 ## 12. Change history
 

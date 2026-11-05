@@ -31,7 +31,7 @@ The application namespace is `com.argus.agi`. Principal current paths are:
 | `app/src/main/java/com/argus/agi/feature/*/presentation/` | Feature screens and presentation-owned state; ChatMessage, SettingsUiState, LearningUiState and PerceptionUiState are feature-owned |
 | `app/src/main/java/com/argus/agi/ui/ArgusViewModel.kt` | Transitional cross-feature Android ViewModel; decomposition remains open |
 | `app/src/main/java/com/argus/agi/ui/design/` | Shared Compose theme, colors and typography |
-| `app/src/main/java/com/argus/agi/model/` | Four mixed legacy prototype classes: engine, tokenizer, training manager and world model |
+| `app/src/main/java/com/argus/agi/model/` | Three mixed legacy prototype classes: engine, tokenizer and world model; the legacy training manager has been retired |
 | `app/src/main/java/com/argus/agi/platform/android/capture/` | AccessibilityService, action bridge and installed-app/exclusion adapter |
 | `app/src/main/java/com/argus/agi/platform/android/device/` | Device guard and hardware observations |
 | `app/src/main/java/com/argus/agi/platform/android/lifecycle/` | Foreground service adapter |
@@ -399,7 +399,7 @@ This is a proposed ownership map, not an instruction to move mixed classes mecha
 | `ui/ArgusViewModel.kt` | Feature-specific feature/*/presentation state holders | Split by user-facing workflow after application-facing workflow APIs exist; do not move the monolith wholesale into one feature |
 | `model/ArgusNeuralEngine.kt` | engine/reference initially; model persistence in data/model; Android file/key access through platform/android/storage | Separate numerical operations, checkpoint policy and Android I/O; experimental, not selected production engine |
 | `model/Tokenizer.kt` | core/tokenizer contracts + engine/tokenizer only after G1-D | Separate immutable identity/API from concrete algorithm; preserve compatibility and token-ID semantics |
-| `model/TrainingManager.kt` | application/learning, core/training, engine/reference/selected engine/model, platform/android/lifecycle | Decompose session coordination, resource admission, numerical updates and OS scheduling; do not merely rename the class |
+| Former `model/TrainingManager.kt` (removed 2026-11-05) | No current source declaration | Implement future session orchestration only in `application/learning` over `core/training`, approved immutable candidate manifests, resource admission, engine contracts and repository checkpoint transactions; do not restore a raw-string queue/worker |
 | `model/WorldModel.kt` | core/knowledge, data/knowledge and application/knowledge | Separate domain records, retrieval/memory workflow and durable persistence; remove Android Context from domain records |
 | `platform/android/device/HardwareProfile.kt` | platform/android/device + core/device | Separate raw Android evidence from versioned capability contract; chipset heuristics are not verified execution |
 | `platform/android/device/DeviceGuard.kt` | platform/android/device, core/device and workflow admission | Separate Android battery/thermal observations from policy and resource admission |
@@ -525,3 +525,8 @@ The initial migration is not complete architecture remediation. The monolithic V
 - 2026-11-05 — Added feature-owned Learning and Perception UI state projections. The shared ViewModel maps legacy training, device-safety and hardware records into those immutable types; both screens now collect one feature state each. Command routing remains transitional, and no model/backend behavior was changed. No build/test result is claimed.
 
 - 2026-11-05 — Added `feature/chat/presentation/ChatUiState.kt`; ChatScreen now collects the immutable chat feature state rather than separate message and generation flows. Message contents and generation behavior were preserved. No build/test result is claimed.
+
+
+### 10.1 Legacy training prototype retirement
+
+The former `model/TrainingManager.kt` class was removed together with its constructor-started coroutine worker and raw-string `enqueueData` API. The public `ArgusNeuralEngine.trainStep(String)` entry point and its unused Adam moment buffers were also removed. This is a containment/removal decision, not a completed learning implementation. The future `application/learning` coordinator remains a design contract and must not be represented by a renamed wrapper around the retired path.

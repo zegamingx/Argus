@@ -356,3 +356,30 @@ The historical source observations in AUD-014 and P0-B remain valid for the insp
 The audit's proposed Q/V LoRA-only training path is superseded as a target assumption. The initial trainable parameter set and optimizer must be researched against the architecture selected for from-scratch learning; no LoRA-only contract is approved.
 
 This addendum changes the target design, not the inspected code, and does not close AUD-001, AUD-002, AUD-013, AUD-014 or any privacy finding.
+
+
+## 9. Source-containment update — 2026-11-05
+
+This addendum supersedes only the current-source execution-path observations below; the earlier findings remain valid evidence for the source revision they audited.
+
+Commits `6df8603` and `9802085` made the following containment changes:
+
+- Removed `model/TrainingManager.kt`, including its constructor-started worker, raw-string queue API and direct model-training dispatch.
+- Removed `ArgusNeuralEngine.trainStep(String)`, the incomplete raw-text update path that dynamically registered tokens and updated only the prototype output head.
+- Removed the optimizer moment buffers/hyperparameter fields used exclusively by that removed method.
+- Removed the ViewModel injection and queue/pause commands, plus foreground/UI Pause/Resume controls. Learning now reports that its workflow is unavailable.
+- Kept inference and benchmarking separate; neither operation creates a training candidate.
+
+**Disposition of the historical findings:**
+
+| Finding | Current-source disposition |
+|---|---|
+| AUD-001 — incomplete training gradient | The defective entry point was removed, not mathematically repaired. Any future training backend requires a newly selected and verified numerical contract. |
+| AUD-002 — checkpoint mismatch | No current worker writes training updates. Complete model-generation and checkpoint persistence remain open under the Genesis/model repository contracts. |
+| AUD-003/AUD-004 — automatic raw-input training | The identified auto-enqueue and worker execution paths are removed. Consent, retention, provenance, review and explicit training authorization remain unimplemented. |
+| AUD-009 — concurrent training/inference mutation | The retired worker no longer mutates weights concurrently. This must be re-audited when a compliant learning backend is introduced. |
+| AUD-013 — optimizer-state growth mismatch | The old optimizer buffers and their raw-text update entry point were removed. Runtime tokenizer behavior, generation compatibility and the future optimizer contract remain open. |
+
+The old prototype's defects are not considered fixed by deletion. No usable `application/learning` coordinator, approved immutable candidate manifest, policy/consent repository, safe-boundary revocation handling, candidate checkpoint lifecycle or replacement worker exists. Training must remain unavailable until those parts are implemented and independently verified.
+
+No build, test, lint, packaging task, GitHub Actions workflow or device execution was run for these changes.

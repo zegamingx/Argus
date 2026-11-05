@@ -47,7 +47,7 @@ Argus/
 │       │       │   └── settings/presentation/
 │       │       │       ├── SettingsUiState.kt
 │       │       │       └── SkillsAndSettingsScreen.kt
-│       │       ├── model/              # Four transitional mixed prototype classes
+│       │       ├── model/              # Three transitional mixed prototype classes: engine, tokenizer, world model
 │       │       ├── platform/android/
 │       │       │   ├── capture/
 │       │       │   │   ├── AccessibilityActionRegistry.kt
@@ -104,10 +104,10 @@ The repository has moved beyond the first package relocation:
 - `app/entry` contains the Android Application and Activity.
 - `app/navigation` contains the current app shell and destination switching.
 - Feature screens and presentation-owned immutable state types live under their respective `feature/*/presentation` packages. Chat owns `ChatMessage` and `ChatUiState`; Settings owns `SettingsUiState`; Learning owns `LearningUiState`; Perception owns `PerceptionUiState`.
-- `application/runtime` keeps the transitional aggregate entry contract in `ArgusRuntime.kt` and separates training, device, hardware, capture and accessibility ports into focused files. It is not yet the final workflow-specific application API layout.
+- `application/runtime` keeps the transitional aggregate entry contract in `ArgusRuntime.kt` and separates the read-only training-availability, device, hardware, capture and accessibility ports into focused files. It is not yet the final workflow-specific application API layout.
 - Android capture, device, foreground lifecycle and notification adapters live under `platform/android/*`.
 - The concrete web-search connector lives under `data/acquisition`.
-- `model/` still contains four mixed legacy prototype classes. Their responsibilities must be separated before assigning final owners.
+- `model/` contains three mixed legacy prototype classes: `ArgusNeuralEngine`, `Tokenizer` and `WorldModel`. The former `TrainingManager` and raw-text worker have been removed; no replacement `application/learning` coordinator exists.
 - `ui/ArgusViewModel.kt` remains a transitional cross-feature ViewModel and still reaches concrete model, data and platform classes. Settings, Learning and Perception now receive feature-owned immutable UI state projections; command handling and full ViewModel ownership remain to be migrated after workflow APIs are established.
 - `ui/design/` contains shared Compose theme, color and typography resources.
 
@@ -130,3 +130,8 @@ The current layout is an **intermediate migration state**, not proof that every 
 - Removal of old service-locator/static-service access paths and transient-only capture ingress: [commit 8a9014c](https://github.com/zegamingx/Argus/commit/8a9014c7728c65124caa0a6204e16baab84c5cfd).
 
 The runtime-port file split preserves package names, public type names and method signatures; it is a source-organization change only. No build or test result is implied. Further work remains on feature ViewModel decomposition, workflow API ownership, mixed model prototypes, platform permission/camera adapters, persistence and verification.
+
+
+## Learning implementation status — 2026-11-05
+
+The legacy `model/TrainingManager.kt` queue/worker and `ArgusNeuralEngine.trainStep(String)` raw-text entry point have been removed. No `application/learning` workflow replaces them yet. Learning is explicitly unavailable in the feature UI and foreground notification until approved immutable candidate manifests, admission checks and session lifecycle are implemented. The numerical inference and benchmark prototype remains separate from training.

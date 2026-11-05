@@ -33,7 +33,7 @@ README badges match the checked-in AGP, Gradle and Kotlin versions. Release sign
 
 Current physical packages at structural checkpoint `b0441af8` are: `app/entry` (ArgusApp and MainActivity), `app/navigation` (MainScreen), `feature/*/presentation` (four feature screens), `ui/design` (shared theme), `platform/android/capture` (AccessibilityService and installed-app adapter), `platform/android/device` (DeviceGuard and HardwareProfile), `platform/android/lifecycle` (foreground service), and `data/acquisition` (WebSearchEngine).
 
-The four mixed prototype classes remain in `model/` (ArgusNeuralEngine, Tokenizer, TrainingManager, WorldModel), and the cross-feature Android ViewModel remains in `ui/ArgusViewModel.kt`. These are explicit migration debt, not target architecture owners. The README's described `core/agent`, `core/memory`, `core/training`, native C++ and hardware-router implementation is not present in the source tree. The file-by-file pre-migration ownership audit and current migration checkpoint are maintained in [46 — Android Source-Tree Ownership and Dependency Audit](46_ANDROID_SOURCE_TREE_OWNERSHIP_AND_DEPENDENCY_AUDIT.md).
+Three mixed prototype classes remain in `model/` (ArgusNeuralEngine, Tokenizer, WorldModel), and the cross-feature Android ViewModel remains in `ui/ArgusViewModel.kt`. The former `TrainingManager` has been removed with its raw-string queue/worker; no `application/learning` coordinator replaces it. These are explicit migration debt, not target architecture owners. The README's described `core/agent`, `core/memory`, `core/training`, native C++ and hardware-router implementation is not present in the source tree. The file-by-file pre-migration ownership audit and current migration checkpoint are maintained in [46 — Android Source-Tree Ownership and Dependency Audit](46_ANDROID_SOURCE_TREE_OWNERSHIP_AND_DEPENDENCY_AUDIT.md).
 
 ## 3. Hardware discovery baseline
 
@@ -45,7 +45,7 @@ This is **preliminary heuristic identification**, not verified NPU access. It do
 
 `ArgusNeuralEngine.kt` is a Kotlin experimental transformer-like implementation (inspected dimensions include dModel 64, 4 heads and context 128). It is not evidence of a production large-model runtime or native CPU/GPU/NPU execution.
 
-`TrainingManager.kt` has a queue/worker prototype. Correctness, optimizer coverage, checkpoint recovery, foreground lifecycle, data governance and sustained performance require independent verification.
+The legacy queue/worker prototype and `ArgusNeuralEngine.trainStep(String)` have been removed from the current tree. Training is unavailable pending a verified `application/learning` workflow; the old algorithm was retired, not repaired. Genesis, inference, tokenizer, checkpoint and device behavior still require independent verification.
 
 `WorldModel.kt` stores entities in an in-memory concurrent map and exposes state flows. It is not yet a durable episodic/semantic/procedural/vector memory store.
 
@@ -78,3 +78,8 @@ A previously tracked private signing artifact has been removed from the current 
 ## 8. Maintenance
 
 Reinspect before implementation planning and whenever source/build dependencies change. Update this record with commit SHA, date, paths and test evidence. Do not silently convert a README design statement into an implementation claim.
+
+
+### Current learning-path delta — 2026-11-05
+
+Commits `6df8603` and `9802085` removed the legacy `TrainingManager` worker and the raw-text `ArgusNeuralEngine.trainStep(String)` entry point. The current app has no autonomous learning worker. The Learning UI and foreground notification expose the capability as unavailable until the approved-candidate, session-admission and recovery contracts are implemented. No build or test was run for these commits.
