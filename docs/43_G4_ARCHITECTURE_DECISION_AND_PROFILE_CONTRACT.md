@@ -1,7 +1,7 @@
 # G4 Architecture Decision and Device-Profile Contract
 
 **Status:** Pre-decision framework; no backbone, model profile or component values selected  
-**Last reviewed:** 2026-11-04  
+**Last reviewed:** 2026-11-05  
 **Scope:** G4 decision method, immutable model-profile schema, family-specific design inputs, analytical admission and ADR acceptance  
 **Dependencies:** Documents 01, 15, 20–23, 33–42  
 **Boundary:** This is a documentary decision framework. It does not authorize source implementation, builds, workflows, physical-device tests or claims of Android support.
