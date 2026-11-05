@@ -69,6 +69,7 @@ The final manifest should be machine-readable. The field names below are a propo
 | reserve_policy | Application/system safety reserve and source of the chosen margin |
 | resource_estimator_revision | Exact document 42 worksheet/formula revision and calculator implementation version when implemented |
 | phase_peak_worksheet_ids | Separate tokenizer-preparation, Genesis, training-forward/backward, optimizer-update, inference and checkpoint/migration liveness worksheets |
+| evolution_resource_envelope | Maximum parent/child coexistence, inherited/new tensor migration, child optimizer state, candidate training/evaluation, topology-update scratch and checkpoint/rollback peaks for each permitted mutation class |
 | device_process_headroom_evidence | App/process limit, baseline resident footprint, measured allocation headroom, storage reserve, sampling conditions and confidence |
 | sustained_compute_evidence | Exact backend/operator profile, measured sustained throughput/energy/thermal conditions; UNKNOWN before a matching device/backend run |
 | generation_overlap_policy | Full-copy, verified copy-on-write/shared immutable payload, or serialized inference/training policy; all coexistence assumptions stated |
@@ -115,6 +116,9 @@ A byte-level tokenizer may make arbitrary UTF-8 input representable; it does not
 | initialization_contract | Document 40 family, parameter groups, seed/PRNG, dtype/cast and chunk determinism |
 | parameterization_contract | Standard/μP/depth scaling and base-shape fingerprint if applicable |
 | width_depth_comparison_record | Matched M0/MW/ML comparison, seed/data/token controls, proxy-transfer evidence and MWL admission rationale |
+| evolution_policy_id | Versioned controller policy, evidence window, trigger/hysteresis, mutation allowlist, growth ceiling, cooldown and defer/reject rules; may be FUTURE_RESEARCH for the initial release |
+| tensor_migration_map_fingerprint | Exact inherited/transformed/new/removed tensor mapping for a child generation |
+| sparse_topology_contract | Optional sparse parameter groups, logical capacity, active-density ceiling, N:M/block/unstructured format, checkpoint and topology-update semantics; absent for dense profiles |
 
 Dimensions are values of the profile, not global constants. Do not put illustrative sizes from MobileLLM, Mamba, RWKV or any paper directly into an Argus profile without a separate sizing analysis.
 
@@ -127,6 +131,7 @@ Dimensions are values of the profile, not global constants. Do not put illustrat
 | sequence_packing_contract | Document boundaries, special-token placement, loss masks and sequence reset behavior |
 | context_and_chunk_contract | Token length, chunk size, state carry, BPTT/truncated-BPTT semantics and rematerialization |
 | optimizer_id / optimizer_state_schema | Exact update algorithm, state dtype, groups, masks and recovery schema |
+| optimizer_state_migration_contract | Rules for copying compatible parent state, transforming resized state, initializing new/regrown parameters and applying a validated warm-up policy |
 | effective_batch_contract | Microbatch, accumulation, token weighting, clip/loss-scale order and one optimizer-update definition |
 | precision_contract | Weight/compute/gradient/optimizer/recurrent/logit dtypes and scaling rules |
 | schedule_contract | Learning-rate, warmup, weight decay, scheduler update count and stop/pause semantics |
@@ -239,6 +244,33 @@ Fallback must be explicit:
 - Never change token IDs, output-head dimensions, architecture family, initializer or optimizer inside an active model generation/session.
 - Never describe an algorithmic byte fallback as proof of linguistic competence.
 
+### 6.1 Generation-scoped evolution and sparse-topology policy
+
+Initial device-conditioned architecture selection and later model growth are separate control decisions. The first selects an approved immutable profile before Genesis. A later Growth Controller may propose a child generation only under a versioned evolution policy; it cannot edit the active model in place.
+
+The G4 design must distinguish these mutation classes:
+
+| Mutation | What changes | Design disposition |
+|---|---|---|
+| Additive module/expert | Adds a bounded branch/module and a declared router or gate | Preferred structural-growth candidate for further research because parent tensor shapes can remain stable; not selected |
+| Width/depth morphism | Changes existing hidden dimensions, block count or graph shape | Higher migration cost; requires exact tensor/state map and function-preservation or regression evidence |
+| Fixed-budget sparse rewiring | Changes connection identities while holding active parameter budget fixed | Separate training-session topology state; not equivalent to increasing model capacity |
+| Sparse-capacity growth | Increases active connections inside a declared upper bound | Separate parameter-growth policy with rising weight, gradient and optimizer-state cost; not selected |
+
+Growth must be driven by repeated, held-out evidence that the existing capacity is a material limitation after ruling out data quality/coverage, tokenizer, objective, optimization, training-exposure, evaluation and backend problems. New data or transient free RAM is not a growth trigger. The controller must define its evidence window, confidence/persistence threshold, maximum parameter/active-edge delta, cooldown, and explicit defer/reject conditions.
+
+Every structural change produces a child generation with an immutable transition manifest, parent digest, exact tensor migration map, initializer/seed policy for new parameters, optimizer-state migration, tokenizer identity, resource worksheet and evaluation policy. Parent/child memory, inference overlap, staging, optimizer state, evaluation, checkpoint and rollback peaks must fit. If they do not fit, defer or reject the transition; do not mutate active tensors in place.
+
+Sparse topology changes are checkpointed with model and optimizer state. A fixed-budget rewiring algorithm such as RigL changes which connections are active without inherently increasing the active count. Increasing active density is a separate growth operation. A dense tensor filled with zeros does not save parameter memory; a sparse representation, active-only state accounting and a matching backend kernel are required. Newly regrown parameters need a validated optimizer-state initialization/warm-up policy because naive Adam state can cause update spikes after topology changes.
+
+For a Transformer candidate, research additive adapter/expert/residual modules before general width/depth mutation, but do not treat any of them as already function-preserving or inherently cheap. Expert routing adds dispatch and routing-quality obligations; progressive frozen columns can accumulate inference and storage cost. Widening/deepening touches projections, normalization, embedding/output tensors, caches/workspaces and optimizer state. All variants require generation-level evaluation and rollback.
+
+The first-generation profile portfolio may remain dense and structurally fixed while preserving the versioned child-generation lifecycle required for future evolution. Sparse execution is admitted only after pattern-specific forward/backward/optimizer/recovery kernels and end-to-end memory/latency/energy tests pass on the exact backend/device profile.
+
+Federated learning is not a dependency or default optimization. Each installation evolves only its own model and optimizer state. Cross-instance aggregation remains outside the accepted product boundary.
+
+**Evidence disposition:** DEN, Progressive Neural Networks, Network Morphism, RigL, Structured RigL, SMET (ICML 2026), CoPE (ICML 2026) and Grow-on-Demand (AAAI 2026) establish research precedents for selective expansion or changing sparse connectivity. Their benchmark/task/hardware settings do not establish random-init Argus growth on Android. See document 36 section 17 for primary references and transfer limits, and document 42 section 7.2.10 for resource accounting.
+
 ## 7. Post-implementation verification plan
 
 The G4 ADR must map each unverified assumption to a test owner, test method, pass/fail criterion and evidence artifact. At minimum:
@@ -270,6 +302,8 @@ The architecture ADR is not ready unless all are true:
 - [ ] Genesis, training, inference and checkpoint resource envelopes are separately analyzed.
 - [ ] Runtime/backend coverage is stated by operator and forward/loss/backward/optimizer/state/recovery phase.
 - [ ] Profile selection and fallback are deterministic, bounded and versioned.
+- [ ] Structural evolution is either explicitly DEFERRED for the initial profile or has a versioned trigger, mutation allowlist, parent-child tensor/state migration, resource envelope, validation and rollback contract (document 36).
+- [ ] Sparse topology is either explicitly UNSUPPORTED/DEFERRED or has an exact representation, active-capacity bound, optimizer warm-up/state policy, backend kernel coverage and checkpoint/recovery contract (documents 36 and 42).
 - [ ] Rejected alternatives, transfer limits, risks and unverified assumptions are recorded.
 - [ ] Every post-implementation assumption maps to an E1–E7/G1-V verification obligation.
 - [ ] ADR clearly states DESIGN_SELECTED_FOR_IMPLEMENTATION_PLANNING, NOT_PHYSICALLY_VERIFIED.
@@ -282,6 +316,8 @@ G4 closure does not authorize coding, builds, Actions, artifact upload or physic
 - **G2:** CLOSED only for the four-family comparison shortlist.
 - **G3:** CLOSED only for the component disposition planning baseline; DEFER remains DEFER.
 - **G4:** BLOCKED. A Transformer-first, single-family profile portfolio remains a preliminary engineering recommendation, not a selected ADR. Documents 39 and 42 now define the semantic reference, staged ablations, first-pass Transformer parameter/FLOP/memory equations, M0/MW/ML/MWL shape hypotheses, serialized/overlap execution envelopes and phase-specific resource-sweep method. Exact tokenizer/vocabulary, graph dimensions/components, per-device process/storage inputs, Vulkan feature/driver and per-operator workspace/throughput evidence, optional NPU coverage, optimizer/precision and final comparative rejection record remain incomplete.
+- **Evolution research:** generation-scoped structural expansion is part of the long-term design direction; no expansion algorithm, growth trigger, mutation catalog or sparse-training format is selected. The first approved profile may remain structurally fixed while the repository preserves parent/child generation, migration and rollback contracts.
+- **Sparse growth:** fixed-budget topology rewiring and monotonic active-capacity growth are distinct research tracks. Neither is selected or claimed to save Android RAM or accelerate Vulkan.
 - **Backbone/profile/component:** none approved for implementation planning.
 - **Implementation/build/CI/physical testing:** not performed or authorized by this document.
 
