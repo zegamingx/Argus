@@ -106,7 +106,7 @@ At minimum, separate these fixture strata:
 | Noisy/unusual text | Typographical noise, rare names, mixed scripts, emoji sequences, combining marks and otherwise valid uncommon Unicode |
 | Special-token adversarial cases | Literal strings that resemble reserved tokens, embedded role markers, escaped markers and user text that must not become control tokens |
 
-Indonesian and English are both represented in the current bundled owner-provided starter corpus and must be measured as separate initial tokenizer-comparison strata. This changes corpus availability, not product-language policy: it does not by itself approve English as a supported product language, establish balanced bilingual coverage, or define language weighting. ADR-022 still requires deliberate Indonesian source diversity. Additional language/script strata remain robustness diagnostics until the product-language contract and exact source fixtures are approved.
+Indonesian and English are both represented in the current bundled owner-provided starter corpus and must be measured as separate initial tokenizer-comparison strata. This changes corpus availability, not product-language policy: it does not by itself approve English as a supported product language, establish balanced bilingual coverage, or define language weighting. ADR-022 still requires deliberate Indonesian source diversity. Additional language/script strata remain robustness diagnostics until each language is separately accepted as a product target and supplied with exact source fixtures.
 
 ### 4.2 Source eligibility
 
