@@ -5,6 +5,8 @@
 **Review date:** 2026-11-04  
 **Scope:** Documentation only. No source changes, build, tests, workflow execution or artifacts are authorized by this document.
 
+**Current-contract precedence — 2026-11-06:** This document remains the P0 remediation authority for numerical correctness, Genesis identity requirements and the acceptance evidence needed before training can be enabled. Its earlier illustrative dataset/session/candidate transitions must be read together with the newer canonical contracts: document 36 sections 4, 5.2, 5.5, 5.8, 6.2 and 6.2.1 govern DatasetManifest/admission/splits, safe update boundaries, checkpoint validation, candidate assessment and idempotent promotion; document 21 section 8.1 governs Android background-execution constraints; document 48 governs personal capture and intake; and document 47 governs package/interface ownership. Where an older example here conflicts with those newer contracts, the newer contract controls. This reconciliation does not close any P0 finding or authorize implementation.
+
 This document translates the confirmed P0 findings into an implementation contract. It is intentionally narrower than the complete Argus target architecture. GPU/NPU acceleration, multi-agent orchestration, multimodal inference and persistent semantic memory are outside this P0 remediation.
 
 ## 1. Immediate containment
