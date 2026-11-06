@@ -1,7 +1,7 @@
 # General Corpus and Personal Learning
 
-**Status:** Accepted general/personal learning split; local corpus importer and bundled ArgusID/DigiTransID intake implemented; training implementation remains open  
-**Last reviewed:** 2026-11-05
+**Status:** Accepted general/personal learning split; local corpus importer and bundled ArgusID/DigiTransID intake implemented; English starter asset is present but not exposed by a dedicated bundled-import action; production manifests and training remain incomplete  
+**Last reviewed:** 2026-11-06
 
 ## 1. Purpose
 
@@ -20,7 +20,7 @@ The initial general-corpus intake is a user-initiated local import.
 
 ### 2.1 User flow
 
-1. The user opens the dataset-import action and selects one of the bundled local corpora (ArgusID TXT or DigiTransID ZIP), or selects other files using Android's system document picker.
+1. The user opens the dataset-import action and selects one of the two bundled corpora currently exposed by importer convenience actions (`ArgusID.txt` or `DigiTransID.zip`), or selects another accessible file using Android's system document picker. `Argus_story_Eng.txt` is also present as an owner-created repository asset, but the current source has no dedicated bundled-English import action/helper; do not present it as an already selectable bundled import option. Its current tokenizer-research role is a separate English diagnostic only, pending content-quality review and an explicit import path.
 2. The user selects the intended local purposes: neural-model training, tokenizer frequency fitting, aligned tokenizer development, or a chosen combination. General-corpus files remain separate from personal experience; no source-by-source license investigation or per-record rights declaration is part of this local import flow.
 3. Argus parses and validates the selected files locally. It does not fetch linked articles, crawl source websites, upload content or silently add the data to a training queue.
 4. Argus presents an import summary: files/records discovered, accepted, skipped/rejected, detected structure/languages, duplicate counts, approximate text volume and validation warnings.
@@ -96,11 +96,15 @@ Record at least:
 - User-supplied source label/URL or publisher when provided.
 - Selected operation purposes (neural-model training, tokenizer frequency fitting, aligned tokenizer development) recorded with the import identity and timestamp.
 - Record IDs/digests, duplicate and rejected-record summaries.
+- Canonical normalized-dataset digest, bound to the exact decoding, normalization, preprocessing and deduplication versions.
+- Per-split membership digests for train, validation and test, bound to the deterministic split policy/seed and source/document grouping.
 - Language/quality/safety diagnostic versions and outcomes.
 - Normalization and deduplication version/configuration.
 - Split policy, seed, source record membership and split digests.
 - Tokenizer ID/fingerprint and token counts once the tokenizer is selected.
 - Known limitations, warnings and excluded records.
+
+**Implementation-status boundary (reviewed 2026-11-06):** the current importer records source/file and record-level integrity identities, split membership and selected workflow purposes. The current audited implementation does not yet create the canonical normalized-dataset digest, per-split membership digests or a separate append-only `DatasetAdmissionDecision` required by document 36. These are design requirements, not implemented facts. No importer-generated immutable tokenizer-frequency manifest for the three owner-created starter assets is present in the reviewed repository snapshot; therefore no source SHA-256, canonical dataset digest, split digest or `TOKENIZER_FREQUENCY_FITTING` admission is claimed here. Git blob IDs identify repository objects and must not be substituted for importer-generated SHA-256 values.
 
 No full document text, credentials or private article content should be copied into generic logs or diagnostic events. The local corpus store owns the content; manifests and logs reference it by identity and digest.
 
