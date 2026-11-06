@@ -387,7 +387,7 @@ No build, test, lint, packaging task, GitHub Actions workflow or device executio
 
 ## 10. Current-main P0 implementation-readiness audit — 2026-11-06
 
-**Current documentation HEAD reviewed:** `582eff0a84dc9c7fe23df4afb66a23bdada26142`  
+**Main HEAD at the start of this audit:** `582eff0a84dc9c7fe23df4afb66a23bdada26142`  
 **Current Kotlin/Android source baseline:** `c805118a5001a30ff1b7e69025efc2865dd8a1bd`  
 **Source-continuity check:** Comparing the source baseline above with current `main` shows no subsequent Kotlin, Android manifest, Gradle build, settings, version-catalog or Android-resource logic changes. The only subsequent non-documentation application-tree addition is the owner-created corpus asset `app/src/main/assets/corpus/Argus_story_Eng.txt`; current documentation changes do not constitute implementation evidence.  
 **Method:** Re-read the current recursive source tree, application manifest/build configuration, principal model/tokenizer/importer/device/lifecycle/ViewModel files, existing tests and the current design authorities (documents 15, 16, 17, 19, 20, 21, 34–36 and 43–48). This is static inspection only.
