@@ -149,14 +149,15 @@ The repository now contains three owner-created starter corpus assets: two Indon
 
 **Initial comparison procedure:**
 
-1. Keep all three source assets separately identifiable until parsing, hashing, document-level quality review and duplicate analysis finish. Do not flatten the ZIP or erase per-entry lineage.
-2. Import them through the existing streaming importer and explicitly select **tokenizer frequency fitting**. Select neural-model training separately only if that is also intended. The existing importer records workflow purposes but does not fit a tokenizer.
-3. Freeze the importer/parser version, archive-entry list, source and record digests, document IDs, deduplication outcomes, preprocessing identity and deterministic split membership. The Git blob IDs above identify repository objects; they are not substitutes for the SHA-256 values emitted by the importer.
-4. Use only the training partition for frequency fitting. Keep validation and evaluation records sealed from trainer input and any merge/vocabulary selection. Split by document/source unit before any optional smaller-segment sampling; preserve document lineage and avoid near-duplicate leakage.
-5. Report `ArgusID.txt`, each `DigiTransID.zip` entry and `Argus_story_Eng.txt` separately before publishing any aggregate. Preserve the English source as its own language stratum; do not let its larger byte size silently determine the bilingual mixture. Do not choose aggregate language/domain weighting until the product-language policy is accepted and corpus composition is measured.
-6. Treat these starter assets as separate monolingual Indonesian and English sources, not as sentence-aligned bilingual data. They are **not aligned development data** and cannot satisfy a PA-BPE `--dev` requirement. A PA-BPE no-development-data variant may be compared only when its algorithm definition permits it; an aligned-development variant requires a separately imported and approved aligned set.
+1. Keep all three owner-created assets separately identifiable. Preserve the ZIP archive and entry lineage; do not flatten it or erase per-entry provenance.
+2. Use the current bundled-import actions for `ArgusID.txt` and `DigiTransID.zip` only, explicitly selecting **tokenizer frequency fitting** in the import-purpose record. Select neural-model training separately only when that is also intended. The importer records workflow purposes but does not fit a tokenizer.
+3. Keep `Argus_story_Eng.txt` as a separate English diagnostic asset. The current app source has no dedicated bundled-English importer action/helper, so this file must not be described as already imported or assigned an importer-generated manifest. Any later import must be introduced through an explicit, auditable path before it can enter a corpus revision.
+4. For the two Indonesian sources, freeze importer/parser version, archive-entry list, source and record digests, document IDs, deduplication outcomes, preprocessing identity and deterministic split membership. Git blob IDs identify repository objects; they are not substitutes for SHA-256 values emitted by the importer.
+5. Use only the committed training partition for frequency fitting. Keep validation and evaluation records sealed from trainer input and merge/vocabulary selection. Split by document/source unit before optional smaller-segment sampling; preserve lineage and avoid near-duplicate leakage.
+6. Report `ArgusID.txt` and each `DigiTransID.zip` entry separately before any Indonesian aggregate. Report the English diagnostic separately and do not merge its bytes or counts into the fitting mixture. Do not choose language/domain weights until the product-language policy is accepted and corpus composition is measured.
+7. Treat the three assets as monolingual Indonesian and English sources, not sentence-aligned bilingual data. They are **not aligned development data** and cannot satisfy a PA-BPE `--dev` requirement. A PA-BPE no-development-data variant may be compared only when its algorithm definition permits it; an aligned-development variant requires a separately imported and approved aligned set.
 
-The repository snapshot does not yet contain an importer-generated immutable tokenizer-frequency manifest for the three bundled starter assets. Therefore, this subsection defines the source fixture and required manifest procedure; it does not claim that tokenizer fitting has already been selected in an importer manifest, that a tokenizer has been trained, or that any candidate has measured fertility/quality results.
+The reviewed repository snapshot does not contain an importer-generated immutable tokenizer-frequency manifest for the two currently importable Indonesian starter sources. No `TOKENIZER_FREQUENCY_FITTING` selection, canonical normalized-dataset digest or split digest is claimed. The English asset also has no importer record because it is not exposed by a dedicated bundled import action. This subsection defines the eligible source fixture and required manifest procedure; it does not claim that a tokenizer has been trained or that any candidate has measured fertility/quality results.
 
 ### 4.5 HPLT v3 and v4 — Indonesian monolingual source lead
 
@@ -453,7 +454,7 @@ If local tokenizer preparation fails its time/memory/storage admission or is can
 
 ### 7.1 Candidate matrix
 
-The initial bounded comparison for the current three owner-created starter assets keeps language roles separate: use the two Indonesian source assets as the initial frequency-fitting fixture, and use `Argus_story_Eng.txt` as a separately reported, quality-screened English tokenizer diagnostic. The comparison protocol is:
+The initial bounded comparison keeps language roles separate: use the two currently importable Indonesian source assets as the candidate frequency-fitting fixture, and treat `Argus_story_Eng.txt` only as a separately reported, quality-caveated English tokenizer diagnostic pending an explicit staging path and full content review. The comparison protocol is:
 
 | Candidate | Base representation | Learned vocabulary | Unknown handling | Role |
 |---|---|---|---|---|
@@ -466,7 +467,7 @@ The initial bounded comparison for the current three owner-created starter asset
 
 T2/T3 byte-fallback variants must be listed separately from their no-fallback configurations. They are not separate tokenization families, but they change vocabulary allocation, unknown behavior and sequence length.
 
-**Minimum experiment set:** T0, T1, T2 and T3 are the required first sweep against the exact Indonesian frequency fixture. Run the same candidate encoders over `Argus_story_Eng.txt` as a separate English tokenization/fertility diagnostic, with its quality limitations disclosed; do not use it as a representative English quality benchmark or merge its counts into an aggregate until its content review and the product-language policy are accepted. T1-P stays conditional until multilingual product scope and its aligned/no-development-data algorithm requirements are explicitly resolved. T4 is not part of the minimum sweep. This bounds the work without making the unreviewed English story asset or optional public-source catalog a hidden dependency; the other SEA-language fixtures remain unresolved.
+**Minimum experiment set:** T0, T1, T2 and T3 are the required first sweep against the exact Indonesian frequency fixture once its importer-generated manifest is committed. A separate English encoding/fertility diagnostic may be prepared from `Argus_story_Eng.txt` only through an explicit staging path, with its quality limitations disclosed; do not use it as a representative English quality benchmark, include it in frequency fitting or merge its counts into an aggregate. T1-P stays conditional until multilingual product scope and its aligned/no-development-data algorithm requirements are explicitly resolved. T4 is not part of the minimum sweep. This bounds the work without making the unreviewed English story asset or optional public-source catalog a hidden dependency; the other SEA-language fixtures remain unresolved.
 
 ### 7.2 Controlled dimensions
 
