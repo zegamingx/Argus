@@ -213,20 +213,20 @@ Imported corpora remain local to the owning Argus instance. The importer does no
 The first import implementation should prioritize common text and structured-text formats plus bounded archives. Exact parser support and resource limits are implementation bindings, not reasons to block the product direction. Public-source crawling and curated-source research remain optional later capabilities under ADR-016–023 and documents 24–32; they are not prerequisites for user-imported general learning.
 
 ### ADR-028 — Initial Product Language Priorities and Unsupported-Language Policy
-**Status:** PROPOSED — awaiting product-owner acceptance; not an accepted product decision.
+**Status:** ACCEPTED — explicitly approved by the product owner on 2026-11-06; defines initial language priority and unsupported-language behavior.
 
-**Purpose.** Establish a reviewable starting point for G1-D without deriving product-language commitments from the mere presence of a tokenizer, a corpus file or a regional source catalogue.
+**Purpose.** Establish the initial language scope without deriving model-support claims from the mere presence of a tokenizer, a corpus file or a regional source catalogue.
 
-**Proposed priority policy:**
+**Accepted priority policy:**
 
-1. **Indonesian — priority 1 / initial required language target.** This recommendation follows the accepted Indonesian source-diversity direction in ADR-022 and the availability of owner-created Indonesian corpus assets. It does not assert that the currently imported corpus is already admitted, balanced or quality-qualified.
-2. **English — priority 2 / conditional target.** The owner-created `Argus_story_Eng.txt` is a repository asset, but its current screening observations do not qualify it as representative English prose or a language-quality/training corpus. It remains diagnostic-only until content-quality review, an explicit import path, a committed corpus manifest and held-out English evaluation are available.
+1. **Indonesian — priority 1 / initial required product-language target.** This follows the accepted Indonesian source-diversity direction in ADR-022 and the availability of owner-created Indonesian corpus assets. It does not assert that the current corpus is already admitted, balanced or quality-qualified.
+2. **English — priority 2 / conditional target, not yet a supported language.** The owner-created `Argus_story_Eng.txt` is a repository asset, but its current screening observations do not qualify it as representative English prose or a language-quality/training corpus. It remains `DIAGNOSTIC_ONLY` until content-quality review, an explicit import path, a committed corpus manifest and held-out English evaluation are available.
 3. **Regional expansion — deferred candidates.** Malay, Javanese, Thai, Vietnamese, Burmese/Myanmar, Japanese and Korean remain research candidates, not first-release commitments. Any addition requires a product-scope decision and sufficient language-specific corpus/evaluation evidence.
 4. **Other languages — unclassified.** Do not advertise support or impose permanent exclusion without a reviewed scope decision.
 
-**Proposed support-state distinction.** Product language intent, tokenizer representability and verified model competence are separate states. A language may be a target while not yet supported; byte-level coverage or byte fallback only establishes that text can be represented, not that model weights understand it. The product must not describe a language as supported until an admitted language-specific corpus, exact tokenizer profile, held-out evaluation and explicit support acceptance exist.
+**Accepted support-state distinction.** Product language intent, tokenizer representability and verified model competence are separate states. A language may be a target while not yet supported; byte-level coverage or byte fallback only establishes that text can be represented, not that model weights understand it. The product must not describe a language as supported until an admitted language-specific corpus, exact tokenizer profile, held-out evaluation and explicit support acceptance exist.
 
-**Proposed unsupported-input behavior.**
+**Accepted unsupported-input behavior.**
 
 - Preserve valid Unicode input losslessly through the selected tokenizer representation, or reject it with a clear recoverable explanation. Never silently replace source text, transliterate, translate, strip accents, lowercase, collapse whitespace, or switch tokenizer/profile semantics.
 - Malformed UTF-8 corpus records are quarantined or rejected with an import report; they are not silently normalized to replacement characters and admitted for training.
@@ -234,16 +234,15 @@ The first import implementation should prioritize common text and structured-tex
 - Device capability may select only among approved profiles that preserve the accepted product-language scope. It cannot silently remove a required language or force an English-only profile. If no compatible profile fits the device's measured resource envelope, Genesis stops with a recoverable no-fit state before vocabulary-dependent model tensors are allocated.
 - User-created local corpus assets remain owner-provided inputs. This policy does not impose third-party publisher-license clearance on the owner's own original text; any separately identified embedded third-party material is assessed independently.
 
-**Open decisions retained.** Exact required language list, English qualification criteria, regional-language admission, language/domain weighting, minimum per-language held-out coverage and thresholds remain open until the product owner accepts or revises this proposal. Equal and corpus-proportional language weights are not assumed. Device tier is not a language-priority decision.
+**Open decisions retained.** English qualification criteria, admission of regional/other languages, language/domain sampling weights, minimum per-language held-out coverage and support thresholds remain open. Indonesian is the initial required product-language target; English is conditional; the regional list is not an expansion commitment. Equal and corpus-proportional language weights are not assumed. Device tier is not a language-priority decision.
 
-**G1-D impact.** This proposal supplies a concrete decision package for review but does not close G1-D. The owner must accept or revise it, and the exact user-imported tokenizer-frequency corpus manifest and format-matched runtime profile must still be finalized. No implementation, build, training run, device support or product-language claim is authorized by this proposal.
+**G1-D impact.** ADR-028 closes the product-language and unsupported-input policy prerequisite. G1-D remains open until the exact user-imported tokenizer-frequency corpus manifest and format-matched tokenizer/runtime profile contract are finalized. This decision authorizes no implementation, build, training run, physical device support claim or automatic training admission for unverified languages.
 
 ## 8. Revised open decisions
 
 These items remain open; they must not be filled with assumed values:
 
 - Initial architecture family and first supported module set.
-- Initial product-language priorities and the explicit unsupported-language/representational-fallback policy; see proposed ADR-028, which is not accepted until owner approval.
 - Tokenizer family, vocabulary policy and Unicode behavior.
 - Supported local dataset import formats, archive limits, record schema and error-reporting behavior.
 - Preprocessing, deduplication, train/validation/test partition and language diagnostics.
