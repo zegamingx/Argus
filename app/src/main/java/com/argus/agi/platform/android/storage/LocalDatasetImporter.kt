@@ -1392,6 +1392,7 @@ class LocalDatasetImporter(context: Context) {
             val document = documents.optJSONObject(index)
                 ?: throw IllegalStateException("The staged document inventory is malformed.")
             val documentId = document.optString("sha256")
+            val sourceArtifactSha256 = document.optString("sourceArtifactSha256")
             val documentName = document.optString("name")
             val split = document.optString("split")
             val recordCount = document.optLong("recordCount", -1L)
