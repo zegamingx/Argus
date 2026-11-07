@@ -53,9 +53,9 @@ class LocalCorpusRepositoryTest {
         val fixture = createValidStagedCorpus(filesDirectory)
         val recordsFile = File(fixture.stageDirectory, CorpusStorageLayout.RECORDS_FILE)
         val tamperedLine =
-            """{"recordId":"tampered","sourceDocumentId":""" +
-                "\"" + fixture.sourceDocumentSha256 + "\"," +
-                """"sourceName":"source.txt","text":"changed","split":"train"}""" + "\n"
+            "{\\"recordId\\":\\"tampered\\",\\"sourceDocumentId\\":\\"" +
+                fixture.sourceDocumentSha256 +
+                "\\",\\"sourceName\\":\\"source.txt\\",\\"text\\":\\"changed\\",\\"split\\":\\"train\\"}\\n"
 
         recordsFile.writeText(tamperedLine, Charsets.UTF_8)
         repository.commit(fixture.stageId)
