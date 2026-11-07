@@ -1,10 +1,14 @@
 package com.argus.agi.data.corpus
 
 import com.argus.agi.core.training.CanonicalDatasetDigests
+import com.argus.agi.core.training.CorpusManifestContract
+import com.argus.agi.core.training.CorpusStorageLayout
+import com.argus.agi.core.training.CorpusTextNormalizer
 import com.argus.agi.core.training.DatasetPurpose
 import com.argus.agi.core.training.DatasetSplitMembership
 import com.argus.agi.core.training.LocalCorpusIntegrityReport
 import com.argus.agi.core.training.LocalCorpusSummary
+import com.argus.agi.core.training.LocalCorpusStore
 import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileInputStream
@@ -21,36 +25,17 @@ import java.util.UUID
  * This repository intentionally has no Android Context or UI dependency. The
  * Android importer supplies only the app-private files directory and staged files.
  */
-class LocalCorpusRepository(filesDirectory: File) {
+class LocalCorpusRepository(filesDirectory: File) : LocalCorpusStore {
 
     private val appFilesDirectory: File = filesDirectory.canonicalFile
-
-    /**
-     * Creates a new staging directory under the private corpus staging root.
-     * The returned directory is owned by this repository's storage layout.
-     */
-    fun createStagingDirectory(stageId: String): File {
-        require(isValidId(stageId)) { "The staged corpus identifier is invalid." }
-        val stagingRoot = resolveDirectChild(appFilesDirectory, STAGING_DIRECTORY)
-        if (!stagingRoot.exists() && !stagingRoot.mkdirs()) {
-            throw IllegalStateException("Could not create the local corpus staging directory.")
-        }
-        val stageDirectory = resolveDirectChild(stagingRoot, stageId)
-        if (stageDirectory.exists()) {
-            throw IllegalStateException("The local corpus staging identifier already exists.")
-        }
-        if (!stageDirectory.mkdirs()) {
-            throw IllegalStateException("Could not create the local corpus staging directory.")
-        }
-        return stageDirectory
-    }
 
     /**
      * Serializes a validated in-memory manifest into the staging directory and
      * writes its exact-byte SHA-256 sidecar. Returns the digest of the manifest.
      */
-    internal fun writeStagedManifest(stageId: String, manifest: JSONObject): String {
+    override fun writeStagedManifest(stageId: String, manifestJson: String): String {
         require(isValidId(stageId)) { "The staged corpus identifier is invalid." }
+        val manifest = JSONObject(manifestJson)
         if (manifest.optInt("schemaVersion", -1) != MANIFEST_SCHEMA_VERSION ||
             manifest.optInt("revision", -1) != INITIAL_REVISION ||
             !isValidId(manifest.optString("corpusId"))
@@ -66,14 +51,13 @@ class LocalCorpusRepository(filesDirectory: File) {
         if (manifestFile.exists() || digestFile.exists()) {
             throw IllegalStateException("The staged corpus manifest has already been written.")
         }
-        val manifestContent = manifest.toString(2)
         val manifestDigest = CanonicalDatasetDigests.sha256Hex(
-            manifestContent.toByteArray(StandardCharsets.UTF_8)
+            manifestJson.toByteArray(StandardCharsets.UTF_8)
         )
         if (!manifestFile.createNewFile() || !digestFile.createNewFile()) {
             throw IllegalStateException("Could not create the staged corpus manifest files.")
         }
-        manifestFile.writeText(manifestContent, Charsets.UTF_8)
+        manifestFile.writeText(manifestJson, Charsets.UTF_8)
         digestFile.writeText(manifestDigest + "\n", Charsets.UTF_8)
         return manifestDigest
     }
@@ -82,7 +66,7 @@ class LocalCorpusRepository(filesDirectory: File) {
      * Appends the mandatory initial PENDING admission event to the staged revision.
      * No import operation can create an APPROVED decision.
      */
-    internal fun writeInitialAdmissionDecision(
+    override fun writeInitialAdmissionDecision(
         stageId: String,
         manifestSha256: String,
         datasetSha256: String
@@ -159,7 +143,7 @@ class LocalCorpusRepository(filesDirectory: File) {
      * A successful commit is storage publication only; the admission decision
      * remains PENDING and does not authorize training.
      */
-    fun commit(stageId: String): LocalCorpusSummary {
+    override fun commit(stageId: String): LocalCorpusSummary {
         require(isValidId(stageId)) { "The staged corpus identifier is invalid." }
         val stageDirectory = stagingDirectory(stageId)
         val manifestFile = File(stageDirectory, MANIFEST_FILE)
@@ -213,7 +197,7 @@ class LocalCorpusRepository(filesDirectory: File) {
      * and require its successful report before a future corpus consumer opens records.
      * Integrity verification does not approve the admission decision or authorize training.
      */
-    fun verifyCommittedCorpusIntegrity(
+    override fun verifyCommittedCorpusIntegrity(
         corpusId: String,
         revision: Int
     ): LocalCorpusIntegrityReport {
@@ -282,7 +266,7 @@ class LocalCorpusRepository(filesDirectory: File) {
      * Removes an uncommitted staging directory. A committed revision is never
      * addressed by this operation.
      */
-    fun discard(stageId: String) {
+    override fun discard(stageId: String) {
         require(isValidId(stageId)) { "The staged corpus identifier is invalid." }
         val stageDirectory = stagingDirectory(stageId)
         if (stageDirectory.exists() && !stageDirectory.deleteRecursively()) {
@@ -295,7 +279,7 @@ class LocalCorpusRepository(filesDirectory: File) {
      * has been fully re-verified. Consumers requiring records must call the
      * explicit integrity verifier before opening the data.
      */
-    fun listCommitted(): List<LocalCorpusSummary> {
+    override fun listCommitted(): List<LocalCorpusSummary> {
         val corporaRoot = resolveDirectChild(appFilesDirectory, CORPORA_DIRECTORY)
         val corpusDirectories = corporaRoot.listFiles() ?: return emptyList()
         return corpusDirectories
