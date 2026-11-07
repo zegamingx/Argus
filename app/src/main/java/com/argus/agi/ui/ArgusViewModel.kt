@@ -574,6 +574,7 @@ private fun LocalCorpusSummary.toLearningUiState(): LocalCorpusUiState {
         trainRecordCount = trainRecordCount,
         validationRecordCount = validationRecordCount,
         testRecordCount = testRecordCount,
+        lastAdmissionDecision = lastAdmissionDecision,
         purposeLabels = purposes.map { purpose ->
             when (purpose) {
                 DatasetPurpose.MODEL_TRAINING -> "Model training"
