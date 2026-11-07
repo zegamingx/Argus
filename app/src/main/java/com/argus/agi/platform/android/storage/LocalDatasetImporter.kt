@@ -375,6 +375,7 @@ class LocalDatasetImporter(context: Context) {
                         val archiveResult = processArchive(
                             archiveFile = archiveFile,
                             sourceName = sourceName,
+                            sourceArtifactSha256 = sourceInfo.sha256,
                             startingEntryCount = archiveEntryCount,
                             stageDirectory = stageDirectory,
                             rawWriter = rawWriter,
@@ -463,6 +464,7 @@ class LocalDatasetImporter(context: Context) {
                                 ingestParsedRecords(
                                     parsedRecordsFile = parsedRecords,
                                     sourceDocumentDigest = sourceDigest,
+                                    sourceArtifactSha256 = sourceDigest,
                                     displayName = sourceName,
                                     mediaType = source.mimeType,
                                     sourceSizeBytes = countedInput.bytesRead,
@@ -529,6 +531,7 @@ class LocalDatasetImporter(context: Context) {
                 JSONObject()
                     .put("name", document.displayName)
                     .put("sha256", document.digest)
+                    .put("sourceArtifactSha256", document.sourceArtifactSha256)
                     .put("sizeBytes", document.sizeBytes)
                     .put("mediaType", document.mediaType ?: JSONObject.NULL)
                     .put("recordCount", document.recordCount)
@@ -674,6 +677,7 @@ class LocalDatasetImporter(context: Context) {
     private suspend fun processArchive(
         archiveFile: File,
         sourceName: String,
+        sourceArtifactSha256: String,
         startingEntryCount: Int,
         stageDirectory: File,
         rawWriter: BufferedWriter,
@@ -758,6 +762,7 @@ class LocalDatasetImporter(context: Context) {
                             ingestParsedRecords(
                                 parsedRecordsFile = parsedRecords,
                                 sourceDocumentDigest = documentDigest,
+                                sourceArtifactSha256 = sourceArtifactSha256,
                                 displayName = displayName,
                                 mediaType = mimeTypeForName(entryName),
                                 sourceSizeBytes = entrySizeBytes,
@@ -1042,6 +1047,7 @@ class LocalDatasetImporter(context: Context) {
     private suspend fun ingestParsedRecords(
         parsedRecordsFile: File,
         sourceDocumentDigest: String,
+        sourceArtifactSha256: String,
         displayName: String,
         mediaType: String?,
         sourceSizeBytes: Long,
@@ -1098,6 +1104,7 @@ class LocalDatasetImporter(context: Context) {
         if (existing == null && (accepted > 0L || duplicates > 0L)) {
             documentMetadata[sourceDocumentDigest] = DocumentMetadata(
                 digest = sourceDocumentDigest,
+                sourceArtifactSha256 = sourceArtifactSha256,
                 displayName = displayName,
                 sizeBytes = sourceSizeBytes,
                 mediaType = mediaType,
@@ -1375,6 +1382,12 @@ class LocalDatasetImporter(context: Context) {
         val documentSplits = linkedMapOf<String, String>()
         val expectedDocumentNames = linkedMapOf<String, String>()
         val expectedDocumentCounts = linkedMapOf<String, Long>()
+        val sourceArtifactIds = linkedSetOf<String>()
+        for (index in 0 until sources.length()) {
+            val source = sources.optJSONObject(index)
+                ?: throw IllegalStateException("The staged source inventory is malformed.")
+            sourceArtifactIds.add(source.getString("sha256"))
+        }
         for (index in 0 until documents.length()) {
             val document = documents.optJSONObject(index)
                 ?: throw IllegalStateException("The staged document inventory is malformed.")
@@ -1383,6 +1396,8 @@ class LocalDatasetImporter(context: Context) {
             val split = document.optString("split")
             val recordCount = document.optLong("recordCount", -1L)
             if (!CanonicalDatasetDigests.isSha256Hex(documentId) ||
+                !CanonicalDatasetDigests.isSha256Hex(sourceArtifactSha256) ||
+                !sourceArtifactIds.contains(sourceArtifactSha256) ||
                 documentName.isBlank() ||
                 document.optLong("sizeBytes", -1L) < 0L ||
                 recordCount < 0L ||
@@ -1976,6 +1991,7 @@ class LocalDatasetImporter(context: Context) {
 
     private data class DocumentMetadata(
         val digest: String,
+        val sourceArtifactSha256: String,
         val displayName: String,
         val sizeBytes: Long,
         val mediaType: String?,
