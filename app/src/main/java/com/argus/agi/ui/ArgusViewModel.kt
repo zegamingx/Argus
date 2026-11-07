@@ -25,7 +25,7 @@ import com.argus.agi.platform.android.device.SystemHardwareInfo
 import com.argus.agi.platform.android.capture.ExcludedAppsManager
 import com.argus.agi.data.acquisition.WebSearchEngine
 import com.argus.agi.application.runtime.AccessibilityRuntime
-import com.argus.agi.platform.android.storage.CorpusImportPreview
+import com.argus.agi.core.training.CorpusImportPreview
 import com.argus.agi.core.training.DatasetPurpose
 import com.argus.agi.core.training.LocalCorpusSummary
 import com.argus.agi.platform.android.storage.LocalDatasetImporter
