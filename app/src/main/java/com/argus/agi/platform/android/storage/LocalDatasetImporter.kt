@@ -178,7 +178,7 @@ class LocalDatasetImporter(context: Context) {
         if (!isValidId(corpusId)) {
             throw IllegalStateException("The staged corpus manifest is invalid.")
         }
-        verifyStagedImport(stageDirectory, manifestText, manifest)
+        verifyCorpusRevisionContents(stageDirectory, manifestText, manifest)
 
         val corpusRoot = File(File(appContext.filesDir, CORPORA_DIRECTORY), corpusId)
         if (!corpusRoot.exists() && !corpusRoot.mkdirs()) {
@@ -227,7 +227,7 @@ class LocalDatasetImporter(context: Context) {
             throw IllegalStateException("The committed corpus identity does not match its storage path.")
         }
 
-        verifyStagedImport(
+        verifyCorpusRevisionContents(
             stageDirectory = revisionDirectory,
             manifestText = manifestText,
             manifest = manifest,
@@ -1165,7 +1165,10 @@ class LocalDatasetImporter(context: Context) {
         }
 
         rawRecordsFile.bufferedReader(Charsets.UTF_8).use { reader ->
-            finalRecordsFile.bufferedWriter(Charsets.UTF_8).use { writer ->
+            BufferedOutputStream(
+                FileOutputStream(finalRecordsFile),
+                STREAM_BUFFER_SIZE
+            ).use { writer ->
                 while (true) {
                     val line = reader.readLine() ?: break
                     if (line.isBlank()) continue
@@ -1202,9 +1205,10 @@ class LocalDatasetImporter(context: Context) {
                         sourceDocumentId = documentId
                     )
 
-                    storageGuard.beforeWrite(canonicalLine.length.toLong() * 2L + 1L)
-                    writer.write(canonicalLine)
-                    writer.write("\n")
+                    val canonicalBytes = canonicalLine.toByteArray(StandardCharsets.UTF_8)
+                    storageGuard.beforeWrite(canonicalBytes.size.toLong() + 1L)
+                    writer.write(canonicalBytes)
+                    writer.write(NEW_LINE_BYTE_VALUE)
 
                     when (split) {
                         "validation" -> validation += 1L
@@ -1249,7 +1253,7 @@ class LocalDatasetImporter(context: Context) {
         )
     }
 
-    private fun verifyStagedImport(
+    private fun verifyCorpusRevisionContents(
         stageDirectory: File,
         manifestText: String,
         manifest: JSONObject,
@@ -1513,8 +1517,8 @@ class LocalDatasetImporter(context: Context) {
         }
 
         val actualDatasetSha256 = CanonicalDatasetDigests.finish(datasetDigest)
-        val exactRecordsFileSha256 = canonicalRecordsFileSha256(recordsFile)
-        if (actualDatasetSha256 != exactRecordsFileSha256 ||
+        val recordsFileDatasetSha256 = canonicalDatasetDigestFromRecordFile(recordsFile)
+        if (actualDatasetSha256 != recordsFileDatasetSha256 ||
             actualDatasetSha256 != expectedDatasetSha256 ||
             datasetIdentity.optLong("recordCount", -1L) != totalCount
         ) {
@@ -1608,7 +1612,7 @@ class LocalDatasetImporter(context: Context) {
         return totalBytes > 0L && lastByte == NEW_LINE_BYTE_VALUE
     }
 
-    private fun canonicalRecordsFileSha256(recordsFile: File): String {
+    private fun canonicalDatasetDigestFromRecordFile(recordsFile: File): String {
         val digest = CanonicalDatasetDigests.newDatasetDigest()
         val buffer = ByteArray(STREAM_BUFFER_SIZE)
         var totalBytes = 0L
