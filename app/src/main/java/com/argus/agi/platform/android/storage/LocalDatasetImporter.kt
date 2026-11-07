@@ -7,14 +7,15 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import com.argus.agi.core.training.CanonicalDatasetDigests
 import com.argus.agi.core.training.CorpusImportPreview
+import com.argus.agi.core.training.CorpusImportStager
+import com.argus.agi.core.training.CorpusManifestContract
+import com.argus.agi.core.training.CorpusStorageLayout
+import com.argus.agi.core.training.CorpusTextNormalizer
 import com.argus.agi.core.training.DatasetPurpose
 import com.argus.agi.core.training.DatasetSplitMembership
 import com.argus.agi.core.training.LocalCorpusIntegrityReport
 import com.argus.agi.core.training.LocalCorpusSummary
-import com.argus.agi.data.corpus.CorpusManifestContract
-import com.argus.agi.data.corpus.CorpusStorageLayout
-import com.argus.agi.data.corpus.CorpusTextNormalizer
-import com.argus.agi.data.corpus.LocalCorpusRepository
+import com.argus.agi.core.training.LocalCorpusStore
 import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONTokener
@@ -48,11 +49,12 @@ import kotlin.math.roundToInt
  * ZIP entries are processed directly from ZipInputStream, and deduplication is
  * disk-backed. No source file or archive entry is loaded as a whole byte array.
  */
-class LocalDatasetImporter(context: Context) {
+class LocalDatasetImporter(
+    context: Context,
+    private val corpusStore: LocalCorpusStore
+) : CorpusImportStager {
 
     private val appContext: Context = context.applicationContext
-    private val corpusRepository: LocalCorpusRepository =
-        LocalCorpusRepository(appContext.filesDir)
 
     suspend fun stage(
         uris: List<Uri>,
@@ -74,7 +76,9 @@ class LocalDatasetImporter(context: Context) {
         return stageSources(sources, purposes)
     }
 
-    suspend fun stageBundledArgusId(purposes: Set<DatasetPurpose>): CorpusImportPreview {
+    override suspend fun stageBundledArgusId(
+        purposes: Set<DatasetPurpose>
+    ): CorpusImportPreview {
         return stageSources(
             listOf(
                 ImportSource(
@@ -87,7 +91,9 @@ class LocalDatasetImporter(context: Context) {
         )
     }
 
-    suspend fun stageBundledDigiTransId(purposes: Set<DatasetPurpose>): CorpusImportPreview {
+    override suspend fun stageBundledDigiTransId(
+        purposes: Set<DatasetPurpose>
+    ): CorpusImportPreview {
         return stageSources(
             listOf(
                 ImportSource(
@@ -98,6 +104,13 @@ class LocalDatasetImporter(context: Context) {
             ),
             purposes
         )
+    }
+
+    override suspend fun stageUserFiles(
+        sourceUriReferences: List<String>,
+        purposes: Set<DatasetPurpose>
+    ): CorpusImportPreview {
+        return stage(sourceUriReferences.map(Uri::parse), purposes)
     }
 
     private suspend fun stageSources(
@@ -112,37 +125,25 @@ class LocalDatasetImporter(context: Context) {
 
         val stageId = UUID.randomUUID().toString()
         val corpusId = UUID.randomUUID().toString()
-        val stageDirectory = corpusRepository.createStagingDirectory(stageId)
+        val stagingRoot = File(appContext.filesDir, CorpusStorageLayout.STAGING_DIRECTORY)
+        if (!stagingRoot.exists() && !stagingRoot.mkdirs()) {
+            throw IllegalStateException("Could not create the local corpus staging directory.")
+        }
+        val stageDirectory = File(stagingRoot, stageId)
+        if (!stageDirectory.mkdirs()) {
+            throw IllegalStateException("Could not create the local corpus staging directory.")
+        }
 
         try {
             return stageInto(sources, purposes, stageId, corpusId, stageDirectory)
         } catch (exception: Exception) {
             try {
-                corpusRepository.discard(stageId)
+                corpusStore.discard(stageId)
             } catch (cleanupException: Exception) {
                 exception.addSuppressed(cleanupException)
             }
             throw exception
         }
-    }
-
-    fun commit(stageId: String): LocalCorpusSummary {
-        return corpusRepository.commit(stageId)
-    }
-
-    fun verifyCommittedCorpusIntegrity(
-        corpusId: String,
-        revision: Int
-    ): LocalCorpusIntegrityReport {
-        return corpusRepository.verifyCommittedCorpusIntegrity(corpusId, revision)
-    }
-
-    fun discard(stageId: String) {
-        corpusRepository.discard(stageId)
-    }
-
-    fun listCommitted(): List<LocalCorpusSummary> {
-        return corpusRepository.listCommitted()
     }
 
     private suspend fun stageInto(
@@ -461,11 +462,11 @@ class LocalDatasetImporter(context: Context) {
             .put("split", splitPolicy)
             .put("warnings", JSONArray(warnings))
 
-        val manifestSha256 = corpusRepository.writeStagedManifest(
+        val manifestSha256 = corpusStore.writeStagedManifest(
             stageId = stageId,
-            manifest = manifest
+            manifestJson = manifest.toString(2)
         )
-        corpusRepository.writeInitialAdmissionDecision(
+        corpusStore.writeInitialAdmissionDecision(
             stageId = stageId,
             manifestSha256 = manifestSha256,
             datasetSha256 = finalRecords.canonicalDatasetSha256
