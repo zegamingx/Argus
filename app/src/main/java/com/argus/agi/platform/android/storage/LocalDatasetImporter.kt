@@ -1207,7 +1207,10 @@ class LocalDatasetImporter(context: Context) {
         val datasetIdentity = manifest.optJSONObject("datasetIdentity")
             ?: throw IllegalStateException("The staged dataset identity is missing.")
         val expectedDatasetSha256 = datasetIdentity.optString("canonicalSha256")
-        if (!CanonicalDatasetDigests.isSha256Hex(expectedDatasetSha256)) {
+        if (datasetIdentity.optString("algorithm") != "SHA-256" ||
+            datasetIdentity.optString("canonicalFormat") != CanonicalDatasetDigests.CANONICAL_RECORD_FORMAT_ID ||
+            !CanonicalDatasetDigests.isSha256Hex(expectedDatasetSha256)
+        ) {
             throw IllegalStateException("The staged canonical dataset digest is invalid.")
         }
 
@@ -1367,7 +1370,9 @@ class LocalDatasetImporter(context: Context) {
         }
 
         val actualDatasetSha256 = CanonicalDatasetDigests.finish(datasetDigest)
-        if (actualDatasetSha256 != expectedDatasetSha256 ||
+        val exactRecordsFileSha256 = canonicalRecordsFileSha256(recordsFile)
+        if (actualDatasetSha256 != exactRecordsFileSha256 ||
+            actualDatasetSha256 != expectedDatasetSha256 ||
             datasetIdentity.optLong("recordCount", -1L) != totalCount
         ) {
             throw IllegalStateException("The staged canonical dataset digest or record count is invalid.")
@@ -1423,6 +1428,32 @@ class LocalDatasetImporter(context: Context) {
             manifestSha256 = manifestSha256,
             datasetSha256 = actualDatasetSha256
         )
+    }
+
+    private fun canonicalRecordsFileSha256(recordsFile: File): String {
+        val digest = CanonicalDatasetDigests.newDatasetDigest()
+        val buffer = ByteArray(STREAM_BUFFER_SIZE)
+        var totalBytes = 0L
+        var lastByte = -1
+
+        BufferedInputStream(
+            FileInputStream(recordsFile),
+            STREAM_BUFFER_SIZE
+        ).use { input ->
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                if (count == 0) continue
+                digest.update(buffer, 0, count)
+                totalBytes += count.toLong()
+                lastByte = buffer[count - 1].toInt() and 0xff
+            }
+        }
+
+        if (totalBytes == 0L || lastByte != NEW_LINE_BYTE_VALUE) {
+            throw IllegalStateException("The canonical records file is empty or lacks its LF terminator.")
+        }
+        return CanonicalDatasetDigests.finish(digest)
     }
 
     private fun verifyInitialAdmissionDecision(
@@ -1752,6 +1783,7 @@ class LocalDatasetImporter(context: Context) {
         private const val MAX_TEXT_RECORD_CHARACTERS = 262_144
         private const val MAX_JSONL_LINE_CHARACTERS = 1_048_576
         private const val STREAM_BUFFER_SIZE = 64 * 1024
+        private const val NEW_LINE_BYTE_VALUE = 0x0a
         private const val CANCELLATION_CHECK_RECORD_INTERVAL = 256
         private const val STORAGE_CHECK_INTERVAL_BYTES = 4L * 1024L * 1024L
         private val SUPPORTED_TEXT_EXTENSIONS = setOf("txt", "md", "jsonl", "ndjson")
