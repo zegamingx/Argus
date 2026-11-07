@@ -26,6 +26,65 @@ class CanonicalDatasetDigestsTest {
     }
 
     @Test
+    fun canonicalDatasetDigestMatchesV1KnownVector() {
+        val digest = CanonicalDatasetDigests.newDatasetDigest()
+        val line = CanonicalDatasetDigests.canonicalRecordLine(
+            recordId = "record-id",
+            sourceDocumentId = "document-id",
+            sourceName = "source.txt",
+            text = "Argus",
+            split = "train"
+        )
+        CanonicalDatasetDigests.updateDatasetRecord(digest, line)
+
+        assertEquals(
+            "41a3d2e28a14fcff56520d275d7c1b1a2f1e41b8f60824f98872866805ac4d58",
+            CanonicalDatasetDigests.finish(digest)
+        )
+    }
+
+    @Test
+    fun splitMembershipAndManifestMatchV1KnownVectors() {
+        val trainDigest = membershipDigest("train", "record-id", "document-id")
+        val validationDigest = membershipDigest("validation", "unused-record", "unused-document")
+        val testDigest = membershipDigest("test", "unused-record", "unused-document")
+
+        assertEquals(
+            "bb1183fba6d88f0ca155da7e4227016e2d6a643cef604408a008f3f7ce3588b7",
+            trainDigest
+        )
+
+        val emptyValidationDigest = CanonicalDatasetDigests.newMembershipDigest("validation")
+        val emptyTestDigest = CanonicalDatasetDigests.newMembershipDigest("test")
+        val memberships = mapOf(
+            "train" to DatasetSplitMembership(1L, trainDigest),
+            "validation" to DatasetSplitMembership(
+                0L,
+                CanonicalDatasetDigests.finish(emptyValidationDigest)
+            ),
+            "test" to DatasetSplitMembership(
+                0L,
+                CanonicalDatasetDigests.finish(emptyTestDigest)
+            )
+        )
+        assertNotEquals(validationDigest, memberships.getValue("validation").sha256)
+        assertNotEquals(testDigest, memberships.getValue("test").sha256)
+
+        assertEquals(
+            "84250fdc3c3bb969aee0c9de06b226679fd1e19047190a17933d88e2f1d1a382",
+            CanonicalDatasetDigests.splitManifestSha256(
+                parentDatasetSha256 = "41a3d2e28a14fcff56520d275d7c1b1a2f1e41b8f60824f98872866805ac4d58",
+                algorithm = "sha256-source-document-v1",
+                seed = "argus-local-corpus-split-v1",
+                grouping = "source-document",
+                validationRatio = 0.1,
+                testRatio = 0.1,
+                memberships = memberships
+            )
+        )
+    }
+
+    @Test
     fun datasetDigestChangesWhenConsumedRecordChanges() {
         val original = datasetDigest(text = "Argus lokal", split = "train")
         val changedText = datasetDigest(text = "Argus pribadi", split = "train")
