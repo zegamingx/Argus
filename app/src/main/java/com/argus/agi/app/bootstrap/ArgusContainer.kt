@@ -1,6 +1,7 @@
 package com.argus.agi.app.bootstrap
 
 import android.app.Application
+import com.argus.agi.application.learning.LocalCorpusImportService
 import com.argus.agi.application.runtime.ArgusRuntime
 import com.argus.agi.application.runtime.CaptureRuntime
 import com.argus.agi.application.runtime.DeviceRuntime
@@ -9,6 +10,7 @@ import com.argus.agi.application.runtime.HardwareRuntime
 import com.argus.agi.application.runtime.TrainingRuntime
 import com.argus.agi.application.runtime.TrainingStatusSnapshot
 import com.argus.agi.data.acquisition.WebSearchEngine
+import com.argus.agi.data.corpus.LocalCorpusRepository
 import com.argus.agi.model.ArgusNeuralEngine
 import com.argus.agi.model.WorldModel
 import com.argus.agi.platform.android.capture.AccessibilityActionRegistry
@@ -63,8 +65,21 @@ class ArgusContainer(application: Application) : ArgusRuntime {
         WebSearchEngine()
     }
 
+    val localCorpusRepository: LocalCorpusRepository by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+        LocalCorpusRepository(application.filesDir)
+    }
+
     val localDatasetImporter: LocalDatasetImporter by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
-        LocalDatasetImporter(application)
+        LocalDatasetImporter(application, localCorpusRepository)
+    }
+
+    val localCorpusImportService: LocalCorpusImportService by lazy(
+        LazyThreadSafetyMode.SYNCHRONIZED
+    ) {
+        LocalCorpusImportService(
+            stager = localDatasetImporter,
+            store = localCorpusRepository
+        )
     }
 
     override val accessibility = AccessibilityActionRegistry()
