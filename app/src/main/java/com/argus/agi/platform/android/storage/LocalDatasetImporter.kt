@@ -1039,7 +1039,7 @@ class LocalDatasetImporter(context: Context) {
         if (normalized.isBlank()) return
 
         val serializedRecord = JSONObject().put("text", normalized).toString()
-        storageGuard.beforeWrite(serializedRecord.length.toLong() * 2L)
+        storageGuard.beforeWrite(serializedRecord.length.toLong() * 3L + 2L)
         writer.write(serializedRecord)
         writer.newLine()
     }
@@ -1093,7 +1093,7 @@ class LocalDatasetImporter(context: Context) {
                     .put("sourceName", displayName)
                     .put("text", text)
                 val serializedRecord = record.toString()
-                storageGuard.beforeWrite(serializedRecord.length.toLong() * 2L)
+                storageGuard.beforeWrite(serializedRecord.length.toLong() * 3L + 2L)
                 rawWriter.write(serializedRecord)
                 rawWriter.newLine()
                 accepted += 1L
