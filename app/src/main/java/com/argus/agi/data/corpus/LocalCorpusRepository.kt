@@ -9,8 +9,6 @@ import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileInputStream
 import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
-import java.text.Normalizer
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -230,7 +228,6 @@ class LocalCorpusRepository(filesDirectory: File) {
                         }.getOrNull()
                     }
             }
-            .filterNotNull()
             .sortedByDescending { it.importedAtEpochMillis }
             .toList()
     }
@@ -258,22 +255,6 @@ class LocalCorpusRepository(filesDirectory: File) {
         val suffix = name.removePrefix(REVISION_DIRECTORY_PREFIX)
         if (suffix.isEmpty() || suffix.any { !it.isDigit() }) return null
         return suffix.toIntOrNull()?.takeIf { it > 0 }
-    }
-
-    private fun normalizeText(source: String): String {
-        val nfc = Normalizer.normalize(source, Normalizer.Form.NFC)
-        return nfc
-            .replace("\r\n", "\n")
-            .replace('\r', '\n')
-            .lineSequence()
-            .joinToString("\n") { it.trimEnd() }
-            .trim()
-    }
-
-    private fun sha256Text(source: String): String {
-        return CanonicalDatasetDigests.sha256Hex(
-            source.toByteArray(StandardCharsets.UTF_8)
-        )
     }
 
     private fun isValidId(value: String): Boolean {
@@ -490,8 +471,8 @@ class LocalCorpusRepository(filesDirectory: File) {
                 if (!CanonicalDatasetDigests.isSha256Hex(documentId) ||
                     sourceName != expectedDocumentNames[documentId] ||
                     text.isBlank() ||
-                    recordId != sha256Text(text) ||
-                    normalizeText(text) != text
+                    recordId != CorpusTextNormalizer.sha256(text) ||
+                    CorpusTextNormalizer.normalize(text) != text
                 ) {
                     throw IllegalStateException(
                         "A staged record ID, source identity or normalized text is invalid."
