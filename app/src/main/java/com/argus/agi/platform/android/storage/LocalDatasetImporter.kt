@@ -67,7 +67,7 @@ data class LocalCorpusSummary(
     val validationRecordCount: Long,
     val testRecordCount: Long,
     val purposes: Set<DatasetPurpose>,
-    val lastAdmissionDecision: String = UNKNOWN_ADMISSION
+    val lastAdmissionDecision: String = "UNKNOWN"
 )
 
 /**
