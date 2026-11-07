@@ -95,7 +95,7 @@ object CanonicalDatasetDigests {
         testRatio: Double,
         memberships: Map<String, DatasetSplitMembership>
     ): String {
-        require(parentDatasetSha256.isNotBlank())
+        require(isSha256Hex(parentDatasetSha256))
         require(algorithm.isNotBlank())
         require(seed.isNotBlank())
         require(grouping.isNotBlank())
@@ -186,15 +186,15 @@ object CanonicalDatasetDigests {
                             output.append(hexDigits[(character.code ushr 4) and 0x0f])
                             output.append(hexDigits[character.code and 0x0f])
                         }
-                        character.isHighSurrogate() -> {
-                            require(index + 1 < value.length && value[index + 1].isLowSurrogate()) {
+                        Character.isHighSurrogate(character) -> {
+                            require(index + 1 < value.length && Character.isLowSurrogate(value[index + 1])) {
                                 "Canonical JSON text contains an unpaired high surrogate."
                             }
                             output.append(character)
                             output.append(value[index + 1])
                             index += 1
                         }
-                        character.isLowSurrogate() -> {
+                        Character.isLowSurrogate(character) -> {
                             throw IllegalArgumentException(
                                 "Canonical JSON text contains an unpaired low surrogate."
                             )
