@@ -1168,6 +1168,7 @@ class LocalDatasetImporter(context: Context) {
         val tokenization = manifest.optJSONObject("tokenization")
             ?: throw IllegalStateException("The staged tokenization state is missing.")
         if (tokenization.optString("status") != "NOT_TOKENIZED" ||
+            !tokenization.has("tokenizerProfileId") ||
             !tokenization.isNull("tokenizerProfileId")
         ) {
             throw IllegalStateException("A staged local corpus must remain un-tokenized.")
@@ -1261,6 +1262,7 @@ class LocalDatasetImporter(context: Context) {
             val split = document.optString("split")
             val recordCount = document.optLong("recordCount", -1L)
             if (!CanonicalDatasetDigests.isSha256Hex(documentId) ||
+                document.optLong("sizeBytes", -1L) < 0L ||
                 recordCount < 0L ||
                 expectedDocumentCounts.put(documentId, recordCount) != null
             ) {
@@ -1316,6 +1318,7 @@ class LocalDatasetImporter(context: Context) {
                     throw IllegalStateException("A source document appears in more than one split.")
                 }
                 if (!CanonicalDatasetDigests.isSha256Hex(documentId) ||
+                    text.isBlank() ||
                     recordId != sha256Text(text) ||
                     normalizeText(text) != text
                 ) {
@@ -1473,8 +1476,12 @@ class LocalDatasetImporter(context: Context) {
             } catch (exception: Exception) {
                 throw IllegalStateException("The staged dataset admission record is malformed.", exception)
             }
+            val reasonCodes = decision.optJSONArray("reasonCodes")
+            val checks = decision.optJSONObject("checks")
             if (reader.readLine() != null ||
                 decision.optInt("schemaVersion", -1) != ADMISSION_LOG_SCHEMA_VERSION ||
+                reasonCodes == null || reasonCodes.length() == 0 ||
+                checks == null ||
                 decision.optString("validatorVersion") != ADMISSION_VALIDATOR_VERSION ||
                 decision.optString("policyVersion") != ADMISSION_POLICY_VERSION ||
                 decision.optString("decision") != "PENDING" ||
