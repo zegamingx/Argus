@@ -88,5 +88,5 @@ data class LocalCorpusUiState(
     val validationRecordCount: Long,
     val testRecordCount: Long,
     val purposeLabels: List<String>,
-    val lastAdmissionDecision: String
+    val lastAdmissionDecision: String = "UNKNOWN"
 )
