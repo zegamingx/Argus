@@ -66,7 +66,8 @@ data class LocalCorpusSummary(
     val trainRecordCount: Long,
     val validationRecordCount: Long,
     val testRecordCount: Long,
-    val purposes: Set<DatasetPurpose>
+    val purposes: Set<DatasetPurpose>,
+    val lastAdmissionDecision: String
 )
 
 /**
@@ -177,7 +178,7 @@ class LocalDatasetImporter(context: Context) {
         if (!stageDirectory.renameTo(revisionDirectory)) {
             throw IllegalStateException("Could not commit the staged corpus to local storage.")
         }
-        return summaryFromManifest(manifest)
+        return summaryFromManifest(manifest, INITIAL_ADMISSION_DECISION)
     }
 
     fun discard(stageId: String) {
@@ -205,7 +206,14 @@ class LocalDatasetImporter(context: Context) {
                     null
                 } else {
                     runCatching {
-                        summaryFromManifest(JSONObject(manifestFile.readText(Charsets.UTF_8)))
+                        val manifestText = manifestFile.readText(Charsets.UTF_8)
+                        val manifest = JSONObject(manifestText)
+                        val admissionDecision = readLatestAdmissionDecision(
+                            revisionDirectory = revisionDirectory,
+                            manifestText = manifestText,
+                            manifest = manifest
+                        )
+                        summaryFromManifest(manifest, admissionDecision)
                     }.getOrNull()
                 }
             }
@@ -1547,7 +1555,98 @@ class LocalDatasetImporter(context: Context) {
         }
     }
 
-    private fun summaryFromManifest(manifest: JSONObject): LocalCorpusSummary {
+    private fun readLatestAdmissionDecision(
+        revisionDirectory: File,
+        manifestText: String,
+        manifest: JSONObject
+    ): String {
+        if (manifest.optInt("schemaVersion", -1) != MANIFEST_SCHEMA_VERSION) {
+            return LEGACY_UNVERIFIED_ADMISSION
+        }
+
+        val manifestDigestFile = File(revisionDirectory, MANIFEST_DIGEST_FILE)
+        if (!manifestDigestFile.isFile) return UNKNOWN_ADMISSION
+
+        val manifestSha256 = CanonicalDatasetDigests.sha256Hex(
+            manifestText.toByteArray(StandardCharsets.UTF_8)
+        )
+        if (manifestDigestFile.readText(Charsets.UTF_8).trim() != manifestSha256) {
+            return UNKNOWN_ADMISSION
+        }
+
+        val datasetIdentity = manifest.optJSONObject("datasetIdentity")
+            ?: return UNKNOWN_ADMISSION
+        val datasetSha256 = datasetIdentity.optString("canonicalSha256")
+        if (!CanonicalDatasetDigests.isSha256Hex(datasetSha256)) {
+            return UNKNOWN_ADMISSION
+        }
+
+        val logDescriptor = manifest.optJSONObject("admissionDecisionLog")
+            ?: return UNKNOWN_ADMISSION
+        if (logDescriptor.optString("format") != "jsonl" ||
+            logDescriptor.optString("path") != ADMISSION_DECISIONS_FILE ||
+            !logDescriptor.optBoolean("appendOnly", false)
+        ) {
+            return UNKNOWN_ADMISSION
+        }
+
+        val admissionFile = File(revisionDirectory, ADMISSION_DECISIONS_FILE)
+        if (!admissionFile.isFile) return UNKNOWN_ADMISSION
+
+        val seenDecisionIds = HashSet<String>()
+        var latestDecision: String? = null
+        var decisionCount = 0
+        var valid = true
+
+        admissionFile.bufferedReader(Charsets.UTF_8).use { reader ->
+            while (true) {
+                val line = reader.readLine() ?: break
+                if (line.isBlank()) {
+                    valid = false
+                    break
+                }
+                val decision = try {
+                    JSONObject(line)
+                } catch (_: Exception) {
+                    valid = false
+                    break
+                }
+                val decisionId = decision.optString("decisionId")
+                val decisionValue = decision.optString("decision")
+                if (decision.optInt("schemaVersion", -1) != ADMISSION_LOG_SCHEMA_VERSION ||
+                    !isValidId(decisionId) ||
+                    !seenDecisionIds.add(decisionId) ||
+                    decision.optString("datasetManifestSha256") != manifestSha256 ||
+                    decision.optString("datasetSha256") != datasetSha256 ||
+                    decision.optString("validatorVersion").isBlank() ||
+                    decision.optString("policyVersion").isBlank() ||
+                    decision.optString("actor").isBlank() ||
+                    decision.optLong("createdAtEpochMillis", 0L) <= 0L ||
+                    decisionValue !in ADMISSION_DECISIONS
+                ) {
+                    valid = false
+                    break
+                }
+                if (decisionCount == 0 && decisionValue != INITIAL_ADMISSION_DECISION) {
+                    valid = false
+                    break
+                }
+                latestDecision = decisionValue
+                decisionCount += 1
+            }
+        }
+
+        return if (valid && decisionCount > 0) {
+            latestDecision ?: UNKNOWN_ADMISSION
+        } else {
+            UNKNOWN_ADMISSION
+        }
+    }
+
+    private fun summaryFromManifest(
+        manifest: JSONObject,
+        lastAdmissionDecision: String
+    ): LocalCorpusSummary {
         val counts = manifest.optJSONObject("counts") ?: JSONObject()
         val purposeArray = manifest.optJSONArray("purposes") ?: JSONArray()
         val purposes = buildSet {
@@ -1564,7 +1663,8 @@ class LocalDatasetImporter(context: Context) {
             trainRecordCount = counts.optLong("trainRecords"),
             validationRecordCount = counts.optLong("validationRecords"),
             testRecordCount = counts.optLong("testRecords"),
-            purposes = purposes
+            purposes = purposes,
+            lastAdmissionDecision = lastAdmissionDecision
         )
     }
 
@@ -1771,6 +1871,10 @@ class LocalDatasetImporter(context: Context) {
         private const val ADMISSION_LOG_SCHEMA_VERSION = 1
         private const val ADMISSION_VALIDATOR_VERSION = "local-import-integrity-v1"
         private const val ADMISSION_POLICY_VERSION = "dataset-admission-pending-v1"
+        private const val INITIAL_ADMISSION_DECISION = "PENDING"
+        private const val LEGACY_UNVERIFIED_ADMISSION = "LEGACY_UNVERIFIED"
+        private const val UNKNOWN_ADMISSION = "UNKNOWN"
+        private val ADMISSION_DECISIONS = setOf("PENDING", "APPROVED", "REJECTED")
         private const val PARSER_VERSION = "argus-document-parser-v1"
         private const val NORMALIZATION_VERSION = "argus-unicode-nfc-lf-trim-v1"
         private const val DEDUPLICATION_VERSION = "sha256-normalized-record-text-v1"
