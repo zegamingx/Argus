@@ -1,7 +1,7 @@
 # General Corpus and Personal Learning
 
-**Status:** Accepted general/personal learning split; local corpus importer and bundled ArgusID/DigiTransID intake implemented; English starter asset is present but not exposed by a dedicated bundled-import action; production manifests and training remain incomplete  
-**Last reviewed:** 2026-11-06
+**Status:** Accepted general/personal learning split; local corpus importer and bundled ArgusID/DigiTransID intake implemented; schema-v3 canonical dataset/split identity and initial PENDING admission logging are implemented in source; no generated v3 corpus revision has been runtime-verified; tokenizer fitting and training remain unavailable  
+**Last reviewed:** 2026-11-07
 
 ## 1. Purpose
 
@@ -107,6 +107,26 @@ Record at least:
 **Implementation-status boundary (reviewed 2026-11-06):** the current importer records source/file and record-level integrity identities, split membership and selected workflow purposes. The current audited implementation does not yet create the canonical normalized-dataset digest, per-split membership digests or a separate append-only `DatasetAdmissionDecision` required by document 36. These are design requirements, not implemented facts. No importer-generated immutable tokenizer-frequency manifest for the three owner-created starter assets is present in the reviewed repository snapshot; therefore no source SHA-256, canonical dataset digest, split digest or `TOKENIZER_FREQUENCY_FITTING` admission is claimed here. Git blob IDs identify repository objects and must not be substituted for importer-generated SHA-256 values.
 
 No full document text, credentials or private article content should be copied into generic logs or diagnostic events. The local corpus store owns the content; manifests and logs reference it by identity and digest.
+
+
+### 3.2 Current schema-v3 importer implementation
+
+The Android importer now writes canonical corpus records using the versioned `argus-jsonl-canonical-v1` representation. Each record has a fixed field order (`recordId`, `sourceDocumentId`, `sourceName`, `text`, `split`), explicit JSON string escaping and an LF record terminator. The canonical dataset SHA-256 uses a domain-separated digest over the exact UTF-8 JSONL bytes.
+
+The schema-v3 manifest binds:
+
+- The canonical record-format identifier, SHA-256 algorithm, canonical dataset digest and record count.
+- Parser, normalization and deduplication version identifiers.
+- The explicit `NOT_TOKENIZED` state and null tokenizer-profile identity.
+- The split policy (algorithm, seed, source-document grouping and target ratios), per-split record counts and membership SHA-256 digests, and a split-manifest digest bound to the canonical dataset digest.
+- The append-only admission-log location and format.
+
+The exact manifest bytes are accompanied by a `manifest.sha256` sidecar. The initial `admission-decisions.jsonl` entry is always `PENDING` and is bound to both the manifest digest and canonical dataset digest. Integrity checks for source-digest format, canonical encoding, record IDs, normalized text, document-to-split assignment, per-document counts, dataset bytes, split memberships and split-manifest identity run before the staged directory is committed. A source document whose records were all removed as duplicates remains visible in the source inventory with the explicit `EXCLUDED_DUPLICATE_ONLY` disposition; it is not counted as a train/validation/test member.
+
+The Learning corpus list displays the latest recorded admission decision. A schema-v2 or older corpus is labelled `LEGACY_UNVERIFIED`; it is not silently treated as an approved dataset.
+
+This implementation does **not** approve a corpus. Provenance and embedded-material review, tokenizer-profile compatibility, data-quality qualification and semantic split-leakage review remain pending. The importer does not produce tokenized shards, a final tokenizer-frequency fitting artifact, a training admission grant, a training session or model updates. The commit-time integrity checks are source implementation only; runtime-generated manifests and device behavior have not yet been verified. A SHA-256 sidecar detects accidental inconsistency but is not an authenticity signature against an actor able to rewrite both the content and its digest.
+
 
 ## 4. General learning lifecycle
 
