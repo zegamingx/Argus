@@ -149,7 +149,6 @@ object CanonicalDatasetDigests {
 
     private fun updateLengthPrefixed(digest: MessageDigest, value: String) {
         val bytes = value.toByteArray(StandardCharsets.UTF_8)
-        require(bytes.size >= 0)
         updateInt(digest, bytes.size)
         digest.update(bytes)
     }
