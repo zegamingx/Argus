@@ -13,8 +13,6 @@ import com.argus.agi.core.training.CorpusStorageLayout
 import com.argus.agi.core.training.CorpusTextNormalizer
 import com.argus.agi.core.training.DatasetPurpose
 import com.argus.agi.core.training.DatasetSplitMembership
-import com.argus.agi.core.training.LocalCorpusIntegrityReport
-import com.argus.agi.core.training.LocalCorpusSummary
 import com.argus.agi.core.training.LocalCorpusStore
 import org.json.JSONArray
 import org.json.JSONObject
@@ -56,7 +54,7 @@ class LocalDatasetImporter(
 
     private val appContext: Context = context.applicationContext
 
-    suspend fun stage(
+    private suspend fun stageUris(
         uris: List<Uri>,
         purposes: Set<DatasetPurpose>
     ): CorpusImportPreview {
@@ -110,7 +108,7 @@ class LocalDatasetImporter(
         sourceUriReferences: List<String>,
         purposes: Set<DatasetPurpose>
     ): CorpusImportPreview {
-        return stage(sourceUriReferences.map(Uri::parse), purposes)
+        return stageUris(sourceUriReferences.map(Uri::parse), purposes)
     }
 
     private suspend fun stageSources(
