@@ -406,7 +406,6 @@ class LocalDatasetImporter(context: Context) {
                             countedInput.close()
                         }
                         val sourceSizeBytes = countedInput.bytesRead
-                        importedBytes += sourceSizeBytes
                         sourceMetadata.put(
                             JSONObject()
                                 .put("name", sourceName)
@@ -1261,7 +1260,10 @@ class LocalDatasetImporter(context: Context) {
 
         if (manifest.optInt("schemaVersion", -1) != MANIFEST_SCHEMA_VERSION ||
             manifest.optString("importerVersion") != IMPORTER_VERSION ||
-            manifest.optString("recordFormat") != CanonicalDatasetDigests.CANONICAL_RECORD_FORMAT_ID
+            manifest.optString("recordFormat") != CanonicalDatasetDigests.CANONICAL_RECORD_FORMAT_ID ||
+            !isValidId(manifest.optString("corpusId")) ||
+            manifest.optInt("revision", -1) != 1 ||
+            manifest.optLong("importedAtEpochMillis", 0L) <= 0L
         ) {
             throw IllegalStateException("The staged corpus format is unsupported. Import the files again.")
         }
@@ -1304,11 +1306,12 @@ class LocalDatasetImporter(context: Context) {
             val source = sources.optJSONObject(index)
                 ?: throw IllegalStateException("The staged source inventory is malformed.")
             val sourceDigest = source.opt("sha256")
-            if (sourceDigest !is String ||
+            if (source.optString("name").isBlank() ||
+                sourceDigest !is String ||
                 !CanonicalDatasetDigests.isSha256Hex(sourceDigest) ||
                 !source.has("sizeBytes") ||
                 source.optLong("sizeBytes", -1L) < 0L ||
-                !source.has("archive")
+                source.opt("archive") !is Boolean
             ) {
                 throw IllegalStateException("A staged source artifact identity is incomplete or malformed.")
             }
@@ -1359,6 +1362,9 @@ class LocalDatasetImporter(context: Context) {
         }
         val expectedMemberships = splitManifest.optJSONObject("memberships")
             ?: throw IllegalStateException("The staged split memberships are missing.")
+        if (expectedMemberships.length() != CanonicalDatasetDigests.SPLIT_NAMES.size) {
+            throw IllegalStateException("The staged split manifest has an invalid membership set.")
+        }
         val parentDatasetSha256 = splitManifest.optString("parentDatasetSha256")
         if (parentDatasetSha256 != expectedDatasetSha256) {
             throw IllegalStateException("The staged split manifest references a different dataset.")
@@ -1367,20 +1373,24 @@ class LocalDatasetImporter(context: Context) {
         val documents = manifest.optJSONArray("documents")
             ?: throw IllegalStateException("The staged document inventory is missing.")
         val documentSplits = linkedMapOf<String, String>()
+        val expectedDocumentNames = linkedMapOf<String, String>()
         val expectedDocumentCounts = linkedMapOf<String, Long>()
         for (index in 0 until documents.length()) {
             val document = documents.optJSONObject(index)
                 ?: throw IllegalStateException("The staged document inventory is malformed.")
             val documentId = document.optString("sha256")
+            val documentName = document.optString("name")
             val split = document.optString("split")
             val recordCount = document.optLong("recordCount", -1L)
             if (!CanonicalDatasetDigests.isSha256Hex(documentId) ||
+                documentName.isBlank() ||
                 document.optLong("sizeBytes", -1L) < 0L ||
                 recordCount < 0L ||
                 expectedDocumentCounts.put(documentId, recordCount) != null
             ) {
                 throw IllegalStateException("The staged document identity or record count is invalid.")
             }
+            expectedDocumentNames[documentId] = documentName
             if (recordCount == 0L) {
                 if (split != EXCLUDED_DUPLICATE_ONLY_SPLIT) {
                     throw IllegalStateException("A duplicate-only source document has an invalid disposition.")
@@ -1431,6 +1441,7 @@ class LocalDatasetImporter(context: Context) {
                     throw IllegalStateException("A source document appears in more than one split.")
                 }
                 if (!CanonicalDatasetDigests.isSha256Hex(documentId) ||
+                    sourceName != expectedDocumentNames[documentId] ||
                     text.isBlank() ||
                     recordId != sha256Text(text) ||
                     normalizeText(text) != text
