@@ -239,6 +239,17 @@ fun LocalDatasetImporterCard(viewModel: ArgusViewModel) {
                                 color = ArgusTextSecondary
                             )
                             Text(
+                                text = when (corpus.lastAdmissionDecision) {
+                                    "PENDING" -> "Last admission decision: Pending review"
+                                    "APPROVED" -> "Last admission decision: Approved"
+                                    "REJECTED" -> "Last admission decision: Rejected"
+                                    "LEGACY_UNVERIFIED" -> "Legacy corpus: re-import for manifest verification"
+                                    else -> "Admission state unavailable"
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = ArgusTextMuted
+                            )
+                            Text(
                                 text = corpus.purposeLabels.joinToString(" · "),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = ArgusTextMuted
