@@ -87,5 +87,6 @@ data class LocalCorpusUiState(
     val trainRecordCount: Long,
     val validationRecordCount: Long,
     val testRecordCount: Long,
-    val purposeLabels: List<String>
+    val purposeLabels: List<String>,
+    val lastAdmissionDecision: String
 )
