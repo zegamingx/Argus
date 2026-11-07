@@ -1151,9 +1151,57 @@ class LocalDatasetImporter(context: Context) {
         }
 
         if (manifest.optInt("schemaVersion", -1) != MANIFEST_SCHEMA_VERSION ||
+            manifest.optString("importerVersion") != IMPORTER_VERSION ||
             manifest.optString("recordFormat") != CanonicalDatasetDigests.CANONICAL_RECORD_FORMAT_ID
         ) {
             throw IllegalStateException("The staged corpus format is unsupported. Import the files again.")
+        }
+
+        val processing = manifest.optJSONObject("processing")
+            ?: throw IllegalStateException("The staged processing identity is missing.")
+        if (processing.optString("parserVersion") != PARSER_VERSION ||
+            processing.optString("normalizationVersion") != NORMALIZATION_VERSION ||
+            processing.optString("deduplicationVersion") != DEDUPLICATION_VERSION
+        ) {
+            throw IllegalStateException("The staged processing pipeline version is unsupported.")
+        }
+        val tokenization = manifest.optJSONObject("tokenization")
+            ?: throw IllegalStateException("The staged tokenization state is missing.")
+        if (tokenization.optString("status") != "NOT_TOKENIZED" ||
+            !tokenization.isNull("tokenizerProfileId")
+        ) {
+            throw IllegalStateException("A staged local corpus must remain un-tokenized.")
+        }
+
+        val purposes = manifest.optJSONArray("purposes")
+            ?: throw IllegalStateException("The staged dataset purposes are missing.")
+        if (purposes.length() == 0) {
+            throw IllegalStateException("The staged dataset has no declared purpose.")
+        }
+        for (index in 0 until purposes.length()) {
+            val purpose = purposes.optString(index)
+            if (DatasetPurpose.values().none { it.manifestValue == purpose }) {
+                throw IllegalStateException("The staged dataset contains an unsupported purpose.")
+            }
+        }
+
+        val sources = manifest.optJSONArray("sources")
+            ?: throw IllegalStateException("The staged source inventory is missing.")
+        if (sources.length() == 0) {
+            throw IllegalStateException("The staged dataset has no source artifacts.")
+        }
+        for (index in 0 until sources.length()) {
+            val source = sources.optJSONObject(index)
+                ?: throw IllegalStateException("The staged source inventory is malformed.")
+            val sourceDigest = source.opt("sha256")
+            if (sourceDigest != null && sourceDigest != JSONObject.NULL &&
+                (sourceDigest !is String || !CanonicalDatasetDigests.isSha256Hex(sourceDigest))
+            ) {
+                throw IllegalStateException("A staged source artifact digest is malformed.")
+            }
+            if (source.has("sizeBytes") && source.optLong("sizeBytes", -1L) < 0L) {
+                throw IllegalStateException("A staged source artifact size is invalid.")
+            }
         }
 
         val datasetIdentity = manifest.optJSONObject("datasetIdentity")
@@ -1165,8 +1213,33 @@ class LocalDatasetImporter(context: Context) {
 
         val splitManifest = manifest.optJSONObject("splitManifest")
             ?: throw IllegalStateException("The staged split manifest is missing.")
+        if (splitManifest.optInt(
+                "schemaVersion",
+                -1
+            ) != CanonicalDatasetDigests.SPLIT_MANIFEST_SCHEMA_VERSION
+        ) {
+            throw IllegalStateException("The staged split manifest version is unsupported.")
+        }
         val splitPolicy = splitManifest.optJSONObject("policy")
             ?: throw IllegalStateException("The staged split policy is missing.")
+        if (splitPolicy.optString("algorithm") != SPLIT_ALGORITHM ||
+            splitPolicy.optString("seed") != SPLIT_SEED ||
+            splitPolicy.optString("grouping") != "source-document" ||
+            splitPolicy.optDouble("validationRatio", -1.0) != VALIDATION_RATIO ||
+            splitPolicy.optDouble("testRatio", -1.0) != TEST_RATIO
+        ) {
+            throw IllegalStateException("The staged split policy is unsupported.")
+        }
+        val topLevelSplitPolicy = manifest.optJSONObject("split")
+            ?: throw IllegalStateException("The staged top-level split policy is missing.")
+        if (topLevelSplitPolicy.optString("algorithm") != splitPolicy.optString("algorithm") ||
+            topLevelSplitPolicy.optString("seed") != splitPolicy.optString("seed") ||
+            topLevelSplitPolicy.optString("grouping") != splitPolicy.optString("grouping") ||
+            topLevelSplitPolicy.optDouble("validationRatio", -1.0) != VALIDATION_RATIO ||
+            topLevelSplitPolicy.optDouble("testRatio", -1.0) != TEST_RATIO
+        ) {
+            throw IllegalStateException("The staged split policy declarations disagree.")
+        }
         val expectedMemberships = splitManifest.optJSONObject("memberships")
             ?: throw IllegalStateException("The staged split memberships are missing.")
         val parentDatasetSha256 = splitManifest.optString("parentDatasetSha256")
@@ -1239,8 +1312,13 @@ class LocalDatasetImporter(context: Context) {
                 if (expectedDocumentSplit != split) {
                     throw IllegalStateException("A source document appears in more than one split.")
                 }
-                if (recordId != sha256Text(text)) {
-                    throw IllegalStateException("A staged record ID does not match its normalized text.")
+                if (!CanonicalDatasetDigests.isSha256Hex(documentId) ||
+                    recordId != sha256Text(text) ||
+                    normalizeText(text) != text
+                ) {
+                    throw IllegalStateException(
+                        "A staged record ID, source identity or normalized text is invalid."
+                    )
                 }
 
                 val canonicalLine = CanonicalDatasetDigests.canonicalRecordLine(
@@ -1365,9 +1443,14 @@ class LocalDatasetImporter(context: Context) {
                 throw IllegalStateException("The staged dataset admission record is malformed.", exception)
             }
             if (reader.readLine() != null ||
+                decision.optInt("schemaVersion", -1) != ADMISSION_LOG_SCHEMA_VERSION ||
+                decision.optString("validatorVersion") != ADMISSION_VALIDATOR_VERSION ||
+                decision.optString("policyVersion") != ADMISSION_POLICY_VERSION ||
                 decision.optString("decision") != "PENDING" ||
                 decision.optString("datasetManifestSha256") != manifestSha256 ||
                 decision.optString("datasetSha256") != datasetSha256 ||
+                !CanonicalDatasetDigests.isSha256Hex(manifestSha256) ||
+                !CanonicalDatasetDigests.isSha256Hex(datasetSha256) ||
                 !isValidId(decision.optString("decisionId"))
             ) {
                 throw IllegalStateException("The staged dataset admission decision is inconsistent.")
@@ -1421,7 +1504,7 @@ class LocalDatasetImporter(context: Context) {
 
         FileOutputStream(admissionFile, true).bufferedWriter(Charsets.UTF_8).use { writer ->
             writer.write(decision.toString())
-            writer.write('\n')
+            writer.write("\n")
             writer.flush()
         }
     }
