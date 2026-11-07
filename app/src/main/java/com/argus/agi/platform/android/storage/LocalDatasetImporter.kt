@@ -385,10 +385,27 @@ class LocalDatasetImporter(context: Context) {
                         archiveFile.delete()
                     } else if (!isSupportedTextFile(sourceName)) {
                         skippedFiles += 1
+                        val digest = MessageDigest.getInstance("SHA-256")
+                        val sourceInput = source.openStream()
+                            ?: throw IllegalStateException(
+                                "Could not open the selected file: " + sourceName
+                            )
+                        val countedInput = CountingInputStream(
+                            DigestInputStream(sourceInput, digest)
+                        )
+                        try {
+                            drainInput(countedInput)
+                        } finally {
+                            countedInput.close()
+                        }
+                        val sourceSizeBytes = countedInput.bytesRead
+                        importedBytes += sourceSizeBytes
                         sourceMetadata.put(
                             JSONObject()
                                 .put("name", sourceName)
                                 .put("mimeType", source.mimeType ?: JSONObject.NULL)
+                                .put("sizeBytes", sourceSizeBytes)
+                                .put("sha256", digestToHex(digest.digest()))
                                 .put("archive", false)
                                 .put("status", "skipped_unsupported_type")
                         )
@@ -1280,13 +1297,17 @@ class LocalDatasetImporter(context: Context) {
             val source = sources.optJSONObject(index)
                 ?: throw IllegalStateException("The staged source inventory is malformed.")
             val sourceDigest = source.opt("sha256")
-            if (sourceDigest != null && sourceDigest != JSONObject.NULL &&
-                (sourceDigest !is String || !CanonicalDatasetDigests.isSha256Hex(sourceDigest))
+            if (sourceDigest !is String ||
+                !CanonicalDatasetDigests.isSha256Hex(sourceDigest) ||
+                !source.has("sizeBytes") ||
+                source.optLong("sizeBytes", -1L) < 0L ||
+                !source.has("archive")
             ) {
-                throw IllegalStateException("A staged source artifact digest is malformed.")
+                throw IllegalStateException("A staged source artifact identity is incomplete or malformed.")
             }
-            if (source.has("sizeBytes") && source.optLong("sizeBytes", -1L) < 0L) {
-                throw IllegalStateException("A staged source artifact size is invalid.")
+            val sourceStatus = source.optString("status")
+            if (sourceStatus.isNotEmpty() && sourceStatus != "skipped_unsupported_type") {
+                throw IllegalStateException("A staged source artifact has an unsupported import status.")
             }
         }
 
