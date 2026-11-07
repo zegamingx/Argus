@@ -5,6 +5,8 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteStatement
 import android.net.Uri
 import android.provider.OpenableColumns
+import com.argus.agi.core.training.CanonicalDatasetDigests
+import com.argus.agi.core.training.DatasetSplitMembership
 import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONTokener
@@ -155,11 +157,13 @@ class LocalDatasetImporter(context: Context) {
             throw IllegalStateException("The staged corpus is no longer available. Import the files again.")
         }
 
-        val manifest = JSONObject(manifestFile.readText(Charsets.UTF_8))
+        val manifestText = manifestFile.readText(Charsets.UTF_8)
+        val manifest = JSONObject(manifestText)
         val corpusId = manifest.optString("corpusId")
         if (!isValidId(corpusId)) {
             throw IllegalStateException("The staged corpus manifest is invalid.")
         }
+        verifyStagedImport(stageDirectory, manifestText, manifest)
 
         val corpusRoot = File(File(appContext.filesDir, CORPORA_DIRECTORY), corpusId)
         if (!corpusRoot.exists() && !corpusRoot.mkdirs()) {
@@ -401,7 +405,7 @@ class LocalDatasetImporter(context: Context) {
         }
 
         val splitByDocument = createDocumentSplits(documentMetadata.keys.toList(), warnings)
-        val splitCounts = writeFinalRecords(
+        val finalRecords = writeFinalRecords(
             rawRecordsFile = rawRecordsFile,
             finalRecordsFile = finalRecordsFile,
             splitByDocument = splitByDocument,
@@ -418,9 +422,39 @@ class LocalDatasetImporter(context: Context) {
                     .put("sizeBytes", document.sizeBytes)
                     .put("mediaType", document.mediaType ?: JSONObject.NULL)
                     .put("recordCount", document.recordCount)
-                    .put("split", splitByDocument[document.digest] ?: "train")
+                    .put(
+                        "split",
+                        splitByDocument[document.digest]
+                            ?: throw IllegalStateException("A source document has no assigned split.")
+                    )
             )
         }
+
+        val splitMembershipsJson = JSONObject()
+        for (split in CanonicalDatasetDigests.SPLIT_NAMES) {
+            val membership = finalRecords.memberships[split]
+                ?: throw IllegalStateException("A split membership digest is missing: " + split)
+            splitMembershipsJson.put(
+                split,
+                JSONObject()
+                    .put("recordCount", membership.recordCount)
+                    .put("sha256", membership.sha256)
+            )
+        }
+
+        val splitPolicy = JSONObject()
+            .put("algorithm", SPLIT_ALGORITHM)
+            .put("seed", SPLIT_SEED)
+            .put("grouping", "source-document")
+            .put("validationRatio", VALIDATION_RATIO)
+            .put("testRatio", TEST_RATIO)
+
+        val splitManifest = JSONObject()
+            .put("schemaVersion", CanonicalDatasetDigests.SPLIT_MANIFEST_SCHEMA_VERSION)
+            .put("parentDatasetSha256", finalRecords.canonicalDatasetSha256)
+            .put("policy", splitPolicy)
+            .put("memberships", splitMembershipsJson)
+            .put("sha256", finalRecords.splitManifestSha256)
 
         val manifest = JSONObject()
             .put("schemaVersion", MANIFEST_SCHEMA_VERSION)
@@ -428,32 +462,66 @@ class LocalDatasetImporter(context: Context) {
             .put("revision", 1)
             .put("importedAtEpochMillis", System.currentTimeMillis())
             .put("importerVersion", IMPORTER_VERSION)
-            .put("recordFormat", "jsonl")
+            .put("recordFormat", CanonicalDatasetDigests.CANONICAL_RECORD_FORMAT_ID)
             .put("purposes", JSONArray(purposes.map { it.manifestValue }.sorted()))
             .put("sources", sourceMetadata)
             .put("documents", documentsJson)
             .put(
-                "counts",
+                "processing",
                 JSONObject()
-                    .put("acceptedRecords", acceptedRecords)
-                    .put("duplicateRecords", duplicateRecords)
-                    .put("rejectedRecords", rejectedRecords)
-                    .put("skippedFiles", skippedFiles)
-                    .put("importedBytes", importedBytes)
-                    .put("trainRecords", splitCounts.train)
-                    .put("validationRecords", splitCounts.validation)
-                    .put("testRecords", splitCounts.test)
+                    .put("parserVersion", PARSER_VERSION)
+                    .put("normalizationVersion", NORMALIZATION_VERSION)
+                    .put("deduplicationVersion", DEDUPLICATION_VERSION)
             )
             .put(
-                "split",
+                "tokenization",
                 JSONObject()
-                    .put("algorithm", SPLIT_ALGORITHM)
-                    .put("seed", SPLIT_SEED)
-                    .put("grouping", "source-document")
+                    .put("status", "NOT_TOKENIZED")
+                    .put("tokenizerProfileId", JSONObject.NULL)
             )
+            .put(
+                "datasetIdentity",
+                JSONObject()
+                    .put("algorithm", "SHA-256")
+                    .put("canonicalFormat", CanonicalDatasetDigests.CANONICAL_RECORD_FORMAT_ID)
+                    .put("canonicalSha256", finalRecords.canonicalDatasetSha256)
+                    .put("recordCount", finalRecords.counts.total)
+            )
+            .put("splitManifest", splitManifest)
+            .put(
+                "admissionDecisionLog",
+                JSONObject()
+                    .put("format", "jsonl")
+                    .put("path", ADMISSION_DECISIONS_FILE)
+                    .put("appendOnly", true)
+            )
+            .put("counts", JSONObject()
+                .put("acceptedRecords", acceptedRecords)
+                .put("duplicateRecords", duplicateRecords)
+                .put("rejectedRecords", rejectedRecords)
+                .put("skippedFiles", skippedFiles)
+                .put("importedBytes", importedBytes)
+                .put("trainRecords", finalRecords.counts.train)
+                .put("validationRecords", finalRecords.counts.validation)
+                .put("testRecords", finalRecords.counts.test)
+            )
+            .put("split", splitPolicy)
             .put("warnings", JSONArray(warnings))
 
-        File(stageDirectory, MANIFEST_FILE).writeText(manifest.toString(2), Charsets.UTF_8)
+        val manifestContent = manifest.toString(2)
+        File(stageDirectory, MANIFEST_FILE).writeText(manifestContent, Charsets.UTF_8)
+        val manifestSha256 = CanonicalDatasetDigests.sha256Hex(
+            manifestContent.toByteArray(StandardCharsets.UTF_8)
+        )
+        File(stageDirectory, MANIFEST_DIGEST_FILE).writeText(
+            manifestSha256 + "\n",
+            Charsets.UTF_8
+        )
+        writeInitialAdmissionDecision(
+            stageDirectory = stageDirectory,
+            manifestSha256 = manifestSha256,
+            datasetSha256 = finalRecords.canonicalDatasetSha256
+        )
 
         return CorpusImportPreview(
             stageId = stageId,
@@ -465,9 +533,9 @@ class LocalDatasetImporter(context: Context) {
             rejectedRecordCount = rejectedRecords,
             skippedFileCount = skippedFiles,
             importedBytes = importedBytes,
-            trainRecordCount = splitCounts.train,
-            validationRecordCount = splitCounts.validation,
-            testRecordCount = splitCounts.test,
+            trainRecordCount = finalRecords.counts.train,
+            validationRecordCount = finalRecords.counts.validation,
+            testRecordCount = finalRecords.counts.test,
             warnings = warnings.toList()
         )
     }
@@ -969,11 +1037,16 @@ class LocalDatasetImporter(context: Context) {
         finalRecordsFile: File,
         splitByDocument: Map<String, String>,
         storageGuard: StorageGuard
-    ): SplitCounts {
+    ): FinalRecordMetadata {
         var train = 0L
         var validation = 0L
         var test = 0L
         var processedSinceCancellationCheck = 0
+
+        val datasetDigest = CanonicalDatasetDigests.newDatasetDigest()
+        val membershipDigests = CanonicalDatasetDigests.SPLIT_NAMES.associateWith { split ->
+            CanonicalDatasetDigests.newMembershipDigest(split)
+        }
 
         rawRecordsFile.bufferedReader(Charsets.UTF_8).use { reader ->
             finalRecordsFile.bufferedWriter(Charsets.UTF_8).use { writer ->
@@ -987,23 +1060,355 @@ class LocalDatasetImporter(context: Context) {
                     processedSinceCancellationCheck += 1
 
                     val record = JSONObject(line)
+                    val recordId = record.optString("recordId")
                     val documentId = record.optString("sourceDocumentId")
-                    val split = splitByDocument[documentId] ?: "train"
-                    record.put("split", split)
-                    val serializedRecord = record.toString()
-                    storageGuard.beforeWrite(serializedRecord.length.toLong() * 2L)
-                    writer.write(serializedRecord)
-                    writer.newLine()
+                    val sourceName = record.optString("sourceName")
+                    val text = record.optString("text")
+                    val split = splitByDocument[documentId]
+                        ?: throw IllegalStateException(
+                            "A corpus record references a source document without a split."
+                        )
+
+                    val canonicalLine = CanonicalDatasetDigests.canonicalRecordLine(
+                        recordId = recordId,
+                        sourceDocumentId = documentId,
+                        sourceName = sourceName,
+                        text = text,
+                        split = split
+                    )
+                    CanonicalDatasetDigests.updateDatasetRecord(datasetDigest, canonicalLine)
+
+                    val membershipDigest = membershipDigests[split]
+                        ?: throw IllegalStateException("A split membership digest is unavailable.")
+                    CanonicalDatasetDigests.updateMembershipDigest(
+                        digest = membershipDigest,
+                        recordId = recordId,
+                        sourceDocumentId = documentId
+                    )
+
+                    storageGuard.beforeWrite(canonicalLine.length.toLong() * 2L + 1L)
+                    writer.write(canonicalLine)
+                    writer.write('\n')
 
                     when (split) {
                         "validation" -> validation += 1L
                         "test" -> test += 1L
-                        else -> train += 1L
+                        "train" -> train += 1L
+                        else -> throw IllegalStateException("The dataset split is not recognized.")
                     }
                 }
             }
         }
-        return SplitCounts(train, validation, test)
+
+        val counts = SplitCounts(train, validation, test)
+        val canonicalDatasetSha256 = CanonicalDatasetDigests.finish(datasetDigest)
+        val memberships = CanonicalDatasetDigests.SPLIT_NAMES.associateWith { split ->
+            val digest = membershipDigests[split]
+                ?: throw IllegalStateException("A split membership digest is unavailable.")
+            DatasetSplitMembership(
+                recordCount = when (split) {
+                    "train" -> counts.train
+                    "validation" -> counts.validation
+                    "test" -> counts.test
+                    else -> throw IllegalStateException("The dataset split is not recognized.")
+                },
+                sha256 = CanonicalDatasetDigests.finish(digest)
+            )
+        }
+        val splitManifestSha256 = CanonicalDatasetDigests.splitManifestSha256(
+            parentDatasetSha256 = canonicalDatasetSha256,
+            algorithm = SPLIT_ALGORITHM,
+            seed = SPLIT_SEED,
+            grouping = "source-document",
+            validationRatio = VALIDATION_RATIO,
+            testRatio = TEST_RATIO,
+            memberships = memberships
+        )
+
+        return FinalRecordMetadata(
+            counts = counts,
+            canonicalDatasetSha256 = canonicalDatasetSha256,
+            memberships = memberships,
+            splitManifestSha256 = splitManifestSha256
+        )
+    }
+
+    private fun verifyStagedImport(
+        stageDirectory: File,
+        manifestText: String,
+        manifest: JSONObject
+    ) {
+        val manifestSha256 = CanonicalDatasetDigests.sha256Hex(
+            manifestText.toByteArray(StandardCharsets.UTF_8)
+        )
+        val digestFile = File(stageDirectory, MANIFEST_DIGEST_FILE)
+        if (!digestFile.isFile ||
+            digestFile.readText(Charsets.UTF_8).trim() != manifestSha256
+        ) {
+            throw IllegalStateException("The staged corpus manifest checksum is invalid.")
+        }
+
+        if (manifest.optInt("schemaVersion", -1) != MANIFEST_SCHEMA_VERSION ||
+            manifest.optString("recordFormat") != CanonicalDatasetDigests.CANONICAL_RECORD_FORMAT_ID
+        ) {
+            throw IllegalStateException("The staged corpus format is unsupported. Import the files again.")
+        }
+
+        val datasetIdentity = manifest.optJSONObject("datasetIdentity")
+            ?: throw IllegalStateException("The staged dataset identity is missing.")
+        val expectedDatasetSha256 = datasetIdentity.optString("canonicalSha256")
+        if (!CanonicalDatasetDigests.isSha256Hex(expectedDatasetSha256)) {
+            throw IllegalStateException("The staged canonical dataset digest is invalid.")
+        }
+
+        val splitManifest = manifest.optJSONObject("splitManifest")
+            ?: throw IllegalStateException("The staged split manifest is missing.")
+        val splitPolicy = splitManifest.optJSONObject("policy")
+            ?: throw IllegalStateException("The staged split policy is missing.")
+        val expectedMemberships = splitManifest.optJSONObject("memberships")
+            ?: throw IllegalStateException("The staged split memberships are missing.")
+        val parentDatasetSha256 = splitManifest.optString("parentDatasetSha256")
+        if (parentDatasetSha256 != expectedDatasetSha256) {
+            throw IllegalStateException("The staged split manifest references a different dataset.")
+        }
+
+        val documents = manifest.optJSONArray("documents")
+            ?: throw IllegalStateException("The staged document inventory is missing.")
+        val documentSplits = linkedMapOf<String, String>()
+        val expectedDocumentNames = linkedMapOf<String, String>()
+        val expectedDocumentCounts = linkedMapOf<String, Long>()
+        for (index in 0 until documents.length()) {
+            val document = documents.optJSONObject(index)
+                ?: throw IllegalStateException("The staged document inventory is malformed.")
+            val documentId = document.optString("sha256")
+            val split = document.optString("split")
+            if (!CanonicalDatasetDigests.isSha256Hex(documentId) ||
+                split !in CanonicalDatasetDigests.SPLIT_NAMES ||
+                documentSplits.put(documentId, split) != null
+            ) {
+                throw IllegalStateException("The staged document identity or split is invalid.")
+            }
+            expectedDocumentNames[documentId] = document.optString("name")
+            expectedDocumentCounts[documentId] = document.optLong("recordCount", -1L)
+        }
+
+        val datasetDigest = CanonicalDatasetDigests.newDatasetDigest()
+        val membershipDigests = CanonicalDatasetDigests.SPLIT_NAMES.associateWith { split ->
+            CanonicalDatasetDigests.newMembershipDigest(split)
+        }
+        val actualDocumentSplits = linkedMapOf<String, String>()
+        val actualDocumentCounts = linkedMapOf<String, Long>()
+        var trainCount = 0L
+        var validationCount = 0L
+        var testCount = 0L
+        var totalCount = 0L
+
+        val recordsFile = File(stageDirectory, RECORDS_FILE)
+        if (!recordsFile.isFile) {
+            throw IllegalStateException("The staged canonical records file is missing.")
+        }
+        recordsFile.bufferedReader(Charsets.UTF_8).use { reader ->
+            while (true) {
+                val line = reader.readLine() ?: break
+                if (line.isEmpty()) {
+                    throw IllegalStateException("The staged canonical records contain an empty line.")
+                }
+                val record = try {
+                    JSONObject(line)
+                } catch (exception: Exception) {
+                    throw IllegalStateException("The staged canonical record is malformed.", exception)
+                }
+                val recordId = record.optString("recordId")
+                val documentId = record.optString("sourceDocumentId")
+                val sourceName = record.optString("sourceName")
+                val text = record.optString("text")
+                val split = record.optString("split")
+                val expectedDocumentSplit = documentSplits[documentId]
+                    ?: throw IllegalStateException("A record references an unknown source document.")
+                if (expectedDocumentSplit != split) {
+                    throw IllegalStateException("A source document appears in more than one split.")
+                }
+                if (recordId != sha256Text(text)) {
+                    throw IllegalStateException("A staged record ID does not match its normalized text.")
+                }
+
+                val canonicalLine = CanonicalDatasetDigests.canonicalRecordLine(
+                    recordId = recordId,
+                    sourceDocumentId = documentId,
+                    sourceName = sourceName,
+                    text = text,
+                    split = split
+                )
+                if (line != canonicalLine) {
+                    throw IllegalStateException("A staged record is not in canonical JSONL form.")
+                }
+                CanonicalDatasetDigests.updateDatasetRecord(datasetDigest, canonicalLine)
+
+                val membershipDigest = membershipDigests[split]
+                    ?: throw IllegalStateException("A staged record has an unsupported split.")
+                CanonicalDatasetDigests.updateMembershipDigest(
+                    digest = membershipDigest,
+                    recordId = recordId,
+                    sourceDocumentId = documentId
+                )
+                actualDocumentSplits[documentId] = split
+                actualDocumentCounts[documentId] = (actualDocumentCounts[documentId] ?: 0L) + 1L
+
+                when (split) {
+                    "train" -> trainCount += 1L
+                    "validation" -> validationCount += 1L
+                    "test" -> testCount += 1L
+                    else -> throw IllegalStateException("A staged record has an unsupported split.")
+                }
+                totalCount += 1L
+            }
+        }
+
+        if (actualDocumentSplits.keys != documentSplits.keys) {
+            throw IllegalStateException("The staged document inventory does not match its records.")
+        }
+        for ((documentId, expectedCount) in expectedDocumentCounts) {
+            if (expectedCount < 0L || actualDocumentCounts[documentId] != expectedCount) {
+                throw IllegalStateException("A staged document record count is inconsistent.")
+            }
+        }
+
+        val actualDatasetSha256 = CanonicalDatasetDigests.finish(datasetDigest)
+        if (actualDatasetSha256 != expectedDatasetSha256 ||
+            datasetIdentity.optLong("recordCount", -1L) != totalCount
+        ) {
+            throw IllegalStateException("The staged canonical dataset digest or record count is invalid.")
+        }
+
+        val actualMemberships = CanonicalDatasetDigests.SPLIT_NAMES.associateWith { split ->
+            val digest = membershipDigests[split]
+                ?: throw IllegalStateException("A split membership digest is unavailable.")
+            val membership = DatasetSplitMembership(
+                recordCount = when (split) {
+                    "train" -> trainCount
+                    "validation" -> validationCount
+                    "test" -> testCount
+                    else -> throw IllegalStateException("The dataset split is not recognized.")
+                },
+                sha256 = CanonicalDatasetDigests.finish(digest)
+            )
+            val expected = expectedMemberships.optJSONObject(split)
+                ?: throw IllegalStateException("A split membership entry is missing.")
+            if (expected.optLong("recordCount", -1L) != membership.recordCount ||
+                expected.optString("sha256") != membership.sha256
+            ) {
+                throw IllegalStateException("A staged split membership digest is invalid.")
+            }
+            membership
+        }
+
+        val counts = manifest.optJSONObject("counts")
+            ?: throw IllegalStateException("The staged corpus counts are missing.")
+        if (counts.optLong("acceptedRecords", -1L) != totalCount ||
+            counts.optLong("trainRecords", -1L) != trainCount ||
+            counts.optLong("validationRecords", -1L) != validationCount ||
+            counts.optLong("testRecords", -1L) != testCount
+        ) {
+            throw IllegalStateException("The staged corpus split counts are inconsistent.")
+        }
+
+        val actualSplitManifestSha256 = CanonicalDatasetDigests.splitManifestSha256(
+            parentDatasetSha256 = actualDatasetSha256,
+            algorithm = splitPolicy.optString("algorithm"),
+            seed = splitPolicy.optString("seed"),
+            grouping = splitPolicy.optString("grouping"),
+            validationRatio = splitPolicy.optDouble("validationRatio", -1.0),
+            testRatio = splitPolicy.optDouble("testRatio", -1.0),
+            memberships = actualMemberships
+        )
+        if (actualSplitManifestSha256 != splitManifest.optString("sha256")) {
+            throw IllegalStateException("The staged split manifest checksum is invalid.")
+        }
+
+        verifyInitialAdmissionDecision(
+            stageDirectory = stageDirectory,
+            manifestSha256 = manifestSha256,
+            datasetSha256 = actualDatasetSha256
+        )
+    }
+
+    private fun verifyInitialAdmissionDecision(
+        stageDirectory: File,
+        manifestSha256: String,
+        datasetSha256: String
+    ) {
+        val admissionFile = File(stageDirectory, ADMISSION_DECISIONS_FILE)
+        if (!admissionFile.isFile) {
+            throw IllegalStateException("The staged dataset admission decision is missing.")
+        }
+        admissionFile.bufferedReader(Charsets.UTF_8).use { reader ->
+            val firstLine = reader.readLine()
+                ?: throw IllegalStateException("The staged dataset admission log is empty.")
+            val decision = try {
+                JSONObject(firstLine)
+            } catch (exception: Exception) {
+                throw IllegalStateException("The staged dataset admission record is malformed.", exception)
+            }
+            if (reader.readLine() != null ||
+                decision.optString("decision") != "PENDING" ||
+                decision.optString("datasetManifestSha256") != manifestSha256 ||
+                decision.optString("datasetSha256") != datasetSha256 ||
+                !isValidId(decision.optString("decisionId"))
+            ) {
+                throw IllegalStateException("The staged dataset admission decision is inconsistent.")
+            }
+        }
+    }
+
+    private fun writeInitialAdmissionDecision(
+        stageDirectory: File,
+        manifestSha256: String,
+        datasetSha256: String
+    ) {
+        val admissionFile = File(stageDirectory, ADMISSION_DECISIONS_FILE)
+        if (!admissionFile.createNewFile()) {
+            throw IllegalStateException("The dataset admission log already exists.")
+        }
+
+        val decision = JSONObject()
+            .put("schemaVersion", ADMISSION_LOG_SCHEMA_VERSION)
+            .put("decisionId", UUID.randomUUID().toString())
+            .put("datasetManifestSha256", manifestSha256)
+            .put("datasetSha256", datasetSha256)
+            .put("validatorVersion", ADMISSION_VALIDATOR_VERSION)
+            .put("policyVersion", ADMISSION_POLICY_VERSION)
+            .put("decision", "PENDING")
+            .put(
+                "reasonCodes",
+                JSONArray(
+                    listOf(
+                        "PROVENANCE_AND_EMBEDDED_MATERIAL_REVIEW_REQUIRED",
+                        "TOKENIZER_COMPATIBILITY_NOT_ESTABLISHED",
+                        "DATA_QUALITY_POLICY_NOT_EVALUATED",
+                        "SEMANTIC_SPLIT_LEAKAGE_NOT_EVALUATED"
+                    )
+                )
+            )
+            .put(
+                "checks",
+                JSONObject()
+                    .put("sourceArtifactDigestFormat", "VERIFIED")
+                    .put("canonicalDatasetDigest", "VERIFIED")
+                    .put("splitMembershipDigests", "VERIFIED")
+                    .put("sourceDocumentGrouping", "VERIFIED")
+                    .put("provenanceAndEmbeddedMaterialReview", "PENDING")
+                    .put("tokenizerCompatibility", "PENDING")
+                    .put("dataQuality", "PENDING")
+                    .put("semanticLeakage", "PENDING")
+            )
+            .put("actor", "LOCAL_IMPORTER")
+            .put("createdAtEpochMillis", System.currentTimeMillis())
+
+        FileOutputStream(admissionFile, true).bufferedWriter(Charsets.UTF_8).use { writer ->
+            writer.write(decision.toString())
+            writer.write('\n')
+            writer.flush()
+        }
     }
 
     private fun summaryFromManifest(manifest: JSONObject): LocalCorpusSummary {
@@ -1172,6 +1577,16 @@ class LocalDatasetImporter(context: Context) {
         val train: Long,
         val validation: Long,
         val test: Long
+    ) {
+        val total: Long
+            get() = train + validation + test
+    }
+
+    private data class FinalRecordMetadata(
+        val counts: SplitCounts,
+        val canonicalDatasetSha256: String,
+        val memberships: Map<String, DatasetSplitMembership>,
+        val splitManifestSha256: String
     )
 
     private class CountingInputStream(input: InputStream) : FilterInputStream(input) {
@@ -1215,11 +1630,19 @@ class LocalDatasetImporter(context: Context) {
         private const val STAGING_DIRECTORY = "corpus-staging"
         private const val CORPORA_DIRECTORY = "corpora"
         private const val MANIFEST_FILE = "manifest.json"
+        private const val MANIFEST_DIGEST_FILE = "manifest.sha256"
+        private const val ADMISSION_DECISIONS_FILE = "admission-decisions.jsonl"
+        private const val ADMISSION_LOG_SCHEMA_VERSION = 1
+        private const val ADMISSION_VALIDATOR_VERSION = "local-import-integrity-v1"
+        private const val ADMISSION_POLICY_VERSION = "dataset-admission-pending-v1"
+        private const val PARSER_VERSION = "argus-document-parser-v1"
+        private const val NORMALIZATION_VERSION = "argus-unicode-nfc-lf-trim-v1"
+        private const val DEDUPLICATION_VERSION = "sha256-normalized-record-text-v1"
         private const val RAW_RECORDS_FILE = "raw-records.jsonl"
         private const val RECORDS_FILE = "records.jsonl"
         private const val DEDUPLICATION_DATABASE_FILE = "record-deduplication.db"
-        private const val IMPORTER_VERSION = "2.0.0"
-        private const val MANIFEST_SCHEMA_VERSION = 2
+        private const val IMPORTER_VERSION = "3.0.0"
+        private const val MANIFEST_SCHEMA_VERSION = 3
         private const val SPLIT_ALGORITHM = "sha256-source-document-v1"
         private const val SPLIT_SEED = "argus-local-corpus-split-v1"
         private const val VALIDATION_RATIO = 0.10
