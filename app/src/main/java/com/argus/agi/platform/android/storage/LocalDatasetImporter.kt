@@ -70,6 +70,20 @@ data class LocalCorpusSummary(
     val lastAdmissionDecision: String = "UNKNOWN"
 )
 
+data class LocalCorpusIntegrityReport(
+    val corpusId: String,
+    val revision: Int,
+    val manifestSha256: String,
+    val canonicalDatasetSha256: String,
+    val splitManifestSha256: String,
+    val recordCount: Long,
+    val trainRecordCount: Long,
+    val validationRecordCount: Long,
+    val testRecordCount: Long,
+    val lastAdmissionDecision: String,
+    val verifiedAtEpochMillis: Long
+)
+
 /**
  * Streams local sources into app-private staging. Text is decoded incrementally,
  * ZIP entries are processed directly from ZipInputStream, and deduplication is
@@ -179,6 +193,68 @@ class LocalDatasetImporter(context: Context) {
             throw IllegalStateException("Could not commit the staged corpus to local storage.")
         }
         return summaryFromManifest(manifest, INITIAL_ADMISSION_DECISION)
+    }
+
+    fun verifyCommittedCorpusIntegrity(
+        corpusId: String,
+        revision: Int
+    ): LocalCorpusIntegrityReport {
+        require(isValidId(corpusId)) { "The corpus identifier is invalid." }
+        require(revision > 0) { "The corpus revision must be positive." }
+
+        val revisionName = "revision-" + revision.toString().padStart(6, '0')
+        val revisionDirectory = File(
+            File(File(appContext.filesDir, CORPORA_DIRECTORY), corpusId),
+            revisionName
+        )
+        val manifestFile = File(revisionDirectory, MANIFEST_FILE)
+        if (!revisionDirectory.isDirectory || !manifestFile.isFile) {
+            throw IllegalArgumentException("The committed corpus revision does not exist.")
+        }
+
+        val manifestText = manifestFile.readText(Charsets.UTF_8)
+        val manifest = JSONObject(manifestText)
+        if (manifest.optString("corpusId") != corpusId ||
+            manifest.optInt("revision", -1) != revision
+        ) {
+            throw IllegalStateException("The committed corpus identity does not match its storage path.")
+        }
+
+        verifyStagedImport(
+            stageDirectory = revisionDirectory,
+            manifestText = manifestText,
+            manifest = manifest,
+            requireSinglePendingAdmission = false
+        )
+
+        val admissionDecision = readLatestAdmissionDecision(
+            revisionDirectory = revisionDirectory,
+            manifestText = manifestText,
+            manifest = manifest
+        )
+        val datasetIdentity = manifest.optJSONObject("datasetIdentity")
+            ?: throw IllegalStateException("The committed dataset identity is missing.")
+        val splitManifest = manifest.optJSONObject("splitManifest")
+            ?: throw IllegalStateException("The committed split manifest is missing.")
+        val counts = manifest.optJSONObject("counts")
+            ?: throw IllegalStateException("The committed corpus counts are missing.")
+        val manifestSha256 = CanonicalDatasetDigests.sha256Hex(
+            manifestText.toByteArray(StandardCharsets.UTF_8)
+        )
+
+        return LocalCorpusIntegrityReport(
+            corpusId = corpusId,
+            revision = revision,
+            manifestSha256 = manifestSha256,
+            canonicalDatasetSha256 = datasetIdentity.optString("canonicalSha256"),
+            splitManifestSha256 = splitManifest.optString("sha256"),
+            recordCount = datasetIdentity.optLong("recordCount", -1L),
+            trainRecordCount = counts.optLong("trainRecords", -1L),
+            validationRecordCount = counts.optLong("validationRecords", -1L),
+            testRecordCount = counts.optLong("testRecords", -1L),
+            lastAdmissionDecision = admissionDecision,
+            verifiedAtEpochMillis = System.currentTimeMillis()
+        )
     }
 
     fun discard(stageId: String) {
@@ -1146,7 +1222,8 @@ class LocalDatasetImporter(context: Context) {
     private fun verifyStagedImport(
         stageDirectory: File,
         manifestText: String,
-        manifest: JSONObject
+        manifest: JSONObject,
+        requireSinglePendingAdmission: Boolean = true
     ) {
         val manifestSha256 = CanonicalDatasetDigests.sha256Hex(
             manifestText.toByteArray(StandardCharsets.UTF_8)
@@ -1434,11 +1511,24 @@ class LocalDatasetImporter(context: Context) {
             throw IllegalStateException("The staged split manifest checksum is invalid.")
         }
 
-        verifyInitialAdmissionDecision(
-            stageDirectory = stageDirectory,
-            manifestSha256 = manifestSha256,
-            datasetSha256 = actualDatasetSha256
-        )
+        if (requireSinglePendingAdmission) {
+            verifyInitialAdmissionDecision(
+                stageDirectory = stageDirectory,
+                manifestSha256 = manifestSha256,
+                datasetSha256 = actualDatasetSha256
+            )
+        } else {
+            val latestDecision = readLatestAdmissionDecision(
+                revisionDirectory = stageDirectory,
+                manifestText = manifestText,
+                manifest = manifest
+            )
+            if (latestDecision == UNKNOWN_ADMISSION ||
+                latestDecision == LEGACY_UNVERIFIED_ADMISSION
+            ) {
+                throw IllegalStateException("The committed admission decision log is invalid.")
+            }
+        }
     }
 
     private fun canonicalRecordsFileSha256(recordsFile: File): String {
