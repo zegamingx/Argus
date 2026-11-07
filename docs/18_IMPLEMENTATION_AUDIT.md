@@ -473,3 +473,34 @@ Passing these design conditions does not replace the later test and named-device
 
 The appropriate next work is to close G1-D and prepare the final G4 design ADR while completing the exact owner-corpus manifest and current-source containment review. Do not start training-engine or background-service implementation before those dependencies close. Keep E1–E7 and G1-V as later post-implementation verification, consistent with document 15; do not use them to delay documentary work that can be completed from current evidence.
 
+## 11. Post-audit implementation update — 2026-11-07
+
+The section-10 audit remains a historical snapshot of the pre-implementation source baseline on 2026-11-06. The product owner has since explicitly authorized source implementation, with a separate restriction that no build or APK may be run or produced until the owner requests it.
+
+### 11.1 Implemented source scope
+
+The first implementation slice is limited to dataset identity and import integrity:
+
+| Area | Source change | Current boundary |
+|---|---|---|
+| Canonical identity | Added `core/training/CanonicalDatasetDigests.kt` with versioned canonical JSONL encoding, domain-separated SHA-256, length-prefixed split membership hashing and split-manifest hashing. | This defines identity primitives; it does not select or train a tokenizer. |
+| Importer | `LocalDatasetImporter` now emits schema-v3 identity and processing metadata, dataset and split digests, a manifest checksum sidecar and a separate admission decision log whose initial decision is always PENDING. | Provenance/embedded-material review, tokenizer compatibility, data quality and semantic leakage remain pending. |
+| Commit validation | Before staging is committed, the importer re-reads and validates canonical records, normalization, record IDs, document grouping, per-document and per-split counts, exact JSONL bytes/LF termination, dataset/split digests, manifest checksum and initial PENDING decision binding. | This is commit-time integrity validation. It is not a post-commit dataset reader, an authenticity signature or evidence from a runtime-generated corpus. |
+| Duplicate-only sources | Documents contributing no surviving records remain in source metadata with `EXCLUDED_DUPLICATE_ONLY`; they do not distort split membership. | They contribute no training, validation or test records. |
+| Learning projection | Corpus summaries expose the latest recorded admission decision. Older schema-v2 corpus revisions are reported as `LEGACY_UNVERIFIED`. | An admission decision is not a training-readiness decision; APPROVED alone cannot enable training. |
+| Tests authored | Added pure unit-test cases for canonical field order/escaping, digest changes, unambiguous membership framing and split-manifest binding. | Tests are authored but have not been executed. |
+
+The importer remains in the current transitional `platform/android/storage` location. This change does not claim that the future `data/corpus` repository and `application/learning` admission workflow have been fully separated or implemented.
+
+### 11.2 Explicitly not implemented or verified
+
+- No corpus has been imported on a device after this schema-v3 source change; there is no importer-generated v3 manifest or corpus admission result to use as runtime evidence.
+- No provenance or embedded-material decision, data-quality qualification, tokenizer compatibility decision or semantic leakage qualification has been issued. The only initial decision written by the importer is PENDING.
+- No tokenizer artifact/profile registry, tokenizer fitting, model architecture, Genesis coordinator, model-generation repository, training engine, Learning session coordinator, checkpoint/recovery repository, evaluation/promotion workflow or personal-learning pipeline has been enabled by this change.
+- No Gradle task, compiler, unit test, lint, CI workflow, emulator/device run, packaging operation or APK generation was executed. Build and APK generation remain explicitly gated by the product owner.
+
+### 11.3 Readiness disposition after this slice
+
+**Dataset identity/admission: PARTIALLY IMPLEMENTED IN SOURCE; NOT RUNTIME-VERIFIED. G1-D remains OPEN.** The source can now generate and check canonical dataset/split identities and persist a digest-bound initial PENDING decision, but no generated corpus manifest has been verified, admission policy is not complete, and the tokenizer profile/frequency fixture gate remains open.
+
+**Model training: NOT READY AND REMAINS DISABLED.** This implementation does not relax any G4, Genesis, tokenizer, numerical-correctness, checkpoint, evaluation, device-resource, Android execution or personal-consent gate from section 10. The source changes must not be interpreted as authorization to start training or to claim APK readiness.
