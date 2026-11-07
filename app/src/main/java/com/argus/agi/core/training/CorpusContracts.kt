@@ -69,3 +69,49 @@ data class LocalCorpusIntegrityReport(
     val lastAdmissionDecision: String,
     val verifiedAtEpochMillis: Long
 )
+
+/**
+ * Platform-neutral ingress port for user-selected and bundled local corpus inputs.
+ *
+ * Android URI values cross this boundary as opaque strings; this contract does
+ * not expose android.net.Uri or ContentResolver.
+ */
+interface CorpusImportStager {
+    suspend fun stageUserFiles(
+        sourceUriReferences: List<String>,
+        purposes: Set<DatasetPurpose>
+    ): CorpusImportPreview
+
+    suspend fun stageBundledArgusId(purposes: Set<DatasetPurpose>): CorpusImportPreview
+
+    suspend fun stageBundledDigiTransId(purposes: Set<DatasetPurpose>): CorpusImportPreview
+}
+
+/**
+ * Persistence port for staged and committed corpus revisions.
+ *
+ * Implementations own manifest bytes, admission-log persistence, immutable
+ * revision publication and integrity verification. No training authorization
+ * is implied by any operation in this port.
+ */
+interface LocalCorpusStore {
+    fun writeStagedManifest(stageId: String, manifestJson: String): String
+
+    fun writeInitialAdmissionDecision(
+        stageId: String,
+        manifestSha256: String,
+        datasetSha256: String
+    )
+
+    fun commit(stageId: String): LocalCorpusSummary
+
+    fun verifyCommittedCorpusIntegrity(
+        corpusId: String,
+        revision: Int
+    ): LocalCorpusIntegrityReport
+
+    fun discard(stageId: String)
+
+    fun listCommitted(): List<LocalCorpusSummary>
+}
+
