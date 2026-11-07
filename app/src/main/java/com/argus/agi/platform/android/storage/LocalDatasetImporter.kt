@@ -117,7 +117,11 @@ class LocalDatasetImporter(context: Context) {
         try {
             return stageInto(sources, purposes, stageId, corpusId, stageDirectory)
         } catch (exception: Exception) {
-            stageDirectory.deleteRecursively()
+            try {
+                corpusRepository.discard(stageId)
+            } catch (cleanupException: Exception) {
+                exception.addSuppressed(cleanupException)
+            }
             throw exception
         }
     }
@@ -394,7 +398,7 @@ class LocalDatasetImporter(context: Context) {
         val splitPolicy = JSONObject()
             .put("algorithm", SPLIT_ALGORITHM)
             .put("seed", SPLIT_SEED)
-            .put("grouping", "source-document")
+            .put("grouping", SPLIT_GROUPING)
             .put("validationRatio", VALIDATION_RATIO)
             .put("testRatio", TEST_RATIO)
 
@@ -1071,7 +1075,7 @@ class LocalDatasetImporter(context: Context) {
             parentDatasetSha256 = canonicalDatasetSha256,
             algorithm = SPLIT_ALGORITHM,
             seed = SPLIT_SEED,
-            grouping = "source-document",
+            grouping = SPLIT_GROUPING,
             validationRatio = VALIDATION_RATIO,
             testRatio = TEST_RATIO,
             memberships = memberships
@@ -1266,6 +1270,7 @@ class LocalDatasetImporter(context: Context) {
         private const val MANIFEST_SCHEMA_VERSION = CorpusManifestContract.MANIFEST_SCHEMA_VERSION
         private const val SPLIT_ALGORITHM = CorpusManifestContract.SPLIT_ALGORITHM
         private const val SPLIT_SEED = CorpusManifestContract.SPLIT_SEED
+        private const val SPLIT_GROUPING = CorpusManifestContract.SPLIT_GROUPING
         private const val VALIDATION_RATIO = CorpusManifestContract.VALIDATION_RATIO
         private const val TEST_RATIO = CorpusManifestContract.TEST_RATIO
 
