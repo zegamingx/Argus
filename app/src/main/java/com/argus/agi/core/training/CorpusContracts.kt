@@ -1,6 +1,27 @@
 package com.argus.agi.core.training
 
 /**
+ * Immutable result of staging a user-selected local corpus.
+ *
+ * A preview is not a committed dataset, admission approval or training request.
+ */
+data class CorpusImportPreview(
+    val stageId: String,
+    val corpusId: String,
+    val selectedSourceCount: Int,
+    val parsedDocumentCount: Int,
+    val acceptedRecordCount: Long,
+    val duplicateRecordCount: Long,
+    val rejectedRecordCount: Long,
+    val skippedFileCount: Int,
+    val importedBytes: Long,
+    val trainRecordCount: Long,
+    val validationRecordCount: Long,
+    val testRecordCount: Long,
+    val warnings: List<String>
+)
+
+/**
  * Declares which local workflow may consume a user-imported corpus.
  *
  * These values are persisted in the immutable corpus manifest and must remain
