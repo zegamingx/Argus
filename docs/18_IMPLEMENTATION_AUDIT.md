@@ -479,7 +479,7 @@ The section-10 audit remains a historical snapshot of the pre-implementation sou
 
 ### 11.1 Implemented source scope
 
-The first implementation slice is limited to dataset identity and import integrity:
+The first implementation slice covers dataset identity/import integrity and the package-level separation of the corpus workflow:
 
 | Area | Source change | Current boundary |
 |---|---|---|
@@ -489,7 +489,7 @@ The first implementation slice is limited to dataset identity and import integri
 | Commit and committed-revision validation | `LocalCorpusRepository` re-reads and validates canonical records, normalization, record IDs, document grouping, per-document and per-split counts, exact JSONL bytes/LF termination, dataset/split digests, manifest checksum and initial PENDING decision binding before commit. It exposes `verifyCommittedCorpusIntegrity(corpusId, revision)` for an explicit recheck. | The verifier is a data-repository API, must run on an IO dispatcher, and is not yet called by a corpus reader. It is not an authenticity signature or evidence from a runtime-generated corpus. |
 | Duplicate-only sources | Documents contributing no surviving records remain in source metadata with `EXCLUDED_DUPLICATE_ONLY`; they do not distort split membership. | They contribute no training, validation or test records. |
 | Learning projection | Corpus summaries expose the latest recorded admission decision. Older schema-v2 corpus revisions are reported as `LEGACY_UNVERIFIED`. | An admission decision is not a training-readiness decision; APPROVED alone cannot enable training. |
-| Tests authored | Added pure unit-test cases for canonical field order/escaping, digest changes, unambiguous membership framing and split-manifest binding. | Tests are authored but have not been executed. |
+| Tests authored | Added pure unit-test cases for canonical field order/escaping, digest changes, unambiguous membership framing and split-manifest binding, plus repository tests for commit/re-verification, record mutation, manifest overwrite, path traversal and PENDING listing. | Test source is authored but no test has been executed. |
 
 The source ownership split is now implemented at package level: core ports and format contracts, a platform Android stager, a data corpus repository, an application workflow facade and explicit app/bootstrap wiring. This remains one Gradle application module; it is not runtime-verified and does not complete the entire admission workflow.
 
@@ -510,7 +510,7 @@ The source ownership split is now implemented at package level: core ports and f
 
 ### 11.4 Corpus ownership separation — 2026-11-07
 
-The source package boundary now follows the dependency rules in document 45:
+The source package boundary now follows the dependency rules in document 45. This is a local-corpus preparation workflow only; it does not implement the Learning session coordinator:
 
 - `core/training` owns `CorpusImportPreview`, `DatasetPurpose`, `LocalCorpusSummary`, `LocalCorpusIntegrityReport`, `CorpusImportStager`, `LocalCorpusStore`, manifest/storage format identifiers and text normalization.
 - `platform/android/storage/LocalDatasetImporter` implements the stager port. It performs Android URI/asset access and staged content production; it imports no `data/**` class.
