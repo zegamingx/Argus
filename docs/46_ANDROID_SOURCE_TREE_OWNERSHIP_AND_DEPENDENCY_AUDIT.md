@@ -362,7 +362,7 @@ The project owner has authorized bounded package/path relocation. The first phys
 3. Split the cross-feature ViewModel into feature-owned presentation state holders that consume workflow snapshots and send commands through application APIs. Do this only after the relevant workflow APIs and feature state ownership are defined; do not relocate the monolith wholesale.
 4. Continue platform isolation. Service/device implementations have moved under `platform/android/*`; direct CameraX, Android Settings and permission operations remain in presentation, and `ExcludedAppsManager` still mixes PackageManager discovery with exclusion state.
 5. Separate neural numerical execution from tokenizer identity, training workflow, model-generation persistence, data ingestion and Android Context/file I/O. Do not create the selected family engine before G4 or the concrete tokenizer before G1-D.
-6. Isolate local persistence, checkpoint/generation transactions, policy/consent records, source manifests, audit events and knowledge repositories in their owning data domains.
+6. **Corpus persistence separation implemented in source (2026-11-07):** `core/training` owns corpus contracts and format identifiers; `data/corpus/LocalCorpusRepository` implements `LocalCorpusStore`; `application/learning/LocalCorpusImportService` coordinates the workflow; `platform/android/storage/LocalDatasetImporter` implements `CorpusImportStager`; and `app/bootstrap` wires the concrete adapters. The remaining work in this item is model/checkpoint/generation persistence, policy/consent records, source manifests, audit events and knowledge repositories in their owning data domains.
 7. Add contract-mirrored unit and integration tests for each bounded change; establish forbidden-dependency checks before Gradle module extraction.
 8. Add a native module only after architecture/operator/ABI/memory contracts justify it and the required project-owner authorization is given.
 9. Extract Gradle boundaries only when stable APIs and measured build/test/security/ABI benefits justify them.
@@ -450,6 +450,24 @@ The following prototype execution path has been removed from the current source 
 The Learning feature retains its presentation surface and benchmark/device diagnostics, but it reports the learning workflow as unavailable. The foreground notification is read-only and no longer suggests that approved context sources are being monitored or that a pause/resume command controls a training session.
 
 This is **retirement, not remediation of the old training algorithm**. No `application/learning` coordinator, approved-candidate manifest reader, policy/consent repository, optimizer/session checkpoint lifecycle or replacement worker has been implemented. Training must remain unavailable until those contracts are implemented and verified. The neural inference/benchmark prototype remains experimental. No build or test was run for this change.
+
+
+### 11.6 Corpus import and persistence boundary (2026-11-07)
+
+The local-corpus implementation has moved from a single Android importer/persistence class into the package ownership defined by documents 36, 45 and 47:
+
+| Owner | Current source | Responsibility |
+|---|---|---|
+| `core/training` | `CorpusContracts.kt`, `CorpusManifestContract.kt`, `CorpusStorageLayout.kt`, `CorpusTextNormalizer.kt`, `CanonicalDatasetDigests.kt` | Typed import/store ports, immutable manifest identifiers, canonical text and digest rules, and corpus-purpose/result records |
+| `platform/android/storage` | `LocalDatasetImporter.kt` | Android document/asset access, streaming decode, ZIP entry parsing, disk-backed deduplication and staged canonical record production. It implements `CorpusImportStager` and holds a `LocalCorpusStore` port, not a concrete data repository. |
+| `data/corpus` | `LocalCorpusRepository.kt` | Implements `LocalCorpusStore`; owns manifest sidecar/admission-log persistence, staged validation, revision commit/list/discard and committed-revision integrity verification. It has no Android `Context` dependency. |
+| `application/learning` | `LocalCorpusImportService.kt` | Workflow facade over `CorpusImportStager` and `LocalCorpusStore`; no Android or concrete data/platform dependency |
+| `app/bootstrap` | `ArgusContainer.kt`, `ArgusViewModelFactory.kt` | Constructs and binds the concrete repository/stager/service through explicit constructor injection |
+| `ui/ArgusViewModel.kt` | Existing transitional cross-feature ViewModel | Calls only the application workflow facade for corpus import, commit, listing and discard; SAF URIs cross the port as opaque strings |
+
+The dependency direction is now source-aligned: `platform/android/storage` and `data/corpus` both depend on `core/training`; neither imports the other. `application/learning` depends on the core ports only. Concrete implementations are connected only in `app/bootstrap`. This is a package-level boundary inside the existing single Android Gradle module, not a Gradle module extraction.
+
+Repository unit-test source covers successful commit/re-verification, changed record bytes, manifest overwrite prevention, path-traversal rejection and PENDING-only listing. The tests have not been executed. No Gradle task, compiler, test, lint, CI workflow, emulator/device run, packaging operation or APK generation was run. No corpus reader calls the committed-revision verifier yet; no training admission or training workflow was enabled. G1-D and G4 remain open.
 
 ## 12. Change history
 
