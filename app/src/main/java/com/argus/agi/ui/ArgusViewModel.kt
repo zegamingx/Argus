@@ -24,11 +24,11 @@ import com.argus.agi.platform.android.device.DeviceGuard
 import com.argus.agi.platform.android.device.SystemHardwareInfo
 import com.argus.agi.platform.android.capture.ExcludedAppsManager
 import com.argus.agi.data.acquisition.WebSearchEngine
+import com.argus.agi.application.learning.LocalCorpusImportService
 import com.argus.agi.application.runtime.AccessibilityRuntime
 import com.argus.agi.core.training.CorpusImportPreview
 import com.argus.agi.core.training.DatasetPurpose
 import com.argus.agi.core.training.LocalCorpusSummary
-import com.argus.agi.platform.android.storage.LocalDatasetImporter
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -48,7 +48,7 @@ class ArgusViewModel(
     private val excludedAppsManager: ExcludedAppsManager,
     private val webSearchEngine: WebSearchEngine,
     private val accessibilityRuntime: AccessibilityRuntime,
-    private val localDatasetImporter: LocalDatasetImporter
+    private val localCorpusImportService: LocalCorpusImportService
 ) : AndroidViewModel(application) {
 
     // UI States
@@ -145,19 +145,22 @@ class ArgusViewModel(
     fun stageLocalDataset(uris: List<Uri>) {
         if (uris.isEmpty()) return
         stageDataset { purposes ->
-            localDatasetImporter.stage(uris, purposes)
+            localCorpusImportService.stageUserFiles(
+                sourceUriReferences = uris.map(Uri::toString),
+                purposes = purposes
+            )
         }
     }
 
     fun stageBundledArgusId() {
         stageDataset { purposes ->
-            localDatasetImporter.stageBundledArgusId(purposes)
+            localCorpusImportService.stageBundledArgusId(purposes)
         }
     }
 
     fun stageBundledDigiTransId() {
         stageDataset { purposes ->
-            localDatasetImporter.stageBundledDigiTransId(purposes)
+            localCorpusImportService.stageBundledDigiTransId(purposes)
         }
     }
 
@@ -245,10 +248,10 @@ class ArgusViewModel(
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) {
-                    localDatasetImporter.commit(preview.stageId)
+                    localCorpusImportService.commit(preview.stageId)
                 }
                 val committedCorpora = withContext(Dispatchers.IO) {
-                    localDatasetImporter.listCommitted().map { it.toLearningUiState() }
+                    localCorpusImportService.listCommitted().map { it.toLearningUiState() }
                 }
                 _learningState.update { state ->
                     state.copy(
@@ -295,7 +298,7 @@ class ArgusViewModel(
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) {
-                    localDatasetImporter.discard(preview.stageId)
+                    localCorpusImportService.discard(preview.stageId)
                 }
                 _learningState.update { state ->
                     state.copy(
@@ -326,7 +329,7 @@ class ArgusViewModel(
         viewModelScope.launch {
             try {
                 val corpora = withContext(Dispatchers.IO) {
-                    localDatasetImporter.listCommitted().map { it.toLearningUiState() }
+                    localCorpusImportService.listCommitted().map { it.toLearningUiState() }
                 }
                 _learningState.update { state ->
                     state.copy(
