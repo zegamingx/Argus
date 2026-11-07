@@ -109,7 +109,7 @@ Record at least:
 No full document text, credentials or private article content should be copied into generic logs or diagnostic events. The local corpus store owns the content; manifests and logs reference it by identity and digest.
 
 
-### 3.2 Current schema-v3 importer implementation
+### 3.2 Current schema-v3 corpus import and repository implementation
 
 The Android importer now writes canonical corpus records using the versioned `argus-jsonl-canonical-v1` representation. Each record has a fixed field order (`recordId`, `sourceDocumentId`, `sourceName`, `text`, `split`), explicit JSON string escaping and an LF record terminator. The canonical dataset SHA-256 uses a domain-separated digest over the exact UTF-8 JSONL bytes.
 
@@ -125,6 +125,8 @@ The schema-v3 manifest binds:
 Every selected source artifact, including an unsupported file that is skipped, is streamed and assigned a SHA-256 digest and byte count; skipped artifacts are not admitted as documents. The exact manifest bytes are accompanied by a `manifest.sha256` sidecar. Canonical record output is written as exact UTF-8 byte arrays with an LF terminator, and staging storage estimates use actual canonical byte lengths (with a conservative upper bound for intermediate JSON serialization). The initial `admission-decisions.jsonl` entry is always `PENDING` and is bound to both the manifest digest and canonical dataset digest. Integrity checks for source-digest format, canonical encoding, record IDs, normalized text, document-to-split assignment, per-document counts, dataset bytes, split memberships and split-manifest identity run before the staged directory is committed. A source document whose records were all removed as duplicates remains visible in the source inventory with the explicit `EXCLUDED_DUPLICATE_ONLY` disposition; it is not counted as a train/validation/test member.
 
 The Learning corpus list displays the latest structurally validated admission decision. A schema-v2 or older corpus is labelled `LEGACY_UNVERIFIED`; it is not silently treated as an approved dataset. The `LocalCorpusRepository` exposes `verifyCommittedCorpusIntegrity(corpusId, revision)`, which re-reads a committed revision and recomputes its manifest, canonical-record, split-membership and admission-log checks. It streams the full record file and must be called from an IO dispatcher. No corpus reader or training consumer is wired to this API yet.
+
+The package boundary is now source-separated inside the existing single Android application module: `core/training` defines the corpus records and ports; `platform/android/storage/LocalDatasetImporter` implements Android source staging; `data/corpus/LocalCorpusRepository` implements `LocalCorpusStore`; `application/learning/LocalCorpusImportService` coordinates staging and repository operations; and `app/bootstrap` binds the concrete adapters. The ViewModel consumes only the application service. The platform importer does not import data-layer classes, and the data repository has no Android framework dependency. This is not a Gradle module extraction and has not been compiler-verified.
 
 A stable per-installation Argus instance identity is not present in the current source tree. The generated corpus ID identifies a corpus revision chain only; it is not substituted for the owner instance ID required by the target DatasetManifest contract. That identity binding remains open pending the owning identity service.
 
