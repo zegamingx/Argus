@@ -404,7 +404,10 @@ class LocalDatasetImporter(context: Context) {
             )
         }
 
-        val splitByDocument = createDocumentSplits(documentMetadata.keys.toList(), warnings)
+        val splitEligibleDocumentIds = documentMetadata.values
+            .filter { it.recordCount > 0L }
+            .map { it.digest }
+        val splitByDocument = createDocumentSplits(splitEligibleDocumentIds, warnings)
         val finalRecords = writeFinalRecords(
             rawRecordsFile = rawRecordsFile,
             finalRecordsFile = finalRecordsFile,
@@ -424,8 +427,7 @@ class LocalDatasetImporter(context: Context) {
                     .put("recordCount", document.recordCount)
                     .put(
                         "split",
-                        splitByDocument[document.digest]
-                            ?: throw IllegalStateException("A source document has no assigned split.")
+                        splitByDocument[document.digest] ?: EXCLUDED_DUPLICATE_ONLY_SPLIT
                     )
             )
         }
@@ -1088,7 +1090,7 @@ class LocalDatasetImporter(context: Context) {
 
                     storageGuard.beforeWrite(canonicalLine.length.toLong() * 2L + 1L)
                     writer.write(canonicalLine)
-                    writer.write('\n')
+                    writer.write("\n")
 
                     when (split) {
                         "validation" -> validation += 1L
@@ -1175,21 +1177,30 @@ class LocalDatasetImporter(context: Context) {
         val documents = manifest.optJSONArray("documents")
             ?: throw IllegalStateException("The staged document inventory is missing.")
         val documentSplits = linkedMapOf<String, String>()
-        val expectedDocumentNames = linkedMapOf<String, String>()
         val expectedDocumentCounts = linkedMapOf<String, Long>()
         for (index in 0 until documents.length()) {
             val document = documents.optJSONObject(index)
                 ?: throw IllegalStateException("The staged document inventory is malformed.")
             val documentId = document.optString("sha256")
             val split = document.optString("split")
+            val recordCount = document.optLong("recordCount", -1L)
             if (!CanonicalDatasetDigests.isSha256Hex(documentId) ||
-                split !in CanonicalDatasetDigests.SPLIT_NAMES ||
-                documentSplits.put(documentId, split) != null
+                recordCount < 0L ||
+                expectedDocumentCounts.put(documentId, recordCount) != null
             ) {
-                throw IllegalStateException("The staged document identity or split is invalid.")
+                throw IllegalStateException("The staged document identity or record count is invalid.")
             }
-            expectedDocumentNames[documentId] = document.optString("name")
-            expectedDocumentCounts[documentId] = document.optLong("recordCount", -1L)
+            if (recordCount == 0L) {
+                if (split != EXCLUDED_DUPLICATE_ONLY_SPLIT) {
+                    throw IllegalStateException("A duplicate-only source document has an invalid disposition.")
+                }
+            } else {
+                if (split !in CanonicalDatasetDigests.SPLIT_NAMES ||
+                    documentSplits.put(documentId, split) != null
+                ) {
+                    throw IllegalStateException("The staged document split is invalid.")
+                }
+            }
         }
 
         val datasetDigest = CanonicalDatasetDigests.newDatasetDigest()
@@ -1268,7 +1279,11 @@ class LocalDatasetImporter(context: Context) {
             throw IllegalStateException("The staged document inventory does not match its records.")
         }
         for ((documentId, expectedCount) in expectedDocumentCounts) {
-            if (expectedCount < 0L || actualDocumentCounts[documentId] != expectedCount) {
+            if (expectedCount == 0L) {
+                if (actualDocumentCounts.containsKey(documentId)) {
+                    throw IllegalStateException("A duplicate-only source document unexpectedly owns a record.")
+                }
+            } else if (actualDocumentCounts[documentId] != expectedCount) {
                 throw IllegalStateException("A staged document record count is inconsistent.")
             }
         }
@@ -1641,6 +1656,7 @@ class LocalDatasetImporter(context: Context) {
         private const val RAW_RECORDS_FILE = "raw-records.jsonl"
         private const val RECORDS_FILE = "records.jsonl"
         private const val DEDUPLICATION_DATABASE_FILE = "record-deduplication.db"
+        private const val EXCLUDED_DUPLICATE_ONLY_SPLIT = "EXCLUDED_DUPLICATE_ONLY"
         private const val IMPORTER_VERSION = "3.0.0"
         private const val MANIFEST_SCHEMA_VERSION = 3
         private const val SPLIT_ALGORITHM = "sha256-source-document-v1"
