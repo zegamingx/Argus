@@ -449,7 +449,7 @@ The following prototype execution path has been removed from the current source 
 
 The Learning feature retains its presentation surface and benchmark/device diagnostics, but it reports the learning workflow as unavailable. The foreground notification is read-only and no longer suggests that approved context sources are being monitored or that a pause/resume command controls a training session.
 
-This is **retirement, not remediation of the old training algorithm**. No `application/learning` coordinator, approved-candidate manifest reader, policy/consent repository, optimizer/session checkpoint lifecycle or replacement worker has been implemented. Training must remain unavailable until those contracts are implemented and verified. The neural inference/benchmark prototype remains experimental. No build or test was run for this change.
+This is **retirement, not remediation of the old training algorithm**. A narrow `application/learning/LocalCorpusImportService` now coordinates local corpus staging and persistence, but no Learning session coordinator, approved-candidate manifest reader, policy/consent repository, optimizer/session checkpoint lifecycle or replacement training worker has been implemented. Training must remain unavailable until those separate contracts are implemented and verified. The neural inference/benchmark prototype remains experimental. No build or test was run for this change.
 
 
 ### 11.6 Corpus import and persistence boundary (2026-11-07)
