@@ -108,7 +108,7 @@ class LocalDatasetImporter(
         sourceUriReferences: List<String>,
         purposes: Set<DatasetPurpose>
     ): CorpusImportPreview {
-        return stageUris(sourceUriReferences.map(Uri::parse), purposes)
+        return stageUris(sourceUriReferences.map { Uri.parse(it) }, purposes)
     }
 
     private suspend fun stageSources(
