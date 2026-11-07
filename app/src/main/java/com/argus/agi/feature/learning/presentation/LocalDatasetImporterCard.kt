@@ -240,11 +240,11 @@ fun LocalDatasetImporterCard(viewModel: ArgusViewModel) {
                             )
                             Text(
                                 text = when (corpus.lastAdmissionDecision) {
-                                    "PENDING" -> "Last admission decision: Pending review"
-                                    "APPROVED" -> "Last admission decision: Approved"
-                                    "REJECTED" -> "Last admission decision: Rejected"
-                                    "LEGACY_UNVERIFIED" -> "Legacy corpus: re-import for manifest verification"
-                                    else -> "Admission state unavailable"
+                                    "PENDING" -> "Admission decision: Pending · review required"
+                                    "APPROVED" -> "Admission decision: Approved · other training gates remain"
+                                    "REJECTED" -> "Admission decision: Rejected"
+                                    "LEGACY_UNVERIFIED" -> "Legacy corpus · re-import for verification"
+                                    else -> "Admission decision unavailable · re-import required"
                                 },
                                 style = MaterialTheme.typography.labelSmall,
                                 color = ArgusTextMuted
