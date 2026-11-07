@@ -8,9 +8,11 @@ import com.argus.agi.core.training.LocalCorpusSummary
 import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.nio.charset.StandardCharsets
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.UUID
 
 /**
  * Owns app-private persistence, immutable revision publication, manifest
@@ -44,14 +46,117 @@ class LocalCorpusRepository(filesDirectory: File) {
     }
 
     /**
+     * Serializes a validated in-memory manifest into the staging directory and
+     * writes its exact-byte SHA-256 sidecar. Returns the digest of the manifest.
+     */
+    internal fun writeStagedManifest(stageId: String, manifest: JSONObject): String {
+        require(isValidId(stageId)) { "The staged corpus identifier is invalid." }
+        if (manifest.optInt("schemaVersion", -1) != MANIFEST_SCHEMA_VERSION ||
+            manifest.optInt("revision", -1) != INITIAL_REVISION ||
+            !isValidId(manifest.optString("corpusId"))
+        ) {
+            throw IllegalArgumentException("The staged corpus manifest identity is invalid.")
+        }
+        val stageDirectory = stagingDirectory(stageId)
+        if (!stageDirectory.isDirectory) {
+            throw IllegalStateException("The staged corpus directory is unavailable.")
+        }
+        val manifestContent = manifest.toString(2)
+        val manifestDigest = CanonicalDatasetDigests.sha256Hex(
+            manifestContent.toByteArray(StandardCharsets.UTF_8)
+        )
+        File(stageDirectory, MANIFEST_FILE).writeText(manifestContent, Charsets.UTF_8)
+        File(stageDirectory, MANIFEST_DIGEST_FILE).writeText(
+            manifestDigest + "\n",
+            Charsets.UTF_8
+        )
+        return manifestDigest
+    }
+
+    /**
+     * Appends the mandatory initial PENDING admission event to the staged revision.
+     * No import operation can create an APPROVED decision.
+     */
+    internal fun writeInitialAdmissionDecision(
+        stageId: String,
+        manifestSha256: String,
+        datasetSha256: String
+    ) {
+        require(isValidId(stageId)) { "The staged corpus identifier is invalid." }
+        require(CanonicalDatasetDigests.isSha256Hex(manifestSha256))
+        require(CanonicalDatasetDigests.isSha256Hex(datasetSha256))
+        val stageDirectory = stagingDirectory(stageId)
+        val manifestFile = File(stageDirectory, MANIFEST_FILE)
+        if (!manifestFile.isFile) {
+            throw IllegalStateException("The staged corpus manifest is missing.")
+        }
+        val manifestText = manifestFile.readText(Charsets.UTF_8)
+        val actualManifestSha256 = CanonicalDatasetDigests.sha256Hex(
+            manifestText.toByteArray(StandardCharsets.UTF_8)
+        )
+        if (actualManifestSha256 != manifestSha256) {
+            throw IllegalStateException("The staged manifest digest does not match its contents.")
+        }
+        val manifest = JSONObject(manifestText)
+        val datasetIdentity = manifest.optJSONObject("datasetIdentity")
+            ?: throw IllegalStateException("The staged dataset identity is missing.")
+        if (datasetIdentity.optString("canonicalSha256") != datasetSha256) {
+            throw IllegalStateException("The staged dataset digest does not match its manifest.")
+        }
+
+        val admissionFile = File(stageDirectory, ADMISSION_DECISIONS_FILE)
+        if (!admissionFile.createNewFile()) {
+            throw IllegalStateException("The dataset admission log already exists.")
+        }
+        val decision = JSONObject()
+            .put("schemaVersion", ADMISSION_LOG_SCHEMA_VERSION)
+            .put("decisionId", UUID.randomUUID().toString())
+            .put("datasetManifestSha256", manifestSha256)
+            .put("datasetSha256", datasetSha256)
+            .put("validatorVersion", ADMISSION_VALIDATOR_VERSION)
+            .put("policyVersion", ADMISSION_POLICY_VERSION)
+            .put("decision", INITIAL_ADMISSION_DECISION)
+            .put(
+                "reasonCodes",
+                JSONArray(
+                    listOf(
+                        "PROVENANCE_AND_EMBEDDED_MATERIAL_REVIEW_REQUIRED",
+                        "TOKENIZER_COMPATIBILITY_NOT_ESTABLISHED",
+                        "DATA_QUALITY_POLICY_NOT_EVALUATED",
+                        "SEMANTIC_SPLIT_LEAKAGE_NOT_EVALUATED"
+                    )
+                )
+            )
+            .put(
+                "checks",
+                JSONObject()
+                    .put("sourceArtifactDigestFormat", "VERIFIED")
+                    .put("canonicalDatasetDigest", "VERIFIED")
+                    .put("splitMembershipDigests", "VERIFIED")
+                    .put("sourceDocumentGrouping", "VERIFIED")
+                    .put("provenanceAndEmbeddedMaterialReview", "PENDING")
+                    .put("tokenizerCompatibility", "PENDING")
+                    .put("dataQuality", "PENDING")
+                    .put("semanticLeakage", "PENDING")
+            )
+            .put("actor", "LOCAL_IMPORTER")
+            .put("createdAtEpochMillis", System.currentTimeMillis())
+
+        FileOutputStream(admissionFile, true).bufferedWriter(Charsets.UTF_8).use { writer ->
+            writer.write(decision.toString())
+            writer.write("\n")
+            writer.flush()
+        }
+    }
+
+    /**
      * Validates and publishes the first immutable revision of a staged corpus.
      * A successful commit is storage publication only; the admission decision
      * remains PENDING and does not authorize training.
      */
     fun commit(stageId: String): LocalCorpusSummary {
         require(isValidId(stageId)) { "The staged corpus identifier is invalid." }
-        val stagingRoot = resolveDirectChild(appFilesDirectory, STAGING_DIRECTORY)
-        val stageDirectory = resolveDirectChild(stagingRoot, stageId)
+        val stageDirectory = stagingDirectory(stageId)
         val manifestFile = File(stageDirectory, MANIFEST_FILE)
         if (!stageDirectory.isDirectory || !manifestFile.isFile) {
             throw IllegalStateException(
@@ -174,8 +279,7 @@ class LocalCorpusRepository(filesDirectory: File) {
      */
     fun discard(stageId: String) {
         require(isValidId(stageId)) { "The staged corpus identifier is invalid." }
-        val stagingRoot = resolveDirectChild(appFilesDirectory, STAGING_DIRECTORY)
-        val stageDirectory = resolveDirectChild(stagingRoot, stageId)
+        val stageDirectory = stagingDirectory(stageId)
         if (stageDirectory.exists() && !stageDirectory.deleteRecursively()) {
             throw IllegalStateException("Could not discard the staged corpus.")
         }
@@ -230,6 +334,12 @@ class LocalCorpusRepository(filesDirectory: File) {
             }
             .sortedByDescending { it.importedAtEpochMillis }
             .toList()
+    }
+
+    private fun stagingDirectory(stageId: String): File {
+        require(isValidId(stageId)) { "The staged corpus identifier is invalid." }
+        val stagingRoot = resolveDirectChild(appFilesDirectory, STAGING_DIRECTORY)
+        return resolveDirectChild(stagingRoot, stageId)
     }
 
     private fun resolveDirectChild(parent: File, childName: String): File {
