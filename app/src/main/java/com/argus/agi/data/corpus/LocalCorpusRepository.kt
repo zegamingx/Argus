@@ -61,15 +61,20 @@ class LocalCorpusRepository(filesDirectory: File) {
         if (!stageDirectory.isDirectory) {
             throw IllegalStateException("The staged corpus directory is unavailable.")
         }
+        val manifestFile = File(stageDirectory, MANIFEST_FILE)
+        val digestFile = File(stageDirectory, MANIFEST_DIGEST_FILE)
+        if (manifestFile.exists() || digestFile.exists()) {
+            throw IllegalStateException("The staged corpus manifest has already been written.")
+        }
         val manifestContent = manifest.toString(2)
         val manifestDigest = CanonicalDatasetDigests.sha256Hex(
             manifestContent.toByteArray(StandardCharsets.UTF_8)
         )
-        File(stageDirectory, MANIFEST_FILE).writeText(manifestContent, Charsets.UTF_8)
-        File(stageDirectory, MANIFEST_DIGEST_FILE).writeText(
-            manifestDigest + "\n",
-            Charsets.UTF_8
-        )
+        if (!manifestFile.createNewFile() || !digestFile.createNewFile()) {
+            throw IllegalStateException("Could not create the staged corpus manifest files.")
+        }
+        manifestFile.writeText(manifestContent, Charsets.UTF_8)
+        digestFile.writeText(manifestDigest + "\n", Charsets.UTF_8)
         return manifestDigest
     }
 
@@ -473,7 +478,7 @@ class LocalCorpusRepository(filesDirectory: File) {
             ?: throw IllegalStateException("The staged split policy is missing.")
         if (splitPolicy.optString("algorithm") != SPLIT_ALGORITHM ||
             splitPolicy.optString("seed") != SPLIT_SEED ||
-            splitPolicy.optString("grouping") != "source-document" ||
+            splitPolicy.optString("grouping") != SPLIT_GROUPING ||
             splitPolicy.optDouble("validationRatio", -1.0) != VALIDATION_RATIO ||
             splitPolicy.optDouble("testRatio", -1.0) != TEST_RATIO
         ) {
@@ -483,7 +488,7 @@ class LocalCorpusRepository(filesDirectory: File) {
             ?: throw IllegalStateException("The staged top-level split policy is missing.")
         if (topLevelSplitPolicy.optString("algorithm") != splitPolicy.optString("algorithm") ||
             topLevelSplitPolicy.optString("seed") != splitPolicy.optString("seed") ||
-            topLevelSplitPolicy.optString("grouping") != splitPolicy.optString("grouping") ||
+            topLevelSplitPolicy.optString("grouping") != SPLIT_GROUPING ||
             topLevelSplitPolicy.optDouble("validationRatio", -1.0) != VALIDATION_RATIO ||
             topLevelSplitPolicy.optDouble("testRatio", -1.0) != TEST_RATIO
         ) {
@@ -991,6 +996,7 @@ class LocalCorpusRepository(filesDirectory: File) {
         private const val DEDUPLICATION_VERSION = CorpusManifestContract.DEDUPLICATION_VERSION
         private const val SPLIT_ALGORITHM = CorpusManifestContract.SPLIT_ALGORITHM
         private const val SPLIT_SEED = CorpusManifestContract.SPLIT_SEED
+        private const val SPLIT_GROUPING = CorpusManifestContract.SPLIT_GROUPING
         private const val VALIDATION_RATIO = CorpusManifestContract.VALIDATION_RATIO
         private const val TEST_RATIO = CorpusManifestContract.TEST_RATIO
         private const val EXCLUDED_DUPLICATE_ONLY_SPLIT =
