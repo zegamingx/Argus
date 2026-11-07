@@ -1657,18 +1657,45 @@ class LocalDatasetImporter(context: Context) {
             }
             val reasonCodes = decision.optJSONArray("reasonCodes")
             val checks = decision.optJSONObject("checks")
+            val expectedReasonCodes = setOf(
+                "PROVENANCE_AND_EMBEDDED_MATERIAL_REVIEW_REQUIRED",
+                "TOKENIZER_COMPATIBILITY_NOT_ESTABLISHED",
+                "DATA_QUALITY_POLICY_NOT_EVALUATED",
+                "SEMANTIC_SPLIT_LEAKAGE_NOT_EVALUATED"
+            )
+            val actualReasonCodes = if (reasonCodes == null) {
+                emptySet()
+            } else {
+                buildSet {
+                    for (index in 0 until reasonCodes.length()) {
+                        add(reasonCodes.optString(index))
+                    }
+                }
+            }
             if (reader.readLine() != null ||
                 decision.optInt("schemaVersion", -1) != ADMISSION_LOG_SCHEMA_VERSION ||
-                reasonCodes == null || reasonCodes.length() == 0 ||
+                reasonCodes == null ||
+                reasonCodes.length() != expectedReasonCodes.size ||
+                actualReasonCodes != expectedReasonCodes ||
                 checks == null ||
+                checks.optString("sourceArtifactDigestFormat") != "VERIFIED" ||
+                checks.optString("canonicalDatasetDigest") != "VERIFIED" ||
+                checks.optString("splitMembershipDigests") != "VERIFIED" ||
+                checks.optString("sourceDocumentGrouping") != "VERIFIED" ||
+                checks.optString("provenanceAndEmbeddedMaterialReview") != "PENDING" ||
+                checks.optString("tokenizerCompatibility") != "PENDING" ||
+                checks.optString("dataQuality") != "PENDING" ||
+                checks.optString("semanticLeakage") != "PENDING" ||
                 decision.optString("validatorVersion") != ADMISSION_VALIDATOR_VERSION ||
                 decision.optString("policyVersion") != ADMISSION_POLICY_VERSION ||
-                decision.optString("decision") != "PENDING" ||
+                decision.optString("decision") != INITIAL_ADMISSION_DECISION ||
                 decision.optString("datasetManifestSha256") != manifestSha256 ||
                 decision.optString("datasetSha256") != datasetSha256 ||
                 !CanonicalDatasetDigests.isSha256Hex(manifestSha256) ||
                 !CanonicalDatasetDigests.isSha256Hex(datasetSha256) ||
-                !isValidId(decision.optString("decisionId"))
+                !isValidId(decision.optString("decisionId")) ||
+                decision.optString("actor") != "LOCAL_IMPORTER" ||
+                decision.optLong("createdAtEpochMillis", 0L) <= 0L
             ) {
                 throw IllegalStateException("The staged dataset admission decision is inconsistent.")
             }
