@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteStatement
 import android.net.Uri
 import android.provider.OpenableColumns
 import com.argus.agi.core.training.CanonicalDatasetDigests
+import com.argus.agi.core.training.CorpusImportPreview
 import com.argus.agi.core.training.DatasetPurpose
 import com.argus.agi.core.training.DatasetSplitMembership
 import com.argus.agi.core.training.LocalCorpusIntegrityReport
@@ -41,22 +42,6 @@ import java.util.zip.ZipInputStream
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlin.math.roundToInt
-
-data class CorpusImportPreview(
-    val stageId: String,
-    val corpusId: String,
-    val selectedSourceCount: Int,
-    val parsedDocumentCount: Int,
-    val acceptedRecordCount: Long,
-    val duplicateRecordCount: Long,
-    val rejectedRecordCount: Long,
-    val skippedFileCount: Int,
-    val importedBytes: Long,
-    val trainRecordCount: Long,
-    val validationRecordCount: Long,
-    val testRecordCount: Long,
-    val warnings: List<String>
-)
 
 /**
  * Streams local sources into app-private staging. Text is decoded incrementally,
