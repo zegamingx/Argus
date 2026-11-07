@@ -1267,7 +1267,7 @@ class LocalDatasetImporter(context: Context) {
         private const val RAW_RECORDS_FILE = "raw-records.jsonl"
         private const val DEDUPLICATION_DATABASE_FILE = "record-deduplication.db"
 
-        private const val MANIFEST_FILE = CorpusStorageLayout.MANIFEST_FILE
+        private const val ADMISSION_DECISIONS_FILE = CorpusStorageLayout.ADMISSION_DECISIONS_FILE
         private const val RECORDS_FILE = CorpusStorageLayout.RECORDS_FILE
         private const val STREAM_BUFFER_SIZE = CorpusStorageLayout.STREAM_BUFFER_SIZE
         private const val NEW_LINE_BYTE_VALUE = CorpusStorageLayout.NEW_LINE_BYTE_VALUE
