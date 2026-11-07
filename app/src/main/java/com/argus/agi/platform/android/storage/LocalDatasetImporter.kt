@@ -195,6 +195,13 @@ class LocalDatasetImporter(context: Context) {
         return summaryFromManifest(manifest, INITIAL_ADMISSION_DECISION)
     }
 
+    /**
+     * Recomputes the committed revision's canonical record, split and manifest identities.
+     *
+     * This operation streams the complete records file. Call it from Dispatchers.IO,
+     * and require its successful report before a future corpus consumer opens records.
+     * Integrity verification does not approve the admission decision or authorize training.
+     */
     fun verifyCommittedCorpusIntegrity(
         corpusId: String,
         revision: Int
@@ -1552,6 +1559,28 @@ class LocalDatasetImporter(context: Context) {
         }
     }
 
+    private fun hasCanonicalJsonlLineEndings(file: File): Boolean {
+        val buffer = ByteArray(STREAM_BUFFER_SIZE)
+        var totalBytes = 0L
+        var lastByte = -1
+
+        BufferedInputStream(FileInputStream(file), STREAM_BUFFER_SIZE).use { input ->
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                if (count == 0) continue
+                for (index in 0 until count) {
+                    if ((buffer[index].toInt() and 0xff) == CARRIAGE_RETURN_BYTE_VALUE) {
+                        return false
+                    }
+                }
+                totalBytes += count.toLong()
+                lastByte = buffer[count - 1].toInt() and 0xff
+            }
+        }
+        return totalBytes > 0L && lastByte == NEW_LINE_BYTE_VALUE
+    }
+
     private fun canonicalRecordsFileSha256(recordsFile: File): String {
         val digest = CanonicalDatasetDigests.newDatasetDigest()
         val buffer = ByteArray(STREAM_BUFFER_SIZE)
@@ -1584,8 +1613,8 @@ class LocalDatasetImporter(context: Context) {
         datasetSha256: String
     ) {
         val admissionFile = File(stageDirectory, ADMISSION_DECISIONS_FILE)
-        if (!admissionFile.isFile) {
-            throw IllegalStateException("The staged dataset admission decision is missing.")
+        if (!admissionFile.isFile || !hasCanonicalJsonlLineEndings(admissionFile)) {
+            throw IllegalStateException("The staged dataset admission decision is missing or malformed.")
         }
         admissionFile.bufferedReader(Charsets.UTF_8).use { reader ->
             val firstLine = reader.readLine()
@@ -1704,6 +1733,10 @@ class LocalDatasetImporter(context: Context) {
         val admissionFile = File(revisionDirectory, ADMISSION_DECISIONS_FILE)
         if (!admissionFile.isFile) return UNKNOWN_ADMISSION
 
+        if (!hasCanonicalJsonlLineEndings(admissionFile)) {
+            return UNKNOWN_ADMISSION
+        }
+
         val seenDecisionIds = HashSet<String>()
         var latestDecision: String? = null
         var decisionCount = 0
@@ -1738,9 +1771,43 @@ class LocalDatasetImporter(context: Context) {
                     valid = false
                     break
                 }
-                if (decisionCount == 0 && decisionValue != INITIAL_ADMISSION_DECISION) {
-                    valid = false
-                    break
+                if (decisionCount == 0) {
+                    val reasonCodes = decision.optJSONArray("reasonCodes")
+                    val checks = decision.optJSONObject("checks")
+                    val expectedReasonCodes = setOf(
+                        "PROVENANCE_AND_EMBEDDED_MATERIAL_REVIEW_REQUIRED",
+                        "TOKENIZER_COMPATIBILITY_NOT_ESTABLISHED",
+                        "DATA_QUALITY_POLICY_NOT_EVALUATED",
+                        "SEMANTIC_SPLIT_LEAKAGE_NOT_EVALUATED"
+                    )
+                    val actualReasonCodes = if (reasonCodes == null) {
+                        emptySet()
+                    } else {
+                        buildSet {
+                            for (index in 0 until reasonCodes.length()) {
+                                add(reasonCodes.optString(index))
+                            }
+                        }
+                    }
+                    if (decisionValue != INITIAL_ADMISSION_DECISION ||
+                        decision.optString("validatorVersion") != ADMISSION_VALIDATOR_VERSION ||
+                        decision.optString("policyVersion") != ADMISSION_POLICY_VERSION ||
+                        reasonCodes == null ||
+                        reasonCodes.length() != expectedReasonCodes.size ||
+                        actualReasonCodes != expectedReasonCodes ||
+                        checks == null ||
+                        checks.optString("sourceArtifactDigestFormat") != "VERIFIED" ||
+                        checks.optString("canonicalDatasetDigest") != "VERIFIED" ||
+                        checks.optString("splitMembershipDigests") != "VERIFIED" ||
+                        checks.optString("sourceDocumentGrouping") != "VERIFIED" ||
+                        checks.optString("provenanceAndEmbeddedMaterialReview") != "PENDING" ||
+                        checks.optString("tokenizerCompatibility") != "PENDING" ||
+                        checks.optString("dataQuality") != "PENDING" ||
+                        checks.optString("semanticLeakage") != "PENDING"
+                    ) {
+                        valid = false
+                        break
+                    }
                 }
                 latestDecision = decisionValue
                 decisionCount += 1
@@ -2006,6 +2073,7 @@ class LocalDatasetImporter(context: Context) {
         private const val MAX_JSONL_LINE_CHARACTERS = 1_048_576
         private const val STREAM_BUFFER_SIZE = 64 * 1024
         private const val NEW_LINE_BYTE_VALUE = 0x0a
+        private const val CARRIAGE_RETURN_BYTE_VALUE = 0x0d
         private const val CANCELLATION_CHECK_RECORD_INTERVAL = 256
         private const val STORAGE_CHECK_INTERVAL_BYTES = 4L * 1024L * 1024L
         private val SUPPORTED_TEXT_EXTENSIONS = setOf("txt", "md", "jsonl", "ndjson")
